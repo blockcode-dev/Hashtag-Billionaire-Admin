@@ -1,0 +1,184 @@
+.products-root {
+  padding: 20px;
+  background: #f9fafb;
+}
+
+/* HEADER */
+.products-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  .left {
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    p {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+  }
+
+  .right {
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* 🔥 COMBINED SEARCH + EXPORT (REPORTING STYLE) */
+.action-bar {
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+
+  &:focus-within {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+  }
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  min-width: 240px;
+
+  input {
+    border: none;
+    outline: none;
+    font-size: 13px;
+    width: 100%;
+    background: transparent;
+  }
+
+  svg {
+    color: #9ca3af;
+  }
+}
+
+.btn-export {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-left: 1px solid #e5e7eb;
+
+  &:hover {
+    background: #1d4ed8;
+  }
+}
+
+/* TABLE WRAPPER */
+.table-wrap {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+/* TABLE */
+.table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* HEADER */
+.table-wrap th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f3f4f6;
+  padding: 12px;
+  color: #374151;
+}
+
+/* BODY */
+.table-wrap td {
+  padding: 12px;
+  font-size: 13px;
+  border-top: 1px solid #f1f5f9;
+  color: #111827;
+}
+
+/* ROW HOVER */
+.table-wrap tr:hover {
+  background: #f9fafb;
+}
+
+/* PRODUCT COLUMN (BETTER LOOK) */
+.table-wrap td:first-child {
+  font-weight: 500;
+}
+
+/* PRICE */
+.table-wrap td:nth-child(5) {
+  font-weight: 600;
+  color: #16a34a;
+}
+
+/* STOCK */
+.table-wrap td:nth-child(6) {
+  font-weight: 500;
+}
+
+/* ACTION BUTTON */
+.btn-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  cursor: pointer;
+
+  &:hover {
+    background: #f3f4f6;
+  }
+}
+
+.product-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+  }
+
+  .info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .name {
+    font-size: 13px;
+    font-weight: 500;
+    margin: 0;
+    color: #111827;
+  }
+
+  .sku {
+    font-size: 11px;
+    color: #6b7280;
+  }
+}

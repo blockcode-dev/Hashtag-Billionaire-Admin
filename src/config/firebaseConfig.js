@@ -1,0 +1,19 @@
+// firebaseConfig.js
+import { initializeApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+
+// 🔥 Your Firebase Web Config
+const firebaseConfig = {
+  apiKey: "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDFFou1v4dMjvX7\n81Ey9wFuNA8aNoW0WVBVsf3TwHgtNgCnUirHDViR5gag693L0NhsIWHWT4RUBoJU\nDV96Wu2J+YboGdkQb3TugDAacMTH0fAURLqkSUjK7S+CLgQEwpyGT8dKPyhVcnnC\nNRywYpzbWCsh+f33hvwEHbpjoNQYyGH2nRxWcQz9nIVUyeLewXG96LznoeS1orqR\nZA1f26BZnhsRlBSy62jYnZbtsJuhjkinAqbJkqPFjRrdT0PSdLwYMqcDNBBpV4K2\nczhZ7wUf6g/NL/3iaNuBNDXBnFsOoAoS1X6ZypTF2W1D/hoNcyGIXGhuceCS0+ca\nTs9ECJu7AgMBAAECggEAMzo9fTO3zLf6Cw9/AxK97fGdHVCfpzVx0pxtn/0On53C\nRLtwQAXhiCa0gV5da60wm8Z/gi9v81Evzf4d25VH2c2gebLCP2nhCF8MYcr+8vtH\n/lSw+KPNxmUpLJqeU8hr2+NfpxZMew1Cxa59cwFmyQKdT3sFvrF4zu8VM/EpP/lc\n2fIiJmcq7mNlkKRyaqIIneJ/1qkafPcRC0zK77ZqHom4GEOuzE7VBLd5azasykbJ\nczjgXo/ytTYMA2F/besczEcisYF7xpLRe/l82xmtP/2TZT0ev0WA8ZwDdrKNgNKv\nQhpEC5IJgKJ4PpVvwqA/03j4DQEZ3oGR38nZnL9ijQKBgQDonKJs7WaT/nQOCQiW\nKNbmIiBpM3OLdMmAQJ/KC2sR1x/GFYn3hVcy9EcHdtuycCWyReeJYLGA1WyLnAIO\nd+NEg8oHoO7N8ja41Lrb/SlnoepHs+PSpWkJV4WsZDlasvBi+/Gfexu8JsGN56mZ\nR6wiGeTvDJFvmi+2R7A+euP+HwKBgQDY54ntHbbT1acFLYC8sWajUw8IKVuW1LJG\nNHSrYNziJKEF2mbl3c6AH6XD4VIsBGXGElKRagwALr8TMoVlCEuHkGHQsI7Vhi9f\naqqLd6Rf8tytW9Pj0VrrXwKr61Q5vPgcTGuwFWqy+v3rn3s/lhW1mBF0Ol9bfoHQ\nsjjz+ox25QKBgG8aub47mn5f0IEPsYk/kn2zmTWGfM8EhmZ695ei4o5P6X5MtWyD\nxQWyhea7z+4oAOlo2FHW3JHD3yfD6XuNqgEEzc/c/5Ng+OBJw8Ll5gv425VKCCyK\nE2SB6HhSGs8Gnyk4W82oGLRC8rpcB7cN89sJ8T55C1J6HAX9seH2AsZTAoGBAMLQ\n27oEOUT0nenxn7JbKBPDszmiY+gKLAEQdkXDX0EioxntuwP0/9dmFW3k//gXDw4j\nQNPoytSTJ/1nIBbJp4UgMirNmczAk+YAmSNhF1syd/ChDKSPUjkbgfvGB0VArBxG\nq2ZhJg+RjeVGvd0zwVX0OqEJGMLF0nUOzkacn/LdAoGARS2HvPiJvkDZKgHy9MRc\nfpEcypxix8GsQzbCtMMG+dt/usUv5bUJBesaf2VlKsgEkQ3wLk3Bmkvu3U7m9s49\n4FKJeCV9CS8ZupuoJc1AKHDeArAZVvybLGiMsiBILTi747U5ATaS2mBSfcSG/awn\ng6233fHQ60FLM8aoIw6YXfE=",
+  authDomain: "turning-page-87ea6.firebaseapp.com",
+  projectId: "turning-page-87ea6",
+  storageBucket: "turning-page-87ea6.appspot.com",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "2b041191b34de10d46f787d5b256f604b8b1b85c",
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+// Firestore DB
+export const db = getFirestore(app);
