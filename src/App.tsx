@@ -18,7 +18,7 @@ import AdminProfile from "./pages/AdminProfile";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import SSImportPage from "./pages/Import/SSImportPage";
 import ProductsPage from "./pages/Product/Product";
-import ProductView from "./pages/Product/ProductView";
+import ProductView from "./pages/Product/View/ProductView";
 
 const queryClient = new QueryClient();
 

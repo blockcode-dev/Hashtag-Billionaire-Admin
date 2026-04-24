@@ -1,26 +1,29 @@
 .products-root {
-  padding: 20px;
-  background: #f9fafb;
+  padding: 24px;
+  background: #f4f6f9;
+  min-height: 100vh;
 }
 
-/* HEADER */
+/* ─── HEADER ─────────────────────────────────────────── */
 .products-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 
   .left {
     h1 {
-      font-size: 20px;
-      font-weight: 600;
+      font-size: 22px;
+      font-weight: 700;
       margin: 0;
+      color: #111827;
+      letter-spacing: -0.3px;
     }
 
     p {
       font-size: 12px;
-      color: #6b7280;
-      margin-top: 2px;
+      color: #9ca3af;
+      margin-top: 3px;
     }
   }
 
@@ -30,27 +33,28 @@
   }
 }
 
-/* 🔥 COMBINED SEARCH + EXPORT (REPORTING STYLE) */
+/* ─── SEARCH BAR ──────────────────────────────────────── */
 .action-bar {
   display: flex;
   align-items: center;
-  background: white;
+  background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
 
   &:focus-within {
     border-color: #2563eb;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
   }
 }
 
 .search-box {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  min-width: 240px;
+  gap: 7px;
+  padding: 8px 12px;
+  min-width: 260px;
 
   input {
     border: none;
@@ -58,31 +62,93 @@
     font-size: 13px;
     width: 100%;
     background: transparent;
+    color: #111827;
+
+    &::placeholder {
+      color: #c4c9d4;
+    }
   }
 
   svg {
-    color: #9ca3af;
+    color: #c4c9d4;
+    flex-shrink: 0;
   }
 }
 
-.btn-export {
+/* ─── STATS GRID ──────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.stat-card {
+  background: #fff;
+  border: 1px solid #e9ecf1;
+  border-radius: 12px;
+  padding: 16px 18px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  font-size: 13px;
-  background: #2563eb;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-left: 1px solid #e5e7eb;
+  gap: 14px;
+  transition: box-shadow 0.15s;
 
   &:hover {
-    background: #1d4ed8;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  }
+
+  .stat-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    &.purple {
+      background: #ede9fe;
+      color: #7c3aed;
+    }
+    &.blue {
+      background: #dbeafe;
+      color: #2563eb;
+    }
+    &.green {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+    &.orange {
+      background: #ffedd5;
+      color: #ea580c;
+    }
+  }
+
+  .stat-body {
+    p {
+      font-size: 11.5px;
+      color: #9ca3af;
+      margin: 0 0 2px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0;
+      color: #111827;
+      letter-spacing: -0.5px;
+    }
   }
 }
 
-/* TABLE WRAPPER */
+/* ─── TABLE WRAPPER ───────────────────────────────────── */
 .table-wrap {
   background: white;
   border-radius: 12px;
@@ -119,7 +185,7 @@
   background: #f9fafb;
 }
 
-/* PRODUCT COLUMN (BETTER LOOK) */
+/* PRODUCT COLUMN */
 .table-wrap td:first-child {
   font-weight: 500;
 }
@@ -180,5 +246,50 @@
   .sku {
     font-size: 11px;
     color: #6b7280;
+  }
+}
+
+/* ─── NO DATA ─────────────────────────────────────────── */
+.no-data {
+  text-align: center;
+  padding: 40px 0;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+/* ─── PAGINATION ──────────────────────────────────────── */
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 20px;
+  justify-content: center;
+
+  button {
+    padding: 6px 13px;
+    border: 1px solid #e5e7eb;
+    background: white;
+    cursor: pointer;
+    border-radius: 7px;
+    font-size: 13px;
+    color: #374151;
+    transition: background 0.1s, border-color 0.1s;
+
+    &:hover:not(:disabled) {
+      background: #f3f4f6;
+      border-color: #d1d5db;
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    &.active {
+      background: #111827;
+      color: white;
+      border-color: #111827;
+      font-weight: 600;
+    }
   }
 }

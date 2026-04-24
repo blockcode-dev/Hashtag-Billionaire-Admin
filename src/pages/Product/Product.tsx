@@ -1,219 +1,237 @@
 /** @format */
 
 import { useEffect, useState } from "react";
-import { GetAllProductsAPI } from "@/services/Api/ProductApi";
-import { Input } from "@/components/ui/input";
-import { Search, Eye, Upload } from "lucide-react";
+import {
+  GetAllProductsAPI,
+  GetProductStatsAPI,
+} from "@/services/Api/ProductApi";
+import { Search, Eye, Package, Layers, Tag, Archive } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./Products.scss";
 
 const ProductsPage = () => {
-	const [variants, setVariants] = useState<any[]>([]);
-	const [search, setSearch] = useState("");
-	const navigate = useNavigate();
+  const [variants, setVariants] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [stats, setStats] = useState<any>(null);
+  const navigate = useNavigate();
 
-	useEffect(() => {
-		load();
-	}, []);
+  // 🔁 debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 400);
 
-	const load = async () => {
-		const res = await GetAllProductsAPI();
-		setVariants(res.data.data || []);
-	};
+    return () => clearTimeout(timer);
+  }, [search]);
 
-	const filtered = variants.filter((v) => {
-		const term = search.toLowerCase();
+  // 📦 fetch data
+  const load = async () => {
+    try {
+      const res = await GetAllProductsAPI({
+        page,
+        limit: 50,
+        search: debouncedSearch,
+      });
 
-		return (
-			v.product?.name?.toLowerCase().includes(term) ||
-			v.sku?.toLowerCase().includes(term) ||
-			v.color?.toLowerCase().includes(term) ||
-			v.size?.toLowerCase().includes(term) ||
-			v.product?.external_style_name?.toLowerCase().includes(term)
-		);
-	});
+      const payload = res.data.data;
 
-	const handleImport = () => {
-		const csv = convertToCSV(variants);
-		downloadCSV(csv);
-	};
+      setVariants(payload.data || []);
+      setTotalPages(payload.totalPages || 1);
+    } catch (err) {
+      console.error("Failed to load variants", err);
+    }
+  };
 
-	const convertToCSV = (data: any[]) => {
-		const headers = [
-			"Type",
-			"SKU",
-			"Name",
-			"Published",
-			"Is featured?",
-			"Visibility in catalog",
-			"Description",
-			"Tax status",
-			"Tax class",
-			"In stock?",
-			"Stock",
-		];
+  useEffect(() => {
+    load();
+  }, [page, debouncedSearch]);
 
-		const grouped: any = {};
+  const loadStats = async () => {
+    try {
+      const res = await GetProductStatsAPI();
+      setStats(res.data.data);
+    } catch (err) {
+      console.error("Failed to load stats", err);
+    }
+  };
 
-		// group variants by product
-		data.forEach((v) => {
-			const pid = v.product_id;
-			if (!grouped[pid]) {
-				grouped[pid] = {
-					product: v.product,
-					variants: [],
-				};
-			}
-			grouped[pid].variants.push(v);
-		});
+  useEffect(() => {
+    loadStats();
+  }, []);
 
-		const rows: any[] = [];
+  return (
+    <div className="products-root">
+      {/* HEADER */}
+      <div className="products-header">
+        <div className="left">
+          <h1>Products</h1>
+          <p>
+            {variants.length} variants &mdash; page {page} of {totalPages}
+          </p>
+        </div>
 
-		Object.values(grouped).forEach((p: any) => {
-			// ✅ PARENT (variable)
-			rows.push([
-				"variable",
-				p.product.external_style_id || "",
-				p.product.name,
-				1,
-				0,
-				"visible",
-				stripHtml(p.product.description),
-				"taxable",
-				"",
-				1,
-				"",
-			]);
+        <div className="right">
+          <div className="action-bar">
+            <div className="search-box">
+              <Search size={14} />
+              <input
+                placeholder="Search name, SKU, style..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
 
-			// ✅ VARIANTS
-			p.variants.forEach((v: any) => {
-				rows.push([
-					"variation",
-					v.sku,
-					p.product.name,
-					1,
-					0,
-					"visible",
-					stripHtml(p.product.description),
-					"taxable",
-					"parent",
-					1,
-					v.stock,
-				]);
-			});
-		});
+      {/* STATS */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon purple">
+            <Layers size={18} />
+          </div>
+          <div className="stat-body">
+            <p>Total Variants</p>
+            <h2>{stats?.totalVariants ?? "—"}</h2>
+          </div>
+        </div>
 
-		return [headers, ...rows]
-			.map((row) => row.map((i) => `"${i ?? ""}"`).join(","))
-			.join("\n");
-	};
+        <div className="stat-card">
+          <div className="stat-icon blue">
+            <Package size={18} />
+          </div>
+          <div className="stat-body">
+            <p>Total Products</p>
+            <h2>{stats?.totalProducts ?? "—"}</h2>
+          </div>
+        </div>
 
-	const stripHtml = (html: string) => {
-		const div = document.createElement("div");
-		div.innerHTML = html || "";
-		return div.innerText;
-	};
+        <div className="stat-card">
+          <div className="stat-icon green">
+            <Tag size={18} />
+          </div>
+          <div className="stat-body">
+            <p>S&amp;S Variants</p>
+            <h2>{stats?.ssVariants ?? "—"}</h2>
+          </div>
+        </div>
 
-	const downloadCSV = (csv: string) => {
-		const blob = new Blob([csv], { type: "text/csv" });
-		const url = window.URL.createObjectURL(blob);
+        <div className="stat-card">
+          <div className="stat-icon orange">
+            <Archive size={18} />
+          </div>
+          <div className="stat-body">
+            <p>Sage Variants</p>
+            <h2>{stats?.sageVariants ?? "—"}</h2>
+          </div>
+        </div>
+      </div>
 
-		const a = document.createElement("a");
-		a.href = url;
-		a.download = "variants.csv";
-		a.click();
-	};
+      {/* TABLE */}
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Style Name</th>
+              <th>Color</th>
+              <th>Size</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th>Action</th>
+            </tr>
+          </thead>
 
-	return (
-		<div className="products-root">
-			{/* HEADER */}
-			<div className="products-header">
-				<div className="left">
-					<h1>Product</h1>
-					<p>{variants.length} total variants</p>
-				</div>
+          <tbody>
+            {variants.map((v) => (
+              <tr key={v.id}>
+                <td>
+                  <div className="product-cell">
+                    <img
+                      src={
+                        v.images?.[0]?.file_uri ||
+                        v.product?.attachments?.[0]?.file_uri ||
+                        "/placeholder.png"
+                      }
+                      alt="product"
+                    />
 
-				<div className="right">
-					<div className="action-bar">
-						<div className="search-box">
-							<Search size={14} />
-							<input
-								placeholder="Search name, SKU, style..."
-								value={search}
-								onChange={(e) => setSearch(e.target.value)}
-							/>
-						</div>
+                    <div className="info">
+                      <p className="name">{v.product?.name}</p>
+                      <span className="sku">{v.sku}</span>
+                    </div>
+                  </div>
+                </td>
 
-						<button className="btn-export" onClick={handleImport}>
-							<Upload size={14} />
-							Export
-						</button>
-					</div>
-				</div>
-			</div>
+                <td>{v.product?.external_style_name}</td>
+                <td>{v.color}</td>
+                <td>{v.size}</td>
+                <td>$ {v.price}</td>
+                <td>{v.stock}</td>
 
-			{/* TABLE */}
-			<div className="table-wrap">
-				<table>
-					<thead>
-						<tr>
-							<th>Product</th>
-							<th>Style Name</th>
+                <td>
+                  <button
+                    onClick={() =>
+                      navigate(`/products/${v.id}`, {
+                        state: { variant: v },
+                      })
+                    }
+                    className="btn-view"
+                  >
+                    <Eye size={14} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-							<th>Color</th>
-							<th>Size</th>
-							<th>Price</th>
-							<th>Stock</th>
-							<th>Action</th>
-						</tr>
-					</thead>
+        {variants.length === 0 && <p className="no-data">No data found</p>}
+      </div>
 
-					<tbody>
-						{filtered.map((v) => (
-							<tr key={v.id}>
-								<td>
-									<div className="product-cell">
-										<img
-											src={
-												v.images?.[0]?.file_uri ||
-												v.product?.attachments?.[0]?.file_uri ||
-												"/placeholder.png"
-											}
-											alt="product"
-										/>
+      {/* PAGINATION */}
+      <div className="pagination">
+        <button disabled={page === 1} onClick={() => setPage(1)}>
+          ⏮ First
+        </button>
 
-										<div className="info">
-											<p className="name">{v.product?.name}</p>
-											<span className="sku">{v.sku}</span>
-										</div>
-									</div>
-								</td>
-								<td>{v.product?.external_style_name}</td>
-								<td>{v.color}</td>
-								<td>{v.size}</td>
-								<td>$ {v.price}</td>
-								<td>{v.stock}</td>
-								<td>
-									<button
-										onClick={() =>
-											navigate(`/products/${v.id}`, {
-												state: { variant: v, all: variants },
-											})
-										}
-										className="btn-view"
-									>
-										<Eye size={14} />
-									</button>
-								</td>
-							</tr>
-						))}
-					</tbody>
-				</table>
+        <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+          ← Prev
+        </button>
 
-				{filtered.length === 0 && <p>No data</p>}
-			</div>
-		</div>
-	);
+        {[...Array(totalPages)]
+          .map((_, i) => i + 1)
+          .filter((p) => p >= page - 2 && p <= page + 2)
+          .map((p) => (
+            <button
+              key={p}
+              className={p === page ? "active" : ""}
+              onClick={() => setPage(p)}
+            >
+              {p}
+            </button>
+          ))}
+
+        <button
+          disabled={page === totalPages}
+          onClick={() => setPage((p) => p + 1)}
+        >
+          Next →
+        </button>
+
+        <button
+          disabled={page === totalPages}
+          onClick={() => setPage(totalPages)}
+        >
+          Last ⏭
+        </button>
+      </div>
+    </div>
+  );
 };
 
 export default ProductsPage;

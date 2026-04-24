@@ -12,32 +12,31 @@ const ProductView = () => {
   const [variant, setVariant] = useState(state?.variant);
   const [all] = useState(state?.all || []);
   const [activeImage, setActiveImage] = useState(
-    state?.variant?.images?.[0]?.file_uri
+    state?.variant?.images?.[0]?.file_uri,
   );
 
-useEffect(() => {
-  if (variant) {
-    setActiveImage(variant.images?.[0]?.file_uri);
-  }
-}, [variant]);
+  useEffect(() => {
+    if (variant) {
+      setActiveImage(variant.images?.[0]?.file_uri);
+    }
+  }, [variant]);
 
   useEffect(() => {
-  if (state?.variant) {
-    setVariant(state.variant);
-  }
-}, [state]);
+    if (state?.variant) {
+      setVariant(state.variant);
+    }
+  }, [state]);
 
   if (!variant) return <div>No data</div>;
 
   const related = all.filter(
-    (v: any) => v.product_id === variant.product_id && v.id !== variant.id
+    (v: any) => v.product_id === variant.product_id && v.id !== variant.id,
   );
 
   const margin =
     variant.retail_price && variant.sale_price
       ? (
-          ((variant.retail_price - variant.sale_price) /
-            variant.retail_price) *
+          ((variant.retail_price - variant.sale_price) / variant.retail_price) *
           100
         ).toFixed(1)
       : null;
@@ -119,9 +118,7 @@ useEffect(() => {
             <div>
               <span>Stock</span>
               <strong
-                className={`stock ${
-                  variant.stock > 100 ? "high" : "low"
-                }`}
+                className={`stock ${variant.stock > 100 ? "high" : "low"}`}
               >
                 {variant.stock}
               </strong>
@@ -161,47 +158,47 @@ useEffect(() => {
       </div>
 
       {/* WAREHOUSE */}
-<div className="warehouse-card">
-  <h3>Warehouse Stock</h3>
+      <div className="warehouse-card">
+        <h3>Warehouse Stock</h3>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Warehouse</th>
-        <th>Stock</th>
-        <th>Status</th>
-      </tr>
-    </thead>
+        <table>
+          <thead>
+            <tr>
+              <th>Warehouse</th>
+              <th>Stock</th>
+              <th>Status</th>
+            </tr>
+          </thead>
 
-    <tbody>
-      {variant.variant_warehouse?.map((w: any) => (
-        <tr key={w.id}>
-          <td>{w.warehouse_abbr}</td>
-          <td>{w.stock}</td>
-          <td>
-            <span className={`tag ${w.stock > 20 ? "good" : "low"}`}>
-              {w.stock > 20 ? "Available" : "Low"}
-            </span>
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
+          <tbody>
+            {variant.variant_warehouse?.map((w: any) => (
+              <tr key={w.id}>
+                <td>{w.warehouse_abbr}</td>
+                <td>{w.stock}</td>
+                <td>
+                  <span className={`tag ${w.stock > 20 ? "good" : "low"}`}>
+                    {w.stock > 20 ? "Available" : "Low"}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-  {/* TOTAL */}
-  <div className="total">
-    Total Stock:{" "}
-    <strong>
-      {variant.variant_warehouse?.reduce(
-        (sum: number, w: any) => sum + w.stock,
-        0
-      )}
-    </strong>
-  </div>
-</div>
+        {/* TOTAL */}
+        <div className="total">
+          Total Stock:{" "}
+          <strong>
+            {variant.variant_warehouse?.reduce(
+              (sum: number, w: any) => sum + w.stock,
+              0,
+            )}
+          </strong>
+        </div>
+      </div>
 
       {/* RELATED */}
-      <h2 className="section-title">Other Variants</h2>
+      {/* <h2 className="section-title">Other Variants</h2>
 
       <div className="variant-grid">
         {related.map((v: any) => (
@@ -223,7 +220,7 @@ useEffect(() => {
             </div>
           </div>
         ))}
-      </div>
+      </div> */}
     </div>
   );
 };

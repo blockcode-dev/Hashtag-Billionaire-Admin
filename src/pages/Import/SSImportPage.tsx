@@ -5,6 +5,7 @@ import {
   ImportSSProductAPI,
 } from "@/services/Api/ImportApi";
 import React, { useEffect, useRef, useState } from "react";
+import SageImportTab from "./Sage/SageImportTab";
 
 // ─────────────────────────────────────────────
 // Types
@@ -911,7 +912,7 @@ const SSImportPage = () => {
               >
                 <span>{tab.emoji}</span>
                 {tab.label}
-                {tab.key === "ss" && (
+                {/* {tab.key === "ss" && (
                   <span
                     style={{
                       background: "#2563eb",
@@ -925,7 +926,7 @@ const SSImportPage = () => {
                   >
                     LIVE
                   </span>
-                )}
+                )} */}
               </button>
             );
           })}
@@ -934,7 +935,7 @@ const SSImportPage = () => {
         {/* Tab content */}
         <div style={{ padding: 28 }}>
           {activeTab === "ss" && <SSActivewearTab />}
-          {activeTab === "sage" && <ComingSoon name="Sage" />}
+          {activeTab === "sage" && <SageImportTab />}
           {activeTab === "sanmar" && <ComingSoon name="SanMar" />}
           {activeTab === "autocat" && <ComingSoon name="AutoCat" />}
         </div>
