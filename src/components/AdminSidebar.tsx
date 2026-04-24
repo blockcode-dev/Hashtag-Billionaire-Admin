@@ -27,6 +27,7 @@ const navigationItems = [
 	// { title: "Categories", url: "/categories", icon: MessageSquare },
 	{ title: "Import", url: "/import", icon: Import },
 	{ title: "Products", url: "/products", icon: Store },
+	{ title: "Variants", url: "/variants", icon: Store },
 	// {
 	// 	title: "Quotes",
 	// 	icon: Quote,

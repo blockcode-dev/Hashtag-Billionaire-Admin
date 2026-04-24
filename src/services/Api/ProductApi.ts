@@ -6,7 +6,7 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   "https://node.hashtagbillionaire.com/api/v1/";
 
-export const GetAllProductsAPI = async (params: {
+export const GetAllVariantAPI = async (params: {
   page?: number;
   limit?: number;
   search?: string;
@@ -22,5 +22,15 @@ export const GetProductStatsAPI = async () => {
 
   return axios.get(`${API_BASE_URL}product/admin/stats`, {
     headers: { "x-access-token": token },
+  });
+};
+
+export const GetAllProductsAdminAPI = async (params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+}) => {
+  return axios.get(`${API_BASE_URL}product/admin/get`, {
+    params,
   });
 };

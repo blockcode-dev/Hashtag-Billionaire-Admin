@@ -1,8 +1,7 @@
 @use "sass:color";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Sageimporttab.scss
-// Shared styles for SageTabWrapper, SageImportTab, SageImportBySupplierTab
+// SageImportTab.scss  –  shared styles for all Sage import tabs
 // Matches the S&S Activewear "Product Import Center" design language
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -11,9 +10,7 @@ $primary:        #2563eb;
 $primary-light:  #eff6ff;
 $primary-border: #bfdbfe;
 $success:        #16a34a;
-$success-light:  #f0fdf4;
 $error:          #dc2626;
-$error-light:    #fef2f2;
 $border:         #e5e7eb;
 $border-light:   #f3f4f6;
 $text-main:      #111827;
@@ -26,6 +23,19 @@ $radius-sm:      6px;
 $shadow-card:    0 1px 3px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.04);
 $shadow-hover:   0 4px 12px rgba(0, 0, 0, 0.1);
 $transition:     0.18s ease;
+
+// ── Wrapper card ──────────────────────────────────────────────────────────────
+.sage-import-tab {
+  background: $white;
+  border: 1px solid $border;
+  border-radius: $radius;
+  box-shadow: $shadow-card;
+  overflow: hidden;
+  max-width: 960px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
 
 // ── Sub-tab switcher (SageTabWrapper) ─────────────────────────────────────────
 .sage-wrapper {
@@ -64,26 +74,14 @@ $transition:     0.18s ease;
   width: 100%;
 }
 
-// ── Wrapper card (both tab pages) ─────────────────────────────────────────────
-.sage-import-tab {
-  background: $white;
-  border: 1px solid $border;
-  border-radius: $radius;
-  box-shadow: $shadow-card;
-  overflow: hidden;
-  max-width: 960px;
-  display: flex;
-  flex-direction: column;
-  position: relative; // needed for overlay
-}
-
-// ── Wizard Steps Bar (category tab) ──────────────────────────────────────────
+// ── Wizard Steps Bar ──────────────────────────────────────────────────────────
 .sage-steps {
   display: flex;
   align-items: center;
   padding: 20px 24px;
   border-bottom: 1px solid $border;
   background: $white;
+  border-radius: $radius $radius 0 0;
 
   &__item {
     display: flex;
@@ -130,54 +128,7 @@ $transition:     0.18s ease;
   }
 }
 
-// ── Stepper (supplier tab, inside left panel) ─────────────────────────────────
-.sage-stepper {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: nowrap;
-  overflow: hidden;
-  padding-bottom: 4px;
-}
-
-.sage-step {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  opacity: 0.35;
-  transition: opacity 0.2s;
-
-  &--active { opacity: 1; }
-
-  &__num {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: $primary;
-    color: $white;
-    font-size: 11px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  &__label {
-    font-size: 11px;
-    font-weight: 600;
-    color: $text-main;
-    white-space: nowrap;
-  }
-
-  &__arrow {
-    color: $border;
-    font-size: 12px;
-    flex-shrink: 0;
-  }
-}
-
-// ── Main Body Layout ──────────────────────────────────────────────────────────
+// ── Main Layout ───────────────────────────────────────────────────────────────
 .sage-body {
   display: grid;
   grid-template-columns: 300px 1fr;
@@ -200,12 +151,6 @@ $transition:     0.18s ease;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: $text-muted;
-  }
-
-  &__section {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
   }
 
   &__search {
@@ -248,6 +193,12 @@ $transition:     0.18s ease;
     }
   }
 
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
   &__list {
     border: 1px solid $border;
     border-radius: $radius-sm;
@@ -255,9 +206,9 @@ $transition:     0.18s ease;
     overflow-y: auto;
     background: $white;
 
-    &::-webkit-scrollbar       { width: 4px; }
-    &::-webkit-scrollbar-track { background: $border-light; }
-    &::-webkit-scrollbar-thumb { background: $border; border-radius: 99px; }
+    &::-webkit-scrollbar        { width: 4px; }
+    &::-webkit-scrollbar-track  { background: $border-light; }
+    &::-webkit-scrollbar-thumb  { background: $border; border-radius: 99px; }
   }
 
   &__list-item {
@@ -269,7 +220,7 @@ $transition:     0.18s ease;
     border-bottom: 1px solid $border-light;
 
     &:last-child { border-bottom: none; }
-    &:hover      { background: $primary-light; }
+    &:hover { background: $primary-light; }
 
     &--selected {
       background: $primary-light;
@@ -288,7 +239,7 @@ $transition:     0.18s ease;
   }
 }
 
-// ── Supplier ID input ─────────────────────────────────────────────────────────
+// ── Supplier ID input (supplier tab) ──────────────────────────────────────────
 .sage-input {
   width: 100%;
   padding: 9px 12px;
@@ -308,7 +259,6 @@ $transition:     0.18s ease;
   &::placeholder { color: $text-muted; }
 }
 
-// ── Supplier badge ────────────────────────────────────────────────────────────
 .sage-supplier-badge {
   display: flex;
   align-items: center;
@@ -423,8 +373,8 @@ $transition:     0.18s ease;
       background: $border-light;
     }
 
-    &-meta  { display: flex; flex-direction: column; gap: 10px; }
-    &-name  { font-size: 18px; font-weight: 700; color: $text-main; }
+    &-meta { display: flex; flex-direction: column; gap: 10px; }
+    &-name { font-size: 18px; font-weight: 700; color: $text-main; }
     &-price { font-size: 16px; font-weight: 600; color: $success; }
 
     &-row {
@@ -460,96 +410,7 @@ $transition:     0.18s ease;
   }
 }
 
-// ── Empty state (supplier tab) ────────────────────────────────────────────────
-.sage-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  min-height: 300px;
-  gap: 10px;
-  color: $text-muted;
-
-  &__icon { font-size: 40px; opacity: 0.55; }
-
-  p {
-    font-size: 14px;
-    text-align: center;
-    max-width: 220px;
-    line-height: 1.5;
-  }
-}
-
-// ── Count badge ───────────────────────────────────────────────────────────────
-.sage-count-badge {
-  font-size: 12px;
-  color: $text-muted;
-  margin-bottom: 4px;
-}
-
-// ── Pagination ────────────────────────────────────────────────────────────────
-.sage-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 16px;
-
-  &__info {
-    font-size: 13px;
-    color: $text-muted;
-    min-width: 60px;
-    text-align: center;
-  }
-}
-
-// ── Detail view (supplier tab standalone) ─────────────────────────────────────
-.sage-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-
-  &__back { align-self: flex-start; }
-
-  &__body { display: flex; flex-direction: column; gap: 8px; }
-
-  &__name {
-    font-size: 18px;
-    font-weight: 700;
-    color: $text-main;
-    margin: 0;
-  }
-
-  &__desc {
-    font-size: 14px;
-    color: $text-muted;
-    line-height: 1.6;
-    margin: 0;
-  }
-}
-
-// ── Inline loading (supplier tab) ─────────────────────────────────────────────
-.sage-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  height: 200px;
-  color: $text-muted;
-  font-size: 14px;
-
-  &__spinner {
-    width: 20px;
-    height: 20px;
-    border: 2px solid $border;
-    border-top-color: $primary;
-    border-radius: 50%;
-    animation: sage-spin 0.7s linear infinite;
-  }
-}
-
-// ── Spinner (category tab) ────────────────────────────────────────────────────
+// ── Spinner ───────────────────────────────────────────────────────────────────
 .sage-spinner {
   display: flex;
   align-items: center;
@@ -605,29 +466,7 @@ $transition:     0.18s ease;
     &:disabled { opacity: 0.5; cursor: not-allowed; }
   }
 
-  // full-width inside left panel
   &--block { width: 100%; }
-}
-
-// ── Banners ───────────────────────────────────────────────────────────────────
-.sage-success-banner {
-  background: $success-light;
-  border: 1px solid #bbf7d0;
-  border-radius: $radius-sm;
-  padding: 12px 16px;
-  color: $success;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.sage-error-banner {
-  background: $error-light;
-  border: 1px solid #fecaca;
-  border-radius: $radius-sm;
-  padding: 12px 16px;
-  color: $error;
-  font-size: 14px;
-  font-weight: 500;
 }
 
 // ── Footer ────────────────────────────────────────────────────────────────────
@@ -635,6 +474,7 @@ $transition:     0.18s ease;
   padding: 14px 24px;
   border-top: 1px solid $border;
   background: $white;
+  border-radius: 0 0 $radius $radius;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -651,11 +491,11 @@ $transition:     0.18s ease;
   &__hint { color: #f59e0b; font-size: 12px; }
 }
 
-// ── Import Overlay (both tabs) ────────────────────────────────────────────────
+// ── Import Overlay ────────────────────────────────────────────────────────────
 .sage-import-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.55);
+  background: rgba(15, 23, 42, 0.5);
   z-index: 9999;
   display: flex;
   align-items: center;

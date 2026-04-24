@@ -17,8 +17,9 @@ import AdminChangePassword from "./components/AdminChangePassword";
 import AdminProfile from "./pages/AdminProfile";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import SSImportPage from "./pages/Import/SSImportPage";
-import ProductsPage from "./pages/Product/Product";
+import VariantPage from "./pages/Product/Variant/Variant";
 import ProductView from "./pages/Product/View/ProductView";
+import ProductsPage from "./pages/Product/Product/Product";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +82,15 @@ const App = () => (
 						element={
 							<AdminLayout>
 								<SSImportPage />
+							</AdminLayout>
+						}
+					/>
+
+					<Route
+						path="/variants"
+						element={
+							<AdminLayout>
+								<VariantPage />
 							</AdminLayout>
 						}
 					/>

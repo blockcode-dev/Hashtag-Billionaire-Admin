@@ -5,7 +5,8 @@ import {
   ImportSSProductAPI,
 } from "@/services/Api/ImportApi";
 import React, { useEffect, useRef, useState } from "react";
-import SageImportTab from "./Sage/SageImportTab";
+import SageImportTab from "./Sage/Category/SageImportTab";
+import SageTabWrapper from "./Sage/SageTabWrapper";
 
 // ─────────────────────────────────────────────
 // Types
@@ -935,7 +936,7 @@ const SSImportPage = () => {
         {/* Tab content */}
         <div style={{ padding: 28 }}>
           {activeTab === "ss" && <SSActivewearTab />}
-          {activeTab === "sage" && <SageImportTab />}
+          {activeTab === "sage" && <SageTabWrapper />}
           {activeTab === "sanmar" && <ComingSoon name="SanMar" />}
           {activeTab === "autocat" && <ComingSoon name="AutoCat" />}
         </div>

@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import {
-  GetAllProductsAPI,
+  GetAllVariantAPI,
   GetProductStatsAPI,
 } from "@/services/Api/ProductApi";
 import { Search, Eye, Package, Layers, Tag, Archive } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import "./Products.scss";
+import "./Variant.scss";
 
-const ProductsPage = () => {
+const VariantPage = () => {
   const [variants, setVariants] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -31,9 +31,9 @@ const ProductsPage = () => {
   // 📦 fetch data
   const load = async () => {
     try {
-      const res = await GetAllProductsAPI({
+      const res = await GetAllVariantAPI({
         page,
-        limit: 50,
+        limit: 100,
         search: debouncedSearch,
       });
 
@@ -68,7 +68,7 @@ const ProductsPage = () => {
       {/* HEADER */}
       <div className="products-header">
         <div className="left">
-          <h1>Products</h1>
+          <h1>Product Variants</h1>
           <p>
             {variants.length} variants &mdash; page {page} of {totalPages}
           </p>
@@ -234,4 +234,4 @@ const ProductsPage = () => {
   );
 };
 
-export default ProductsPage;
+export default VariantPage;
