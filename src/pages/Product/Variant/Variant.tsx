@@ -5,7 +5,7 @@ import {
   GetAllVariantAPI,
   GetProductStatsAPI,
 } from "@/services/Api/ProductApi";
-import { Search, Eye, Package, Layers, Tag, Archive } from "lucide-react";
+import { Search, Eye, Package, Layers, Tag, Archive, Database, Factory } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./Variant.scss";
 
@@ -88,7 +88,7 @@ const VariantPage = () => {
         </div>
       </div>
 
-      {/* STATS */}
+      {/* STATS - Now optimized for one row */}
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-icon purple">
@@ -115,7 +115,7 @@ const VariantPage = () => {
             <Tag size={18} />
           </div>
           <div className="stat-body">
-            <p>S&amp;S Variants</p>
+            <p>S&amp;S</p>
             <h2>{stats?.ssVariants ?? "—"}</h2>
           </div>
         </div>
@@ -125,8 +125,28 @@ const VariantPage = () => {
             <Archive size={18} />
           </div>
           <div className="stat-body">
-            <p>Sage Variants</p>
+            <p>Sage</p>
             <h2>{stats?.sageVariants ?? "—"}</h2>
+          </div>
+        </div>
+
+         <div className="stat-card">
+          <div className="stat-icon cyan">
+            <Factory size={18} />
+          </div>
+          <div className="stat-body">
+            <p>Sanmar</p>
+            <h2>{stats?.sanmarVariants ?? 0}</h2>
+          </div>
+        </div>
+
+         <div className="stat-card">
+          <div className="stat-icon rose">
+            <Database size={18} />
+          </div>
+          <div className="stat-body">
+            <p>Autocap</p>
+            <h2>{stats?.autocapVariants ?? 0}</h2>
           </div>
         </div>
       </div>
@@ -176,7 +196,7 @@ const VariantPage = () => {
                 <td>
                   <button
                     onClick={() =>
-                      navigate(`/products/${v.id}`, {
+                      navigate(`/variant/${v.id}`, {
                         state: { variant: v },
                       })
                     }

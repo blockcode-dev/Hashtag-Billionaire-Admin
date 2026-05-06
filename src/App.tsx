@@ -20,6 +20,7 @@ import SSImportPage from "./pages/Import/SSImportPage";
 import VariantPage from "./pages/Product/Variant/Variant";
 import ProductView from "./pages/Product/View/ProductView";
 import ProductsPage from "./pages/Product/Product/Product";
+import ProductDetails from "./pages/Product/ProductDetails/ProductDetails";
 
 const queryClient = new QueryClient();
 
@@ -104,8 +105,18 @@ const App = () => (
 						}
 					/>
 
+
 					<Route
 						path="/products/:id"
+						element={
+							<AdminLayout>
+								<ProductDetails />
+							</AdminLayout>
+						}
+					/>
+
+					<Route
+						path="/variant/:id"
 						element={
 							<AdminLayout>
 								<ProductView />

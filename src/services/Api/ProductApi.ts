@@ -30,7 +30,24 @@ export const GetAllProductsAdminAPI = async (params: {
   limit?: number;
   search?: string;
 }) => {
-  return axios.get(`${API_BASE_URL}product/admin/get`, {
+  return axios.get(`${API_BASE_URL}product/admin/get/all`, {
     params,
+  });
+};
+
+export const DeleteProductAPI = async (data: {
+  styleId: string;
+  supplier: string;
+}) => {
+  const token = localStorage.getItem("token");
+
+  return axios.post(`${API_BASE_URL}product/delete`, data, {
+    headers: { "x-access-token": token },
+  });
+};
+
+export const GetProductByIdAPI = async (id: number | string) => {
+
+  return axios.get(`${API_BASE_URL}product/admin/${id}`, {
   });
 };

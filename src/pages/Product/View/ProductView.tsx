@@ -206,7 +206,7 @@ const ProductView = () => {
             key={v.id}
             className="variant-card clickable"
             onClick={() =>
-              navigate(`/products/${v.id}`, {
+              navigate(`/variant/${v.id}`, {
                 state: { variant: v, all },
               })
             }
