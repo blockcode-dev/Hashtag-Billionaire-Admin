@@ -20,7 +20,7 @@ const TABS = [
     { label: "S&S", value: "SS" },
     { label: "SAGE", value: "SAGE" },
     { label: "Sanmar", value: "SANMAR" },
-    { label: "Auto Cap", value: "AUTOCAP" },
+    { label: "Auto Cap", value: "OTTOCAP" },
 ];
 
 const ProductsPage = () => {

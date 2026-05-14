@@ -145,7 +145,7 @@ const VariantPage = () => {
             <Database size={18} />
           </div>
           <div className="stat-body">
-            <p>Autocap</p>
+            <p>Ottocap</p>
             <h2>{stats?.autocapVariants ?? 0}</h2>
           </div>
         </div>

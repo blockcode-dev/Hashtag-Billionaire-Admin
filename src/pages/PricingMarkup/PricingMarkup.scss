@@ -1,0 +1,143 @@
+.pricing-root {
+  padding: 24px;
+}
+
+.pricing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+  }
+
+  p {
+    color: #777;
+    margin-top: 4px;
+  }
+}
+
+.pricing-stats {
+  margin-bottom: 24px;
+
+  .stat-card {
+    width: 250px;
+    background: white;
+    border-radius: 16px;
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: #f4f4f4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stat-body {
+      p {
+        font-size: 13px;
+        color: #777;
+      }
+
+      h2 {
+        font-size: 24px;
+        margin-top: 4px;
+      }
+    }
+  }
+}
+
+.table-wrap {
+  background: white;
+  border-radius: 18px;
+  overflow: hidden;
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+
+    thead {
+      background: #fafafa;
+
+      th {
+        text-align: left;
+        padding: 18px;
+        font-size: 14px;
+      }
+    }
+
+    tbody {
+      tr {
+        border-top: 1px solid #f1f1f1;
+
+        td {
+          padding: 18px;
+        }
+      }
+    }
+  }
+}
+
+.supplier-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #f4f4f4;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.markup-input {
+  width: 100px;
+  height: 40px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 0 12px;
+}
+
+.markup-value {
+  font-weight: 600;
+}
+
+.btn-edit,
+.btn-save {
+  height: 40px;
+  border: none;
+  padding: 0 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-edit {
+  background: #f4f4f4;
+}
+
+.btn-save {
+  background: black;
+  color: white;
+}
+
+.no-data {
+  padding: 40px;
+  text-align: center;
+}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
   GetSanmarBrandsAPI,
@@ -15,7 +15,7 @@ type Variant = {
   sku: string;
   variant_name: string;
   stock: number;
-  pricing: { price: number };
+  pricing: { piece?: number; price?: number };
 };
 
 type Brand = { id: number | string; name: string };
@@ -26,90 +26,290 @@ type Product = {
   variants?: Variant[];
 };
 
-type Step = 1 | 2 | 3 | 4;
-type ImportStatus = "idle" | "importing" | "done" | "error";
-
-// ─── Step Bar ─────────────────────────────────────────────────────────────────
-
-const STEPS = [
-  { label: "Pick a Brand" },
-  { label: "Choose a Style" },
-  { label: "Review Product" },
-  { label: "Import" },
-];
-
-const StepBar: React.FC<{ current: Step }> = ({ current }) => (
-  <div className="sanmar-steps">
-    {STEPS.map((s, i) => {
-      const num = (i + 1) as Step;
-      const isDone = num < current;
-      const isActive = num === current;
-      return (
-        <React.Fragment key={num}>
-          <div className="sanmar-steps__item">
-            <div
-              className={[
-                "sanmar-steps__circle",
-                isDone ? "sanmar-steps__circle--done" : "",
-                isActive ? "sanmar-steps__circle--active" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              {isDone ? "✓" : num}
-            </div>
-            <span
-              className={[
-                "sanmar-steps__label",
-                isDone ? "sanmar-steps__label--done" : "",
-                isActive ? "sanmar-steps__label--active" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              {s.label}
-            </span>
-          </div>
-          {i < STEPS.length - 1 && (
-            <span className="sanmar-steps__arrow">→</span>
-          )}
-        </React.Fragment>
-      );
-    })}
-  </div>
-);
+// ─── Spinner ──────────────────────────────────────────────────────────────────
 
 const Spinner: React.FC = () => (
-  <div className="sanmar-spinner">
-    <div className="sanmar-spinner__ring" />
+  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 280, gap: 14, color: "#64748b" }}>
+    <div style={{ width: 40, height: 40, border: "3px solid #e2e8f0", borderTop: "3px solid #2563eb", borderRadius: "50%", animation: "sanmarSpin 0.8s linear infinite" }} />
+    <p style={{ margin: 0, fontSize: 14 }}>Loading…</p>
+    <style>{`@keyframes sanmarSpin { to { transform: rotate(360deg); } }`}</style>
   </div>
 );
+
+// ─── Shared: Searchable List ──────────────────────────────────────────────────
+
+function SearchableList({
+  label, items, selectedId, getKey, getLabel, getSubLabel,
+  onSelect, loading, searchValue, onSearchChange, searchPlaceholder, emptyText,
+}: {
+  label: string; items: any[]; selectedId: string;
+  getKey: (item: any) => string; getLabel: (item: any) => string; getSubLabel?: (item: any) => string;
+  onSelect: (item: any) => void; loading?: boolean;
+  searchValue: string; onSearchChange: (v: string) => void;
+  searchPlaceholder: string; emptyText: string;
+}) {
+  return (
+    <div>
+      <label style={{ display: "block", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#64748b", marginBottom: 6 }}>
+        {label}
+        {items.length > 0 && <span style={{ color: "#2563eb", marginLeft: 4 }}>({items.length})</span>}
+      </label>
+      <div style={{ position: "relative", marginBottom: 8 }}>
+        <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#94a3b8" }}>🔍</span>
+        <input
+          placeholder={searchPlaceholder}
+          value={searchValue}
+          onChange={(e) => onSearchChange(e.target.value)}
+          style={{
+            width: "100%", padding: "8px 12px 8px 30px", borderRadius: 8,
+            border: "1.5px solid #e2e8f0", fontSize: 13, outline: "none",
+            fontFamily: "'DM Sans', sans-serif", boxSizing: "border-box",
+          }}
+        />
+      </div>
+      {loading ? (
+        <div style={{ padding: 20, textAlign: "center", color: "#94a3b8", fontSize: 13, border: "1.5px solid #e2e8f0", borderRadius: 8 }}>⏳ Loading…</div>
+      ) : items.length === 0 ? (
+        <div style={{ padding: 20, textAlign: "center", color: "#94a3b8", fontSize: 13, border: "1.5px dashed #e2e8f0", borderRadius: 8 }}>{emptyText}</div>
+      ) : (
+        <div style={{ maxHeight: 280, overflowY: "auto", border: "1.5px solid #e2e8f0", borderRadius: 8, background: "#fff" }}>
+          {items.map((item, i) => {
+            const key = getKey(item);
+            const isSelected = selectedId === key;
+            return (
+              <div
+                key={key}
+                onClick={() => onSelect(item)}
+                style={{
+                  padding: "10px 14px", cursor: "pointer",
+                  background: isSelected ? "#eff6ff" : "transparent",
+                  borderLeft: isSelected ? "3px solid #2563eb" : "3px solid transparent",
+                  borderBottom: i < items.length - 1 ? "1px solid #f1f5f9" : "none",
+                  transition: "background 0.15s",
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 600, color: isSelected ? "#1d4ed8" : "#1e293b" }}>{getLabel(item)}</div>
+                {getSubLabel && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>{getSubLabel(item)}</div>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Sticky Top Action Bar ────────────────────────────────────────────────────
+
+function StickyActionBar({
+  product, selectedStyle, selectedBrand, importing,
+  currentIndex, totalStyles, onImport, onPrev, onNext,
+}: {
+  product: Product | null; selectedStyle: string; selectedBrand: string; importing: boolean;
+  currentIndex: number; totalStyles: number;
+  onImport: () => void; onPrev: () => void; onNext: () => void;
+}) {
+  if (!product) return null;
+  return (
+    <div
+      style={{
+        position: "sticky", top: 0, zIndex: 100,
+        background: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)",
+        borderRadius: 12, padding: "12px 20px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        gap: 16, flexWrap: "wrap", marginBottom: 20,
+        boxShadow: "0 4px 24px rgba(15,23,42,0.25)",
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+          Ready to import
+        </span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 260 }}>
+          {product.product?.name ?? selectedStyle}
+        </span>
+        <span style={{ fontSize: 12, color: "#64748b" }}>{selectedBrand} · {selectedStyle}</span>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <button
+          onClick={onPrev} disabled={currentIndex <= 0} title="Previous style"
+          style={{ width: 34, height: 34, borderRadius: 8, border: "1.5px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.07)", color: currentIndex <= 0 ? "#475569" : "#e2e8f0", cursor: currentIndex <= 0 ? "not-allowed" : "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}
+        >‹</button>
+        <span style={{ fontSize: 13, color: "#94a3b8", minWidth: 80, textAlign: "center" }}>
+          {currentIndex + 1} / {totalStyles}
+        </span>
+        <button
+          onClick={onNext} disabled={currentIndex >= totalStyles - 1} title="Next style"
+          style={{ width: 34, height: 34, borderRadius: 8, border: "1.5px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.07)", color: currentIndex >= totalStyles - 1 ? "#475569" : "#e2e8f0", cursor: currentIndex >= totalStyles - 1 ? "not-allowed" : "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}
+        >›</button>
+      </div>
+
+      <button
+        onClick={onImport} disabled={importing}
+        style={{
+          background: importing ? "#475569" : "linear-gradient(135deg, #2563eb, #16a34a)",
+          color: "#fff", border: "none", borderRadius: 10, padding: "10px 22px",
+          fontSize: 14, fontWeight: 700, cursor: importing ? "not-allowed" : "pointer",
+          fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: 8,
+          boxShadow: importing ? "none" : "0 4px 14px rgba(37,99,235,0.45)",
+          transition: "all 0.2s", whiteSpace: "nowrap", flexShrink: 0,
+        }}
+      >
+        {importing ? (
+          <>
+            <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid #fff", borderTop: "2px solid transparent", borderRadius: "50%", animation: "sanmarSpin 0.7s linear infinite" }} />
+            Importing…
+          </>
+        ) : <>🚀 Import Product</>}
+      </button>
+    </div>
+  );
+}
+
+// ─── Post-Import Success Banner ───────────────────────────────────────────────
+
+function PostImportBanner({ importedName, hasNext, onNext, onDismiss }: {
+  importedName: string; hasNext: boolean; onNext: () => void; onDismiss: () => void;
+}) {
+  return (
+    <div
+      style={{
+        background: "linear-gradient(135deg, #052e16 0%, #14532d 100%)",
+        border: "1.5px solid #16a34a", borderRadius: 12, padding: "16px 20px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        gap: 16, flexWrap: "wrap", marginBottom: 20,
+        animation: "sanmarSlideIn 0.3s ease",
+      }}
+    >
+      <style>{`@keyframes sanmarSlideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }`}</style>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ fontSize: 28 }}>🎉</span>
+        <div>
+          <div style={{ fontWeight: 700, color: "#4ade80", fontSize: 14 }}>Import successful!</div>
+          <div style={{ fontSize: 13, color: "#86efac", marginTop: 2 }}>
+            <strong>{importedName}</strong> has been added to your store.
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        {hasNext && (
+          <button
+            onClick={onNext}
+            style={{ background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, padding: "9px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: 6, boxShadow: "0 2px 10px rgba(22,163,74,0.4)", whiteSpace: "nowrap" }}
+          >
+            Next Product →
+          </button>
+        )}
+        <button
+          onClick={onDismiss}
+          style={{ background: "rgba(255,255,255,0.08)", color: "#86efac", border: "1.5px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "9px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+        >
+          Dismiss
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Import Overlay (SanMar imports take a long time) ─────────────────────────
+
+function ImportOverlay({ styleName, brandName }: { styleName: string; brandName: string }) {
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 9999,
+        background: "rgba(15,23,42,0.75)", backdropFilter: "blur(4px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}
+    >
+      <div
+        style={{
+          background: "#fff", borderRadius: 16, padding: "40px 48px",
+          maxWidth: 420, width: "90%", textAlign: "center",
+          boxShadow: "0 24px 60px rgba(0,0,0,0.3)",
+        }}
+      >
+        {/* Animated ring */}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+          <div style={{ position: "relative", width: 64, height: 64 }}>
+            <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "4px solid #e2e8f0" }} />
+            <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "4px solid transparent", borderTopColor: "#2563eb", animation: "sanmarSpin 0.9s linear infinite" }} />
+          </div>
+        </div>
+        <h3 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 800, color: "#0f172a", fontFamily: "'DM Sans', sans-serif" }}>
+          Importing Product…
+        </h3>
+        <p style={{ margin: "0 0 6px", fontSize: 14, color: "#475569", fontFamily: "'DM Sans', sans-serif" }}>
+          Importing <strong>{styleName}</strong> from <strong>{brandName}</strong>.
+        </p>
+        <p style={{ margin: "0 0 24px", fontSize: 13, color: "#94a3b8", fontFamily: "'DM Sans', sans-serif" }}>
+          SanMar imports may take a minute or two — please don't close this tab.
+        </p>
+        {/* Progress bar */}
+        <div style={{ height: 6, background: "#e2e8f0", borderRadius: 99, overflow: "hidden" }}>
+          <div
+            style={{
+              height: "100%",
+              background: "linear-gradient(90deg, #2563eb, #16a34a)",
+              borderRadius: 99,
+              animation: "sanmarProgress 2.5s ease-in-out infinite alternate",
+              width: "60%",
+            }}
+          />
+        </div>
+        <p style={{ marginTop: 16, fontSize: 12, color: "#f59e0b", fontFamily: "'DM Sans', sans-serif" }}>
+          ⚠️ Do not close or refresh this tab
+        </p>
+      </div>
+      <style>{`
+        @keyframes sanmarProgress { from { width: 20%; } to { width: 85%; } }
+      `}</style>
+    </div>
+  );
+}
+
+// ─── Step Badge ───────────────────────────────────────────────────────────────
+
+function StepBadge({ number, label, done, active }: { number: number; label: string; done: boolean; active: boolean }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, opacity: active || done ? 1 : 0.4 }}>
+      <div style={{ width: 28, height: 28, borderRadius: "50%", background: done ? "#16a34a" : active ? "#2563eb" : "#e2e8f0", color: done || active ? "#fff" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flexShrink: 0, transition: "background 0.3s" }}>
+        {done ? "✓" : number}
+      </div>
+      <span style={{ fontSize: 13, fontWeight: active ? 600 : 400, color: active ? "#1e3a5f" : "#64748b" }}>{label}</span>
+    </div>
+  );
+}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const SanmarTab: React.FC = () => {
-  const [step, setStep] = useState<Step>(1);
-
-  // Step 1 – brand
   const [brands, setBrands] = useState<Brand[]>([]);
   const [brandsLoading, setBrandsLoading] = useState(true);
   const [brandSearch, setBrandSearch] = useState("");
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
 
-  // Step 2 – style
   const [styles, setStyles] = useState<string[]>([]);
   const [stylesLoading, setStylesLoading] = useState(false);
   const [styleSearch, setStyleSearch] = useState("");
   const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
+  const [selectedStyleIndex, setSelectedStyleIndex] = useState(-1);
 
-  // Step 3 – product
   const [product, setProduct] = useState<Product | null>(null);
   const [productLoading, setProductLoading] = useState(false);
 
-  // Step 4 – import
-  const [importStatus, setImportStatus] = useState<ImportStatus>("idle");
+  const [importing, setImporting] = useState(false);
+  const [lastImportedName, setLastImportedName] = useState<string | null>(null);
 
   const { show } = useToast();
+
+  const filteredBrands = brands.filter((b) =>
+    b.name.toLowerCase().includes(brandSearch.toLowerCase())
+  );
+  const filteredStyles = styles.filter((s) =>
+    s.toLowerCase().includes(styleSearch.toLowerCase())
+  );
 
   // ── Load brands on mount ──
   useEffect(() => {
@@ -119,25 +319,15 @@ const SanmarTab: React.FC = () => {
       .finally(() => setBrandsLoading(false));
   }, []);
 
-  const resetAll = () => {
-    setStep(1);
-    setSelectedBrand(null);
-    setSelectedStyle(null);
-    setStyles([]);
-    setProduct(null);
-    setImportStatus("idle");
-    setBrandSearch("");
-    setStyleSearch("");
-  };
-
-  // ── Step 1 → 2: select brand ──
+  // ── Select brand → fetch styles ──
   const handleSelectBrand = async (brand: Brand) => {
     setSelectedBrand(brand);
     setSelectedStyle(null);
+    setSelectedStyleIndex(-1);
     setProduct(null);
     setStyles([]);
-    setImportStatus("idle");
     setStyleSearch("");
+    setLastImportedName(null);
     setStylesLoading(true);
     try {
       const res = await GetSanmarStylesAPI(brand.name);
@@ -148,382 +338,225 @@ const SanmarTab: React.FC = () => {
     } finally {
       setStylesLoading(false);
     }
-    setStep(2);
   };
 
-  // ── Step 2 → 3: select style ──
-  const handleSelectStyle = async (style: string) => {
+  // ── Load product by index in styles array ──
+  const loadStyleByIndex = async (index: number, stylesList: string[] = styles) => {
+    if (index < 0 || index >= stylesList.length || !selectedBrand) return;
+    const style = stylesList[index];
     setSelectedStyle(style);
+    setSelectedStyleIndex(index);
     setProduct(null);
     setProductLoading(true);
-    setImportStatus("idle");
+    setLastImportedName(null);
     try {
-      const res = await GetSanmarProductAPI(selectedBrand!.name, style);
+      const res = await GetSanmarProductAPI(selectedBrand.name, style);
       setProduct(res.data.data);
     } catch {
       show("Failed to load product", "error");
     } finally {
       setProductLoading(false);
     }
-    setStep(3);
   };
 
-  // ── Step 3 → 4: import ──
+  // ── Select style from sidebar ──
+  const handleSelectStyle = (style: string) => {
+    const index = styles.findIndex((s) => s === style);
+    loadStyleByIndex(index);
+  };
+
+  // ── Import ──
   const handleImport = async () => {
     if (!selectedBrand || !selectedStyle) return;
-    setImportStatus("importing");
-    setStep(4);
+    setImporting(true);
     try {
-      await ImportSanmarProductAPI({
-        brand: selectedBrand.name,
-        style: selectedStyle,
-      });
-      setImportStatus("done");
+      await ImportSanmarProductAPI({ brand: selectedBrand.name, style: selectedStyle });
+      setLastImportedName(product?.product?.name ?? selectedStyle);
+      show("Product imported successfully!", "success");
     } catch {
-      setImportStatus("error");
+      show("Import failed. Please try again.", "error");
+    } finally {
+      setImporting(false);
     }
   };
 
-  // ── Go back ──
-  const handleBack = () => {
-    if (step === 2) {
-      setStep(1);
-      setSelectedStyle(null);
-    } else if (step === 3) {
-      setStep(2);
-      setProduct(null);
-    } else if (step === 4) {
-      setStep(3);
-      setImportStatus("idle");
-    }
+  // ── Next from banner ──
+  const handleNextFromBanner = () => {
+    setLastImportedName(null);
+    loadStyleByIndex(selectedStyleIndex + 1);
   };
 
-  const filteredBrands = brands.filter((b) =>
-    b.name.toLowerCase().includes(brandSearch.toLowerCase())
-  );
-  const filteredStyles = styles.filter((s) =>
-    s.toLowerCase().includes(styleSearch.toLowerCase())
-  );
-
-  const totalStock =
-    product?.variants?.reduce((sum, v) => sum + v.stock, 0) || 0;
-
-  // ─── Render ───────────────────────────────────────────────────────────────
+  const step1Done = !!selectedBrand;
+  const step2Done = !!selectedStyle;
+  const step3Done = !!product;
+  const totalStock = product?.variants?.reduce((sum, v) => sum + v.stock, 0) ?? 0;
 
   return (
-    <div className="sanmar-import-tab">
+    <div style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      <style>{`@keyframes sanmarSpin { to { transform: rotate(360deg); } }`}</style>
 
-      {/* ── Import Overlay ── */}
-      {importStatus === "importing" && (
-        <div className="sanmar-import-overlay">
-          <div className="sanmar-import-overlay__card">
-            <div className="sanmar-import-overlay__spinner" />
-            <h3 className="sanmar-import-overlay__title">Importing Product…</h3>
-            <p className="sanmar-import-overlay__msg">
-              Importing <strong>{selectedStyle}</strong> from{" "}
-              <strong>{selectedBrand?.name}</strong>. This may take a few
-              minutes — please don't close this tab.
-            </p>
-            <div className="sanmar-import-overlay__bar">
-              <div className="sanmar-import-overlay__bar-fill" />
-            </div>
-            <p className="sanmar-import-overlay__hint">
-              ⚠️ Please don't close or refresh this tab
-            </p>
-          </div>
-        </div>
+      {/* Import Overlay */}
+      {importing && <ImportOverlay styleName={selectedStyle ?? ""} brandName={selectedBrand?.name ?? ""} />}
+
+      {/* Sticky Action Bar */}
+      <StickyActionBar
+        product={product}
+        selectedStyle={selectedStyle ?? ""}
+        selectedBrand={selectedBrand?.name ?? ""}
+        importing={importing}
+        currentIndex={selectedStyleIndex}
+        totalStyles={styles.length}
+        onImport={handleImport}
+        onPrev={() => loadStyleByIndex(selectedStyleIndex - 1)}
+        onNext={() => loadStyleByIndex(selectedStyleIndex + 1)}
+      />
+
+      {/* Post-Import Banner */}
+      {lastImportedName && (
+        <PostImportBanner
+          importedName={lastImportedName}
+          hasNext={selectedStyleIndex < styles.length - 1}
+          onNext={handleNextFromBanner}
+          onDismiss={() => setLastImportedName(null)}
+        />
       )}
 
-      {/* Step Bar */}
-      <StepBar current={step} />
+      {/* Progress Tracker */}
+      <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: "16px 24px", display: "flex", gap: 32, flexWrap: "wrap", marginBottom: 28 }}>
+        <StepBadge number={1} label="Pick a Brand" done={step1Done} active={!step1Done} />
+        <div style={{ color: "#cbd5e1", alignSelf: "center" }}>→</div>
+        <StepBadge number={2} label="Choose a Style" done={step2Done} active={step1Done && !step2Done} />
+        <div style={{ color: "#cbd5e1", alignSelf: "center" }}>→</div>
+        <StepBadge number={3} label="Review Product" done={step3Done} active={step2Done && !step3Done} />
+        <div style={{ color: "#cbd5e1", alignSelf: "center" }}>→</div>
+        <StepBadge number={4} label="Import" done={false} active={step3Done} />
+      </div>
 
-      {/* Body */}
-      <div className="sanmar-body">
+      <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 24 }}>
+        {/* LEFT PANEL */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <SearchableList
+            label="Step 1 · Select Brand"
+            items={filteredBrands}
+            selectedId={selectedBrand?.name ?? ""}
+            getKey={(b) => b.name}
+            getLabel={(b) => b.name}
+            onSelect={handleSelectBrand}
+            loading={brandsLoading}
+            searchValue={brandSearch}
+            onSearchChange={setBrandSearch}
+            searchPlaceholder="Search brands…"
+            emptyText="No brands found"
+          />
 
-        {/* ── Left Panel ── */}
-        <div className="sanmar-panel">
-
-          {/* Brand list */}
-          <div className="sanmar-panel__label">Step 1 · Select Brand</div>
-          <div className="sanmar-panel__search">
-            <span className="sanmar-panel__search-icon">🔍</span>
-            <input
-              placeholder="Search brand..."
-              value={brandSearch}
-              onChange={(e) => setBrandSearch(e.target.value)}
-              disabled={step > 1}
+          {selectedBrand && (
+            <SearchableList
+              label="Step 2 · Select Style"
+              items={filteredStyles.map((s) => ({ id: s, name: s }))}
+              selectedId={selectedStyle ?? ""}
+              getKey={(s) => s.id}
+              getLabel={(s) => s.name}
+              onSelect={(s) => handleSelectStyle(s.id)}
+              loading={stylesLoading}
+              searchValue={styleSearch}
+              onSearchChange={setStyleSearch}
+              searchPlaceholder="Search styles…"
+              emptyText="No styles found"
             />
-          </div>
-          {brandsLoading ? (
-            <Spinner />
-          ) : (
-            <div className="sanmar-panel__list">
-              {filteredBrands.length === 0 ? (
-                <div className="sanmar-panel__empty">No brands found</div>
-              ) : (
-                filteredBrands.map((b) => (
-                  <div
-                    key={b.id}
-                    className={[
-                      "sanmar-panel__list-item",
-                      selectedBrand?.id === b.id
-                        ? "sanmar-panel__list-item--selected"
-                        : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    onClick={() => step === 1 && handleSelectBrand(b)}
-                  >
-                    {b.name}
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-
-          {/* Style list – appears after brand chosen */}
-          {step >= 2 && (
-            <>
-              <div className="sanmar-panel__label" style={{ marginTop: 8 }}>
-                Step 2 · Select Style
-              </div>
-              <div className="sanmar-panel__search">
-                <span className="sanmar-panel__search-icon">🔍</span>
-                <input
-                  placeholder="Search style..."
-                  value={styleSearch}
-                  onChange={(e) => setStyleSearch(e.target.value)}
-                  disabled={step > 2}
-                />
-              </div>
-              {stylesLoading ? (
-                <Spinner />
-              ) : (
-                <div className="sanmar-panel__list">
-                  {filteredStyles.length === 0 ? (
-                    <div className="sanmar-panel__empty">No styles found</div>
-                  ) : (
-                    filteredStyles.map((s) => (
-                      <div
-                        key={s}
-                        className={[
-                          "sanmar-panel__list-item",
-                          selectedStyle === s
-                            ? "sanmar-panel__list-item--selected"
-                            : "",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                        onClick={() => step === 2 && handleSelectStyle(s)}
-                      >
-                        {s}
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </>
           )}
         </div>
 
-        {/* ── Right Preview Panel ── */}
-        <div className="sanmar-preview">
-
-          {/* Step 1 placeholder */}
-          {step === 1 && (
-            <div className="sanmar-preview__placeholder">
-              <div className="sanmar-preview__placeholder-icon">📦</div>
-              <span>Select a brand &amp; style to preview product</span>
+        {/* RIGHT PANEL */}
+        <div>
+          {/* Empty state */}
+          {!selectedStyle && !productLoading && (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 320, background: "#f8fafc", borderRadius: 12, border: "2px dashed #e2e8f0", color: "#94a3b8", gap: 10 }}>
+              <div style={{ fontSize: 40 }}>📦</div>
+              <p style={{ margin: 0, fontSize: 14 }}>Select a brand & style to preview the product</p>
             </div>
           )}
 
-          {/* Step 2 placeholder */}
-          {step === 2 && !productLoading && !product && (
-            <div className="sanmar-preview__placeholder">
-              <div className="sanmar-preview__placeholder-icon">👕</div>
-              <span>Now choose a style to load the product</span>
-            </div>
-          )}
+          {/* Loading */}
+          {productLoading && <Spinner />}
 
-          {/* Step 3 – loading */}
-          {step === 3 && productLoading && <Spinner />}
-
-          {/* Step 3 – product detail */}
-          {step === 3 && !productLoading && product && (
-            <div className="sanmar-product">
-
-              {/* Header */}
-              <div className="sanmar-product__header">
-                <div>
-                  <div className="sanmar-product__name">
-                    {product.product?.name || selectedStyle}
-                  </div>
-                  <div className="sanmar-product__sub">
-                    {selectedBrand?.name} · {selectedStyle}
-                  </div>
+          {/* Product detail */}
+          {product && !productLoading && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              {/* Header card */}
+              <div style={{ background: "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", borderRadius: 12, padding: "20px 24px", color: "#fff" }}>
+                <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 4, letterSpacing: "0.08em" }}>STEP 3 · PRODUCT PREVIEW</div>
+                <h3 style={{ margin: "0 0 4px", fontSize: 20, fontWeight: 700 }}>{product.product?.name ?? selectedStyle}</h3>
+                <div style={{ fontSize: 13, opacity: 0.8 }}>
+                  {selectedBrand?.name} · <strong>{selectedStyle}</strong>
                 </div>
-              </div>
 
-              {/* Images */}
-              {product.product?.product_images &&
-                product.product.product_images.length > 0 && (
-                  <div className="sanmar-product__images">
-                    {product.product.product_images.slice(0, 5).map(
-                      (img, i) => (
-                        <img
-                          key={i}
-                          src={img}
-                          alt={`product-${i}`}
-                          onError={(e) => {
-                            (
-                              e.target as HTMLImageElement
-                            ).src =
-                              "https://via.placeholder.com/100x100?text=No+Image";
-                          }}
-                        />
-                      )
-                    )}
+                {/* Product images */}
+                {product.product?.product_images && product.product.product_images.length > 0 && (
+                  <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+                    {product.product.product_images.slice(0, 5).map((img, i) => (
+                      <img
+                        key={i} src={img} alt={`product-${i}`}
+                        style={{ width: 56, height: 56, borderRadius: 8, objectFit: "cover", border: "2px solid rgba(255,255,255,0.2)" }}
+                        onError={(e) => { (e.target as HTMLImageElement).src = "https://via.placeholder.com/56x56?text=?"; }}
+                      />
+                    ))}
                   </div>
                 )}
 
-              {/* Stats */}
-              <div className="sanmar-product__stats">
-                <div className="sanmar-product__stat">
-                  <span className="sanmar-product__stat-value">
-                    {product.variants?.length || 0}
-                  </span>
-                  <span className="sanmar-product__stat-label">Variants</span>
-                </div>
-                <div className="sanmar-product__stat">
-                  <span className="sanmar-product__stat-value">
-                    {totalStock.toLocaleString()}
-                  </span>
-                  <span className="sanmar-product__stat-label">
-                    Total Stock
-                  </span>
+                <div style={{ display: "flex", gap: 24, marginTop: 16, flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ fontSize: 22, fontWeight: 800 }}>{product.variants?.length ?? 0}</div>
+                    <div style={{ fontSize: 11, opacity: 0.7 }}>Variants</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 22, fontWeight: 800 }}>{totalStock.toLocaleString()}</div>
+                    <div style={{ fontSize: 11, opacity: 0.7 }}>Total Stock</div>
+                  </div>
                 </div>
               </div>
 
-              {/* Variants Table */}
-              <div className="sanmar-product__table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>SKU</th>
-                      <th>Variant</th>
-                      <th>Stock</th>
-                      <th>Price</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {product.variants?.map((v) => (
-                      <tr key={v.sku}>
-                        <td>
-                          <code>{v.sku}</code>
-                        </td>
-                        <td>{v.variant_name}</td>
-                        <td>{v.stock}</td>
-                        <td>${v.pricing?.piece || 0}</td>
+              {/* Variants table */}
+              <div style={{ background: "#fff", borderRadius: 12, border: "1.5px solid #e2e8f0", overflow: "hidden" }}>
+                <div style={{ padding: "14px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>Variants</span>
+                  <span style={{ fontSize: 12, background: "#eff6ff", color: "#2563eb", padding: "2px 10px", borderRadius: 20, fontWeight: 600 }}>
+                    {product.variants?.length} items
+                  </span>
+                </div>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>
+                    <thead>
+                      <tr style={{ background: "#f8fafc" }}>
+                        {["SKU", "Variant", "Stock", "Price"].map((h) => (
+                          <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#64748b", borderBottom: "1px solid #e2e8f0", whiteSpace: "nowrap" }}>
+                            {h}
+                          </th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {product.variants?.map((v, i) => (
+                        <tr key={v.sku} style={{ background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                          <td style={{ padding: "10px 16px", fontFamily: "monospace", fontSize: 12, color: "#475569", borderBottom: "1px solid #f1f5f9" }}>{v.sku}</td>
+                          <td style={{ padding: "10px 16px", fontWeight: 600, color: "#1e293b", borderBottom: "1px solid #f1f5f9" }}>{v.variant_name}</td>
+                          <td style={{ padding: "10px 16px", borderBottom: "1px solid #f1f5f9" }}>
+                            <span style={{ background: v.stock > 10 ? "#dcfce7" : v.stock > 0 ? "#fef9c3" : "#fee2e2", color: v.stock > 10 ? "#16a34a" : v.stock > 0 ? "#b45309" : "#dc2626", padding: "2px 8px", borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
+                              {v.stock}
+                            </span>
+                          </td>
+                          <td style={{ padding: "10px 16px", color: "#475569", borderBottom: "1px solid #f1f5f9" }}>
+                            ${(v.pricing?.piece ?? v.pricing?.price ?? 0).toFixed(2)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
-
-          {/* Step 4 – done */}
-          {step === 4 && importStatus === "done" && (
-            <div className="sanmar-preview__placeholder">
-              <div style={{ fontSize: 48 }}>✅</div>
-              <span
-                style={{
-                  fontWeight: 600,
-                  color: "#16a34a",
-                  fontSize: 16,
-                }}
-              >
-                Import complete!
-              </span>
-              <span>
-                <strong>{selectedStyle}</strong> from{" "}
-                <strong>{selectedBrand?.name}</strong> has been imported
-                successfully.
-              </span>
-              <button className="sanmar-btn sanmar-btn--ghost" onClick={resetAll}>
-                ← Start a new import
-              </button>
-            </div>
-          )}
-
-          {/* Step 4 – error */}
-          {step === 4 && importStatus === "error" && (
-            <div className="sanmar-preview__placeholder">
-              <div style={{ fontSize: 48 }}>❌</div>
-              <span
-                style={{
-                  fontWeight: 600,
-                  color: "#dc2626",
-                  fontSize: 16,
-                }}
-              >
-                Import failed
-              </span>
-              <span>Something went wrong. Please try again.</span>
-              <button
-                className="sanmar-btn sanmar-btn--ghost"
-                onClick={() => {
-                  setStep(3);
-                  setImportStatus("idle");
-                }}
-              >
-                ← Go Back
-              </button>
-            </div>
-          )}
         </div>
       </div>
-
-      {/* Footer */}
-      <div className="sanmar-footer">
-        <div className="sanmar-footer__info">
-          {selectedBrand && (
-            <>
-              Brand: <strong>{selectedBrand.name}</strong>
-            </>
-          )}
-          {selectedStyle && (
-            <>
-              {" · "}Style: <strong>{selectedStyle}</strong>
-            </>
-          )}
-          {product?.variants && step >= 3 && (
-            <>
-              {" · "}
-              <strong>{product.variants.length}</strong> variants
-            </>
-          )}
-        </div>
-
-        <div className="sanmar-footer__actions">
-          {step > 1 && step < 4 && importStatus !== "importing" && (
-            <button className="sanmar-btn sanmar-btn--ghost" onClick={handleBack}>
-              ← Back
-            </button>
-          )}
-          {step === 3 && !productLoading && product && (
-            <button
-              className="sanmar-btn sanmar-btn--primary"
-              onClick={handleImport}
-              disabled={importStatus === "importing"}
-            >
-              🚀 Import Product
-            </button>
-          )}
-        </div>
-      </div>
-
-    
     </div>
   );
 };

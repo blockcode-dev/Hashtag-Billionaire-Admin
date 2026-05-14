@@ -3,46 +3,63 @@
 import axios from "axios";
 
 const API_BASE_URL =
-	import.meta.env.VITE_API_BASE_URL ||
-	"https://api.turningpages.io:9090/api/v1/";
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://node.hashtagbillionaire.com/api/v1/";
 
-export const GetAllUsersAPI = async () => {
-	const token = localStorage.getItem("token");
-	return axios.get(`${API_BASE_URL}admin/op/users/all`, {
-		headers: { "x-access-token": token },
-	});
+export const GetAllUsersAPI = async (params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+}) => {
+  return axios.get(
+    `${API_BASE_URL}admin/user/getAllUsers`,
+    {
+      params,
+
+      headers: {
+        "x-access-token":
+          localStorage.getItem("token") || "",
+      },
+    },
+  );
+};
+
+export const AddUserAPI = async (body: {
+  name: string;
+  email: string;
+}) => {
+  return axios.post(
+    `${API_BASE_URL}admin/user/createUser`,
+    body,
+    {
+      headers: {
+        "x-access-token":
+          localStorage.getItem("token") || "",
+      },
+    },
+  );
+};
+
+export const DeleteUserAPI = async (
+  user_id: number[],
+) => {
+  return axios.post(
+    `${API_BASE_URL}admin/user/deleteUser`,
+    {
+      user_id,
+    },
+    {
+      headers: {
+        "x-access-token":
+          localStorage.getItem("token") || "",
+      },
+    },
+  );
 };
 
 export const GetUserDetailsAPI = async (userId: number) => {
-	const token = localStorage.getItem("token");
-	return axios.get(`${API_BASE_URL}admin/op/users/details/${userId}`, {
-		headers: { "x-access-token": token },
-	});
-};
-
-export const GetUserStatsAPI = async () => {
-	const token = localStorage.getItem("token");
-	return axios.get(`${API_BASE_URL}admin/op/stats/users`, {
-		headers: { "x-access-token": token },
-	});
-};
-
-export const UpdateUserStatusAPI = async (payload: {
-	userId: number;
-	status: string;
-}) => {
-	const token = localStorage.getItem("token");
-	return axios.patch(`${API_BASE_URL}admin/op/user/status`, payload, {
-		headers: { "x-access-token": token },
-	});
-};
-
-export const AddUserCreditsAPI = async (data: {
-	user_id: number;
-	credit: number;
-}) => {
-	const token = localStorage.getItem("token");
-	return await axios.post(`${API_BASE_URL}admin/op/add/credit`, data, {
-		headers: { "x-access-token": token },
-	});
+  const token = localStorage.getItem("token");
+  return axios.get(`${API_BASE_URL}admin/user/getUserById?/${userId}`, {
+    headers: { "x-access-token": token },
+  });
 };

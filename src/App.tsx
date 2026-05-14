@@ -21,6 +21,9 @@ import VariantPage from "./pages/Product/Variant/Variant";
 import ProductView from "./pages/Product/View/ProductView";
 import ProductsPage from "./pages/Product/Product/Product";
 import ProductDetails from "./pages/Product/ProductDetails/ProductDetails";
+import PricingMarkupPage from "./pages/PricingMarkup/PricingMarkupPage";
+import AddUserPage from "./pages/User/AddUser/AddUserPage";
+import PaymentsPage from "./pages/Payment/PaymentsPage";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +68,25 @@ const App = () => (
 						element={
 							<AdminLayout>
 								<Users />
+							</AdminLayout>
+						}
+					/>
+
+					<Route
+						path="/users/add"
+						element={
+							<AdminLayout>
+								<AddUserPage />
+							</AdminLayout>
+						}
+					/>
+
+
+					<Route
+						path="/payments"
+						element={
+							<AdminLayout>
+								<PaymentsPage />
 							</AdminLayout>
 						}
 					/>
@@ -120,6 +142,15 @@ const App = () => (
 						element={
 							<AdminLayout>
 								<ProductView />
+							</AdminLayout>
+						}
+					/>
+
+					<Route
+						path="/pricing-markup"
+						element={
+							<AdminLayout>
+								<PricingMarkupPage />
 							</AdminLayout>
 						}
 					/>

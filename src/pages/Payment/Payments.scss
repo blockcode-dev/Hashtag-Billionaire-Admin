@@ -1,0 +1,131 @@
+.payments-page {
+  padding: 28px;
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+.payments-header {
+  margin-bottom: 24px;
+
+  h2 {
+    margin-bottom: 4px !important;
+    font-weight: 700;
+  }
+}
+
+.payment-search {
+  width: 420px;
+
+  .ant-input-affix-wrapper {
+    border-radius: 14px !important;
+    height: 50px;
+  }
+}
+
+.payments-card {
+  border-radius: 24px !important;
+  border: none !important;
+
+  box-shadow:
+    0 4px 24px rgba(15, 23, 42, 0.06);
+
+  .ant-card-body {
+    padding: 10px !important;
+  }
+
+  .ant-table {
+    background: transparent;
+  }
+
+  .ant-table-thead > tr > th {
+    background: #f8fafc !important;
+    color: #475467 !important;
+    font-weight: 600;
+    font-size: 13px;
+    border-bottom: none !important;
+  }
+
+  .ant-table-tbody > tr > td {
+    border-bottom: 1px solid #f1f5f9 !important;
+    padding-top: 18px !important;
+    padding-bottom: 18px !important;
+  }
+
+  .ant-table-tbody > tr:hover > td {
+    background: #fafafa !important;
+  }
+}
+
+.customer-cell {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.payment-avatar {
+  background: #eef2ff !important;
+  color: #4f46e5 !important;
+}
+
+.customer-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.customer-email {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.transaction-id {
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.order-number {
+  font-weight: 600;
+  color: #111827;
+}
+
+.amount-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+
+  span {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+  }
+}
+
+.payment-tag {
+  border-radius: 999px !important;
+  padding: 5px 12px !important;
+  font-weight: 600;
+  border: none !important;
+}
+
+.ant-pagination {
+  margin-top: 24px !important;
+  padding-right: 10px;
+}
+
+.ant-pagination-item {
+  border-radius: 10px !important;
+}
+
+.ant-pagination-item-active {
+  background: #111827 !important;
+  border-color: #111827 !important;
+
+  a {
+    color: white !important;
+  }
+}
