@@ -59,7 +59,7 @@ export const DeleteUserAPI = async (
 
 export const GetUserDetailsAPI = async (userId: number) => {
   const token = localStorage.getItem("token");
-  return axios.get(`${API_BASE_URL}admin/user/getUserById?/${userId}`, {
+  return axios.get(`${API_BASE_URL}admin/user/getUserById/${userId}`, {
     headers: { "x-access-token": token },
   });
 };

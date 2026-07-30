@@ -146,7 +146,7 @@ const VariantPage = () => {
           </div>
           <div className="stat-body">
             <p>Ottocap</p>
-            <h2>{stats?.autocapVariants ?? 0}</h2>
+            <h2>{stats?.ottoCapVariants ?? 0}</h2>
           </div>
         </div>
       </div>

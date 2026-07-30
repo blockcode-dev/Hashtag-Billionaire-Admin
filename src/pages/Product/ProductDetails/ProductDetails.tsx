@@ -6,11 +6,19 @@ import "./ProductDetail.scss";
 const ProductDetails = () => {
   const { id } = useParams();
   const [product, setProduct] = useState<any>(null);
+  const [activeImage, setActiveImage] = useState<string | null>(null);
+  const [activeVariant, setActiveVariant] = useState<any>(null);
 
   const load = async () => {
     try {
       const res = await GetProductByIdAPI(id);
-      setProduct(res.data.data);
+      const data = res.data.data;
+      setProduct(data);
+      const firstImage =
+        data.attachments?.[0]?.file_uri ||
+        data.variants?.[0]?.images?.[0]?.file_uri ||
+        "/placeholder.png";
+      setActiveImage(firstImage);
     } catch (err) {
       console.error(err);
     }
@@ -20,141 +28,225 @@ const ProductDetails = () => {
     load();
   }, [id]);
 
-  if (!product) return <div className="loading">Loading...</div>;
+  if (!product) return (
+    <div className="pd-loading">
+      <div className="pd-loading-spinner" />
+      <span>Loading product…</span>
+    </div>
+  );
 
   const minPrice = Math.min(
     ...(product.variants?.map((v: any) => Number(v.price)) || [0])
   );
+  const totalStock = product.variants?.reduce(
+    (acc: number, v: any) => acc + (Number(v.stock) || 0),
+    0
+  ) || 0;
+  const inStockCount = product.variants?.filter((v: any) => v.stock > 0).length || 0;
+
+  const allImages = [
+    ...(product.attachments?.map((a: any) => a.file_uri) || []),
+    ...(product.variants?.flatMap((v: any) => v.images?.map((i: any) => i.file_uri) || []) || []),
+  ].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i);
 
   return (
     <div className="product-details-page">
+
+      {/* BREADCRUMB */}
+      <div className="pd-breadcrumb">
+        <span>Products</span>
+        <span className="pd-breadcrumb-sep">/</span>
+        <span className="pd-breadcrumb-active">{product.name}</span>
+      </div>
+
       {/* HEADER */}
       <div className="pd-header">
-        <div>
+        <div className="pd-header-left">
           <h1>{product.name}</h1>
-          <p>Style ID: {product.external_style_id}</p>
+          {product.external_style_id && (
+            <span className="pd-style-id">Style ID: {product.external_style_id}</span>
+          )}
         </div>
-
-        <div className="pd-meta">
-          <span className="badge">{product.supplier || "N/A"}</span>
-          <span>{product.variants?.length || 0} variants</span>
+        <div className="pd-header-right">
+          {product.supplier && (
+            <span className="pd-badge-supplier">{product.supplier}</span>
+          )}
+          {/* <div className="pd-stat-pill">
+            <span className="pd-stat-dot in" />
+            {inStockCount} / {product.variants?.length || 0} in stock
+          </div> */}
         </div>
       </div>
 
-      {/* TOP SECTION */}
+      {/* TOP GRID */}
       <div className="pd-top">
-        {/* IMAGE */}
-        <div className="pd-main-image">
-          <img
-            src={
-              product.attachments?.[0]?.file_uri ||
-              product.variants?.[0]?.images?.[0]?.file_uri ||
-              "/placeholder.png"
-            }
-            alt="product"
-          />
+
+        {/* IMAGE COLUMN */}
+        <div className="pd-image-col">
+          <div className="pd-main-image">
+            <img src={activeImage || "/placeholder.png"} alt={product.name} />
+          </div>
+
+          {allImages.length > 1 && (
+            <div className="pd-thumbnails">
+              {allImages.slice(0, 6).map((src: string, i: number) => (
+                <button
+                  key={i}
+                  className={`pd-thumb ${activeImage === src ? "active" : ""}`}
+                  onClick={() => setActiveImage(src)}
+                >
+                  <img src={src} alt={`View ${i + 1}`} />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* INFO */}
-        <div className="pd-info">
-          <h2>{product.name}</h2>
+        {/* INFO COLUMN */}
+        <div className="pd-info-col">
 
-          <div className="pd-info-grid">
-            <div>
-              <label>Style ID</label>
-              <p>{product.external_style_id}</p>
+          {/* STATS ROW */}
+          <div className="pd-stats-row">
+            <div className="pd-stat-card">
+              <span className="pd-stat-label">Base Price</span>
+              <span className="pd-stat-value price">${minPrice.toFixed(2)}</span>
             </div>
-
-            <div>
-              <label>Supplier</label>
-              <p>{product.supplier || "N/A"}</p>
+            <div className="pd-stat-card">
+              <span className="pd-stat-label">Cost Price</span>
+              <span className="pd-stat-value">
+                {product.variants?.[0]?.cost_price
+                  ? `$${Number(product.variants[0].cost_price).toFixed(2)}`
+                  : "—"}
+              </span>
             </div>
-
-            <div>
-              <label>Total Variants</label>
-              <p>{product.variants?.length || 0}</p>
+            <div className="pd-stat-card">
+              <span className="pd-stat-label">Retail Price</span>
+              <span className="pd-stat-value">
+                {product.variants?.[0]?.retail_price
+                  ? `$${Number(product.variants[0].retail_price).toFixed(2)}`
+                  : "—"}
+              </span>
             </div>
-
-            <div>
-              <label>Base Price</label>
-              <p className="price">${minPrice.toFixed(2)}</p>
-            </div>
-
-            <div>
-              <label>Retail Price</label>
-              <p>{product.variants?.[0]?.retail_price || "-"}</p>
-            </div>
-
-            <div>
-              <label>Cost Price</label>
-              <p>{product.variants?.[0]?.cost_price || "-"}</p>
+            <div className="pd-stat-card">
+              <span className="pd-stat-label">Total Stock</span>
+              <span className="pd-stat-value">{totalStock}</span>
             </div>
           </div>
 
-          {/* DESCRIPTION */}
-          <div className="pd-description">
-            <h4>Description</h4>
-            <div
-              dangerouslySetInnerHTML={{ __html: product.description }}
-            />
+          {/* DETAILS */}
+          <div className="pd-details-card">
+            <div className="pd-details-row">
+              <div>
+                <label>Supplier</label>
+                <p>{product.supplier || "N/A"}</p>
+              </div>
+              <div>
+                <label>Style ID</label>
+                <p>{product.external_style_id || "—"}</p>
+              </div>
+              <div>
+                <label>Variants</label>
+                <p>{product.variants?.length || 0}</p>
+              </div>
+            </div>
+
+            {/* COLORS PREVIEW */}
+            {product.variants?.some((v: any) => v.color) && (
+              <div className="pd-colors">
+                <label>Available Colors</label>
+                <div className="pd-color-swatches">
+                  {[...new Map(product.variants?.map((v: any) => [v.color, v])).values()].map(
+                    (v: any) => (
+                      <div
+                        key={v.color}
+                        className="pd-swatch"
+                        style={{ background: v.color_code || "#ccc" }}
+                        title={v.color}
+                      />
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* DESCRIPTION */}
+            {product.description && (
+              <div className="pd-description">
+                <label>Description</label>
+                <div dangerouslySetInnerHTML={{ __html: product.description }} />
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* VARIANTS */}
-      <div className="pd-variants">
-        <h2>Variants ({product.variants?.length || 0})</h2>
+      {/* VARIANTS TABLE */}
+      <div className="pd-variants-section">
+        <div className="pd-section-header">
+          <h2>Variants <span className="pd-count">{product.variants?.length || 0}</span></h2>
+        </div>
 
-        <div className="table-wrap">
+        <div className="pd-table-wrap">
           <table>
             <thead>
               <tr>
+                <th>Image</th>
                 <th>SKU</th>
                 <th>Color</th>
                 <th>Size</th>
                 <th>Stock</th>
                 <th>Price</th>
-                <th>Image</th>
+                <th>Cost</th>
+                <th>Retail</th>
               </tr>
             </thead>
-
             <tbody>
               {product.variants?.map((v: any) => (
-                <tr key={v.id}>
-                  <td className="sku">{v.sku}</td>
-
+                <tr
+                  key={v.id}
+                  className={activeVariant?.id === v.id ? "active-row" : ""}
+                  onClick={() => setActiveVariant(v)}
+                >
                   <td>
-                    <div className="color-cell">
-                      <span
-                        className="color-dot"
-                        style={{ background: v.color_code || "#ccc" }}
-                      />
-                      {v.color}
+                    <div className="pd-variant-img">
+                      {v.images?.[0]?.file_uri ? (
+                        <img
+                          src={v.images[0].file_uri}
+                          alt={v.sku}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveImage(v.images[0].file_uri);
+                          }}
+                        />
+                      ) : (
+                        <div className="pd-variant-img-placeholder">—</div>
+                      )}
                     </div>
                   </td>
-
+                  <td className="pd-sku">{v.sku}</td>
                   <td>
-                    <span className="size-badge">{v.size}</span>
+                    <div className="pd-color-cell">
+                      <span
+                        className="pd-color-dot"
+                        style={{ background: v.color_code || "#ccc" }}
+                      />
+                      <span>{v.color || "—"}</span>
+                    </div>
                   </td>
-
                   <td>
-                    <span className={`stock ${v.stock > 0 ? "in" : "out"}`}>
-                      {v.stock}
+                    <span className="pd-size-badge">{v.size || "—"}</span>
+                  </td>
+                  <td>
+                    <span className={`pd-stock-badge ${v.stock > 0 ? "in" : "out"}`}>
+                      {v.stock > 0 ? v.stock : "Out"}
                     </span>
                   </td>
-
-                  <td className="price">
-                    ${Number(v.price || 0).toFixed(2)}
+                  <td className="pd-price">${Number(v.price || 0).toFixed(2)}</td>
+                  <td className="pd-muted">
+                    {v.cost_price ? `$${Number(v.cost_price).toFixed(2)}` : "—"}
                   </td>
-
-                  <td>
-                    <img
-                      src={v.images?.[0]?.file_uri || "/placeholder.png"}
-                      className="variant-img"
-                      onError={(e) =>
-                        (e.currentTarget.src = "/placeholder.png")
-                      }
-                    />
+                  <td className="pd-muted">
+                    {v.retail_price ? `$${Number(v.retail_price).toFixed(2)}` : "—"}
                   </td>
                 </tr>
               ))}
@@ -162,7 +254,7 @@ const ProductDetails = () => {
           </table>
 
           {!product.variants?.length && (
-            <div className="no-data">No variants found</div>
+            <div className="pd-no-data">No variants found</div>
           )}
         </div>
       </div>

@@ -4,10 +4,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AdminLoginAPI } from "@/services/Api/AuthApi";
+import logoFull from "@/assets/logo_header.webp";
 
 const AdminLogin = () => {
 	const [email, setEmail] = useState("");
@@ -17,83 +18,54 @@ const AdminLogin = () => {
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-
 		try {
 			const res = await AdminLoginAPI(email, password);
-
 			if (res.data?.success) {
 				const token = res.data?.data?.token || "";
 				const roleId = res.data?.data?.role_id || null;
 				const adminId = res.data?.data?.id || null;
-
-				// Save token & role
 				localStorage.setItem("token", token);
 				localStorage.setItem("role_id", roleId);
 				localStorage.setItem("admin_id", adminId);
-
-				// Determine admin access
-				if (roleId === 1) {
-					localStorage.setItem("isAdmin", "true");
-				} else {
-					localStorage.setItem("isAdmin", "false");
-				}
-
-				toast({
-					title: "Welcome back!",
-					description: "You've successfully logged in.",
-				});
-
-				setTimeout(() => {
-					window.location.href = "/dashboard";
-				}, 500);
+				localStorage.setItem("isAdmin", roleId === 1 ? "true" : "false");
+				toast({ title: "Welcome back!", description: "You've successfully logged in." });
+				setTimeout(() => { window.location.href = "/dashboard"; }, 500);
 			} else {
-				toast({
-					title: "Login Failed",
-					description: res.data?.message || "Invalid credentials.",
-					variant: "destructive",
-				});
+				toast({ title: "Login Failed", description: res.data?.message || "Invalid credentials.", variant: "destructive" });
 			}
 		} catch (err: any) {
-			toast({
-				title: "Login Failed",
-				description: err.response?.data?.message || "Something went wrong.",
-				variant: "destructive",
-			});
+			toast({ title: "Login Failed", description: err.response?.data?.message || "Something went wrong.", variant: "destructive" });
 		}
 	};
 
-	const togglePasswordVisibility = () => {
-		setShowPassword(!showPassword);
-	};
-
 	return (
-		<div className="min-h-screen bg-background flex items-center justify-center px-4">
-			<Card className="w-full max-w-md shadow-lg">
-				<CardHeader className="text-center pb-6">
-					<CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
+		<div className="min-h-screen bg-muted flex items-center justify-center px-4">
+			<Card className="w-full max-w-md shadow-sm">
+				<CardHeader className="pb-2 pt-8 px-8">
+					<div className="flex flex-col items-center gap-3 mb-2">
+						<img src={logoFull} alt="Hashtag Billionaire" className="h-12 w-auto object-contain" />
+						{/* <p className="text-xs text-muted-foreground tracking-widest uppercase">Admin Panel</p> */}
+					</div>
+					<hr className="border-border" />
 				</CardHeader>
 
-				<CardContent>
+				<CardContent className="px-8 pb-8 pt-5">
 					<form onSubmit={handleSubmit} className="space-y-4">
-						<div className="space-y-2">
-							<Label htmlFor="email" className="text-sm font-medium">
-								Email
-							</Label>
+						<div className="space-y-1.5">
+							<Label htmlFor="email">Email</Label>
 							<Input
 								id="email"
 								type="email"
-								placeholder="Enter your email address"
+								placeholder="Enter your email"
 								value={email}
 								onChange={(e) => setEmail(e.target.value)}
 								required
-								className="h-11"
+								className="h-10"
 							/>
 						</div>
 
-						<div className="space-y-2">
-							<Label htmlFor="password" className="text-sm font-medium">
-								Password
-							</Label>
+						<div className="space-y-1.5">
+							<Label htmlFor="password">Password</Label>
 							<div className="relative">
 								<Input
 									id="password"
@@ -102,47 +74,28 @@ const AdminLogin = () => {
 									value={password}
 									onChange={(e) => setPassword(e.target.value)}
 									required
-									className="h-11 pr-10"
+									className="h-10 pr-10"
 								/>
 								<button
 									type="button"
-									onClick={togglePasswordVisibility}
-									className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+									onClick={() => setShowPassword(!showPassword)}
+									className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
 								>
-									{showPassword ? (
-										<EyeOff className="w-4 h-4" />
-									) : (
-										<Eye className="w-4 h-4" />
-									)}
+									{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
 								</button>
 							</div>
 						</div>
 
-						<Button
-							type="submit"
-							className="w-full h-11 bg-primary hover:bg-primary-hover text-primary-foreground font-medium transition-colors mt-6"
-						>
+						<Button type="submit" className="w-full h-10 bg-[#F5C800] hover:bg-[#e6ba00] text-black font-medium mt-2">
 							Login
 						</Button>
 					</form>
 
-					<div className="mt-6 text-center">
-						<a
-							href="/forgot-password"
-							className="text-sm text-primary hover:text-primary-hover font-medium transition-colors"
-						>
-							Forgot Password?
+					<div className="mt-5 text-center">
+						<a href="/forgot-password" className="text-sm text-muted-foreground hover:text-foreground">
+							Forgot password?
 						</a>
 					</div>
-
-					{/* <div className="mt-4 text-center">
-						<a
-							href="/"
-							className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-						>
-							Back to User Login
-						</a>
-					</div> */}
 				</CardContent>
 			</Card>
 		</div>

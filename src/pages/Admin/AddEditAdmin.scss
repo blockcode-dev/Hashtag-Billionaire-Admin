@@ -1,0 +1,211 @@
+// Color Variables
+$bg-main: #f8fafc;
+$slate-900: #0f172a;
+$slate-600: #475569;
+$emerald-600: #059669;
+$emerald-50: #ecfdf5;
+$border-color: #e2e8f0;
+
+.admin-editor-wrapper {
+  background-color: $bg-main;
+  min-height: 100vh;
+  padding: 2rem;
+  color: $slate-900;
+  font-family: 'Inter', system-ui, sans-serif;
+
+  .editor-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+
+    .back-link {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: none;
+      border: none;
+      color: $slate-600;
+      cursor: pointer;
+      font-weight: 500;
+      transition: color 0.2s;
+      &:hover { color: $slate-900; }
+    }
+
+    .status-badge {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: white;
+      padding: 0.4rem 0.8rem;
+      border-radius: 20px;
+      border: 1px solid $border-color;
+      color: $slate-600;
+    }
+  }
+}
+
+.editor-content {
+  max-width: 1000px;
+  margin: 0 auto;
+
+  .content-header {
+    margin-bottom: 2rem;
+    h1 { font-size: 2rem; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
+    p { color: $slate-600; margin-top: 0.5rem; }
+  }
+}
+
+.glass-form {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 2rem;
+  align-items: start;
+
+  @media (max-width: 900px) { grid-template-columns: 1fr; }
+
+  .form-main {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 16px;
+    border: 1px solid $border-color;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .input-field {
+    label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: $slate-600; }
+    .input-container {
+      position: relative;
+      .input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+      input {
+        width: 100%;
+        padding: 0.8rem 1rem 0.8rem 42px;
+        border-radius: 10px;
+        border: 1px solid $border-color;
+        font-size: 1rem;
+        transition: all 0.2s;
+        &:focus { outline: none; border-color: $emerald-600; box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.1); }
+      }
+    }
+  }
+
+  .info-banner {
+    display: flex;
+    gap: 1rem;
+    background: $emerald-50;
+    padding: 1.25rem;
+    border-radius: 12px;
+    border: 1px solid rgba(5, 150, 105, 0.1);
+    
+    .info-icon { color: $emerald-600; }
+    .info-text {
+      h5 { margin: 0; color: #065f46; font-size: 0.9rem; }
+      p { margin: 0.2rem 0 0 0; font-size: 0.85rem; color: #065f46; opacity: 0.8; line-height: 1.4; }
+    }
+  }
+}
+
+.form-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  .role-preview {
+    background: $slate-900;
+    color: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+
+    .role-header { 
+        display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; 
+        color: #94a3b8; text-transform: uppercase; margin-bottom: 1rem;
+        .text-emerald { color: #10b981; }
+    }
+    h4 { margin: 0 0 0.5rem 0; font-size: 1.1rem; }
+    p { font-size: 0.85rem; color: #94a3b8; line-height: 1.5; margin-bottom: 1.5rem; }
+
+    .checklist {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      .check-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: #e2e8f0; }
+    }
+  }
+
+  .action-zone {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    button {
+      padding: 0.9rem;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .submit-button {
+      background: $emerald-600;
+      color: white;
+      border: none;
+      &:hover { background: #047857; transform: translateY(-1px); }
+      &:disabled { opacity: 0.6; cursor: not-allowed; }
+    }
+
+    .cancel-button {
+      background: transparent;
+      color: $slate-600;
+      border: 1px solid $border-color;
+      &:hover { background: #fff; color: $slate-900; }
+    }
+  }
+}
+
+/* Add these additions to your existing SCSS */
+
+.input-field {
+  &.field-disabled {
+    .input-container {
+      background: #f1f5f9; // Light grey background
+      border-radius: 10px;
+      
+      input {
+        background: transparent;
+        color: #64748b;
+        cursor: not-allowed;
+        border-color: #e2e8f0;
+        
+        &:focus {
+          box-shadow: none;
+          border-color: #e2e8f0;
+        }
+      }
+
+      .input-icon {
+        color: #94a3b8;
+      }
+    }
+  }
+
+  .field-hint {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-style: italic;
+  }
+}
+
+// Keep the Emerald & Slate vibes
+$emerald-600: #059669;
+$slate-900: #0f172a;
+
+.submit-button {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  &:active {
+    transform: scale(0.98);
+  }
+}

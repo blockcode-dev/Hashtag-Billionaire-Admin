@@ -75,3 +75,23 @@ export const ImportSageProductsAPI = async (
     },
   );
 };
+
+export const ImportSelectedSageProductsAPI = async (
+  prodEIds: number[],
+  batchNotes = "",
+) => {
+  const token = localStorage.getItem("token");
+
+  return axios.post(
+    `${API_BASE_URL}sage/import/selected`,
+    {
+      prodEIds,
+      batchNotes,
+    },
+    {
+      headers: {
+        "x-access-token": token,
+      },
+    },
+  );
+};

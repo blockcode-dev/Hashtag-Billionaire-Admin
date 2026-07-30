@@ -1,36 +1,71 @@
 .payments-page {
-  padding: 28px;
-  background: #f8fafc;
+  padding: 24px;
+  background: #f4f7fb;
   min-height: 100vh;
 }
 
+/* =======================================================
+HEADER
+======================================================= */
+
 .payments-header {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 
   h2 {
-    margin-bottom: 4px !important;
-    font-weight: 700;
+    margin-bottom: 2px !important;
+    font-size: 28px !important;
+    font-weight: 800 !important;
+    color: #0f172a;
+  }
+
+  .ant-typography {
+    color: #64748b !important;
   }
 }
 
+/* =======================================================
+SEARCH
+======================================================= */
+
 .payment-search {
-  width: 420px;
+  width: 380px;
 
   .ant-input-affix-wrapper {
     border-radius: 14px !important;
-    height: 50px;
+    border: 1px solid #e2e8f0 !important;
+    background: white;
+    height: 48px;
+    padding: 0 16px !important;
+    box-shadow: none !important;
+    transition: all 0.2s ease;
+
+    &:hover,
+    &:focus-within {
+      border-color: #111827 !important;
+      box-shadow: 0 0 0 4px rgba(17, 24, 39, 0.06) !important;
+    }
+
+    input {
+      font-size: 14px;
+    }
   }
 }
+
+/* =======================================================
+TABLE
+======================================================= */
 
 .payments-card {
   border-radius: 24px !important;
   border: none !important;
+  overflow: hidden;
 
   box-shadow:
-    0 4px 24px rgba(15, 23, 42, 0.06);
+    0 10px 40px rgba(15, 23, 42, 0.05),
+    0 2px 10px rgba(15, 23, 42, 0.03);
 
   .ant-card-body {
-    padding: 10px !important;
+    padding: 8px !important;
   }
 
   .ant-table {
@@ -39,82 +74,102 @@
 
   .ant-table-thead > tr > th {
     background: #f8fafc !important;
-    color: #475467 !important;
-    font-weight: 600;
-    font-size: 13px;
-    border-bottom: none !important;
+    color: #64748b !important;
+    font-size: 12px;
+    font-weight: 700;
+    border-bottom: 1px solid #eef2f7 !important;
+    padding: 14px 14px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .ant-table-tbody > tr > td {
+    padding: 14px !important;
     border-bottom: 1px solid #f1f5f9 !important;
-    padding-top: 18px !important;
-    padding-bottom: 18px !important;
+    vertical-align: middle;
   }
 
   .ant-table-tbody > tr:hover > td {
-    background: #fafafa !important;
+    background: #fafcff !important;
   }
 }
 
-.customer-cell {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.payment-avatar {
-  background: #eef2ff !important;
-  color: #4f46e5 !important;
-}
+/* =======================================================
+TABLE CELLS
+======================================================= */
 
 .customer-name {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   color: #111827;
 }
 
 .customer-email {
-  font-size: 13px;
-  color: #6b7280;
+  font-size: 12px;
+  color: #64748b;
   margin-top: 2px;
 }
 
 .transaction-id {
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: #111827;
   line-height: 1.5;
-  word-break: break-word;
 }
 
 .order-number {
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: #111827;
 }
 
 .amount-text {
-  font-size: 16px;
-  font-weight: 700;
-  color: #111827;
-
-  span {
-    display: block;
-    margin-top: 2px;
-    font-size: 12px;
-    color: #6b7280;
-    font-weight: 500;
-  }
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
 }
 
 .payment-tag {
+  border: none !important;
   border-radius: 999px !important;
   padding: 5px 12px !important;
-  font-weight: 600;
-  border: none !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
 }
 
+/* =======================================================
+VIEW BUTTON
+======================================================= */
+
+.view-btn {
+  height: 38px;
+  border: none;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: #111827;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &:hover {
+    transform: translateY(-1px);
+    background: #000;
+  }
+}
+
+/* =======================================================
+PAGINATION
+======================================================= */
+
 .ant-pagination {
-  margin-top: 24px !important;
-  padding-right: 10px;
+  margin-top: 20px !important;
+  padding-right: 8px;
 }
 
 .ant-pagination-item {
@@ -128,4 +183,382 @@
   a {
     color: white !important;
   }
+}
+
+/* =======================================================
+MODAL
+======================================================= */
+
+.payment-modal-wrapper {
+  background: #f8fafc;
+}
+
+/* =======================================================
+MODAL HEADER
+======================================================= */
+
+.modal-custom-header {
+  background:
+    linear-gradient(
+      135deg,
+      #0f172a 0%,
+      #111827 40%,
+      #1e293b 100%
+    );
+
+  padding: 30px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    right: -80px;
+    top: -80px;
+    width: 220px;
+    height: 220px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%;
+  }
+
+  h3 {
+    color: white !important;
+    margin-top: 8px !important;
+    font-size: 22px !important;
+    font-weight: 800 !important;
+  }
+
+  .modal-label {
+    color: rgba(255,255,255,0.7) !important;
+    letter-spacing: 1px;
+    font-size: 11px;
+    text-transform: uppercase;
+  }
+
+  .modal-total-amount {
+    font-size: 42px;
+    font-weight: 900;
+    line-height: 1;
+    margin-top: 6px;
+    color: white;
+  }
+
+  .payment-tag {
+    margin-top: 10px;
+  }
+}
+
+/* =======================================================
+SUB CARDS
+======================================================= */
+
+.modal-sub-card {
+  border-radius: 18px !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: none !important;
+  background: white;
+
+  .ant-card-head {
+    border-bottom: 1px solid #f1f5f9 !important;
+    min-height: 54px !important;
+  }
+
+  .ant-card-head-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .ant-descriptions-item-label {
+    color: #64748b !important;
+    font-size: 12px;
+  }
+
+  .ant-descriptions-item-content {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+  }
+}
+
+/* =======================================================
+ITEM CARD
+======================================================= */
+
+.modal-item-container {
+  background: white;
+  border-radius: 22px;
+  padding: 24px;
+  margin-bottom: 20px;
+
+  border: 1px solid #edf2f7;
+
+  box-shadow:
+    0 4px 20px rgba(15, 23, 42, 0.04);
+}
+
+/* =======================================================
+IMAGE BOX
+======================================================= */
+
+.image-box {
+  background: #f8fafc;
+  border-radius: 18px;
+  border: 1px solid #e2e8f0;
+  padding: 16px;
+  text-align: center;
+
+  .ant-image {
+    width: 100%;
+  }
+
+  img {
+    object-fit: contain;
+    border-radius: 12px;
+  }
+}
+
+/* =======================================================
+ITEM DETAILS
+======================================================= */
+
+.product-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 18px;
+}
+
+.item-meta-grid {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 20px;
+
+  .meta-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 4px;
+  }
+
+  .meta-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+  }
+}
+
+/* =======================================================
+PRICING BREAKDOWN
+======================================================= */
+
+.breakdown-section {
+  margin-top: 18px;
+  background: #f8fafc;
+  border-radius: 18px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.breakdown-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 16px;
+}
+
+.price-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px dashed #dbe4ee;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .left {
+    .title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .subtitle {
+      margin-top: 2px;
+      font-size: 12px;
+      color: #64748b;
+    }
+  }
+
+  .right {
+    font-size: 15px;
+    font-weight: 800;
+    color: #111827;
+  }
+}
+
+/* =======================================================
+FINAL TOTAL BOX
+======================================================= */
+
+.final-total-box {
+  margin-top: 20px;
+  padding: 22px;
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #111827 0%,
+      #1e293b 100%
+    );
+
+  color: white;
+
+  .label {
+    color: rgba(255,255,255,0.7);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  .amount {
+    margin-top: 6px;
+    font-size: 34px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .per-item {
+    margin-top: 8px;
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+  }
+}
+
+/* =======================================================
+COMPACT TABLE
+======================================================= */
+
+.compact-table {
+  margin-top: 14px;
+
+  .ant-table {
+    background: transparent !important;
+  }
+
+  .ant-table-thead > tr > th {
+    background: transparent !important;
+    font-size: 11px !important;
+    text-transform: uppercase;
+    color: #64748b !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+  }
+
+  .ant-table-tbody > tr > td {
+    background: transparent !important;
+    padding: 12px 8px !important;
+    border-bottom: 1px solid #edf2f7 !important;
+  }
+}
+
+/* =======================================================
+RESPONSIVE
+======================================================= */
+
+@media (max-width: 992px) {
+  .payment-search {
+    width: 100%;
+  }
+
+  .modal-total-amount {
+    font-size: 30px !important;
+  }
+
+  .modal-item-container {
+    padding: 18px;
+  }
+}
+
+.highlight-row {
+  background: #f8fafc;
+  padding: 14px;
+  border-radius: 12px;
+  margin: 8px 0;
+
+  .title,
+  .right {
+    font-weight: 800 !important;
+  }
+}
+
+.total-row {
+  margin-top: 12px;
+  padding-top: 18px;
+  border-top: 1px dashed #dbe4ee;
+
+  .title,
+  .right {
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    color: #111827;
+  }
+}
+
+/* ==========================================
+ORDER TOTAL CARD
+========================================== */
+
+.order-total-card {
+  margin-top: 18px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 22px;
+}
+
+.order-total-title {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #64748b;
+  margin-bottom: 18px;
+}
+
+.order-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 12px 0;
+
+  span {
+    color: #64748b;
+    font-size: 14px;
+  }
+
+  strong {
+    font-size: 16px;
+    color: #111827;
+  }
+
+  &.grand {
+    span,
+    strong {
+      font-size: 22px;
+      font-weight: 900;
+      color: #111827;
+    }
+  }
+}
+
+.order-total-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 10px 0;
 }

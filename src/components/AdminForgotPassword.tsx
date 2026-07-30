@@ -5,7 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { SendOtpApi, VerifyOtpApi, ForgotPasswordApi } from "@/services/Api/AuthApi";
+import {
+  SendOtpApi,
+  VerifyOtpApi,
+  ForgotPasswordApi,
+} from "@/services/Api/AuthApi";
 
 export default function AdminForgotPassword() {
   const [step, setStep] = useState(1);
@@ -79,7 +83,7 @@ export default function AdminForgotPassword() {
       });
 
       if (res.data?.success) {
-setToken(res.data.data.token);
+        setToken(res.data.data.token);
 
         toast({ title: "OTP verified!" });
         setStep(3);
@@ -145,7 +149,6 @@ setToken(res.data.data.token);
 
         <CardContent>
           <AnimatePresence mode="wait">
-
             {/* STEP 1 */}
             {step === 1 && (
               <motion.div key="step1" {...stepAnim} className="space-y-4">
@@ -160,6 +163,7 @@ setToken(res.data.data.token);
                   className="w-full"
                   disabled={loading}
                   onClick={handleSendOtp}
+                  style={{ backgroundColor: "#E7BA01" }}
                 >
                   {loading ? "Sending..." : "Send OTP"}
                 </Button>
@@ -199,6 +203,7 @@ setToken(res.data.data.token);
                   className="w-full"
                   disabled={loading}
                   onClick={handleVerifyOtp}
+                  style={{ backgroundColor: "#E7BA01" }}
                 >
                   {loading ? "Verifying..." : "Verify OTP"}
                 </Button>
@@ -208,7 +213,6 @@ setToken(res.data.data.token);
             {/* STEP 3 — RESET PASSWORD WITH EYE TOGGLE */}
             {step === 3 && (
               <motion.div key="step3" {...stepAnim} className="space-y-4">
-
                 {/* Password with eye icon */}
                 <div className="relative">
                   <Input
@@ -257,6 +261,7 @@ setToken(res.data.data.token);
                   className="w-full"
                   disabled={loading}
                   onClick={handleChangePassword}
+                  style={{ backgroundColor: "#E7BA01" }}
                 >
                   {loading ? "Updating..." : "Change Password"}
                 </Button>

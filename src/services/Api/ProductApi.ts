@@ -46,8 +46,25 @@ export const DeleteProductAPI = async (data: {
   });
 };
 
-export const GetProductByIdAPI = async (id: number | string) => {
+export const  GetProductByIdAPI = async (id: number | string) => {
 
   return axios.get(`${API_BASE_URL}product/admin/${id}`, {
+  });
+};
+
+
+export const CreateProductAPI = async (data: FormData) => {
+  return axios.post(`${API_BASE_URL}product/create-product`, data, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};
+
+export const AddProductVariantsAPI = async (data: FormData) => {
+  return axios.post(`${API_BASE_URL}product/add-product-variants`, data, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
   });
 };

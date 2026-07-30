@@ -1,7 +1,19 @@
 /** @format */
 
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Import, Store, Users, BadgeDollarSign, CreditCard } from "lucide-react";
+import {
+  LayoutDashboard,
+  Import,
+  Store,
+  Users,
+  BadgeDollarSign,
+  CreditCard,
+  ShoppingBag,
+  FolderTree,
+  Tags,
+  Mail,
+  BriefcaseBusiness,
+} from "lucide-react";
 
 import {
   Sidebar,
@@ -16,35 +28,50 @@ import {
 } from "@/components/ui/sidebar";
 import "./AdminSidebar.module.scss";
 import { useState } from "react";
+import logoFull from "@/assets/logo_header.webp";
 
 const navigationItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Users", url: "/users", icon: Users },
-  // { title: "Brands", url: "/brands", icon: Tiket },
-  // { title: "Categories", url: "/categories", icon: MessageSquare },
   { title: "Import", url: "/import", icon: Import },
+  { title: "Pricing Markup", url: "/pricing-markup", icon: BadgeDollarSign },
   { title: "Products", url: "/products", icon: Store },
   { title: "Variants", url: "/variants", icon: Store },
-  { title: "Pricing Markup", url: "/pricing-markup", icon: BadgeDollarSign },
+  {
+    title: "Categories",
+    icon: FolderTree,
+    children: [
+      {
+        title: "Categories",
+        url: "/grand-category",
+      },
+      {
+        title: "Sub Categories",
+        url: "/parent-category",
+      },
+    ],
+  },
+
+  {
+    title: "Industry Management",
+    icon: BriefcaseBusiness,
+    children: [
+      {
+        title: "Industries",
+        url: "/industries",
+      },
+      {
+        title: "Use Cases",
+        url: "/use-cases",
+      },
+    ],
+  },
+
+  { title: "Brand Management", url: "/brand-management", icon: Tags },
+  { title: "Orders", url: "/orders", icon: ShoppingBag },
+  { title: "Contact Us", url: "/contact-us", icon: Mail },
   { title: "Payments", url: "/payments", icon: CreditCard },
-  { title: "Admin", url: "/admin", icon: Users },
-  // {
-  // 	title: "Quotes",
-  // 	icon: Quote,
-  // 	children: [
-  // 		{ title: "Quote", url: "/quotes" },
-  // 		{ title: "Quote Tags", url: "/quote-tags" },
-  // 	],
-  // },
-  // { title: "Feed", url: "/feeds", icon: LayoutList },
-  // {
-  // 	title: "Payments",
-  // 	icon: Receipt,
-  // 	children: [
-  // 		{ title: "Publishing Packages", url: "/payment-history" },
-  // 		{ title: "Subscriptions", url: "/subscriptions" },
-  // 	],
-  // },
+  { title: "Admin", url: "/admins", icon: Users },
 ];
 
 export function AdminSidebar() {
@@ -67,12 +94,40 @@ export function AdminSidebar() {
     <div className="AdminSidebar">
       <Sidebar className={isCollapsed ? "w-14" : "w-60"} collapsible="icon">
         <SidebarContent>
-          <div className="p-4">
-            <h2
-              className={`font-bold text-lg text-primary ${isCollapsed ? "hidden" : "block"}`}
-            >
-              Hashtag Billionaire
-            </h2>
+          <div className="p-4 flex items-center justify-center">
+            {isCollapsed ? (
+              // Show just the "H" icon mark when collapsed
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  background: "#F5C518",
+                  borderRadius: 6,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 900,
+                  fontSize: 18,
+                  color: "#000",
+                  fontFamily: "serif",
+                  flexShrink: 0,
+                }}
+              >
+                H
+              </div>
+            ) : (
+              // Show full logo when expanded
+              <img
+                src={logoFull}
+                alt="Hashtag Billionaire"
+                style={{
+                  height: 40,
+                  width: "auto",
+                  objectFit: "contain",
+                  maxWidth: "100%",
+                }}
+              />
+            )}
           </div>
 
           <SidebarGroup>
@@ -110,7 +165,7 @@ export function AdminSidebar() {
                                 className={({ isActive }) =>
                                   `block px-3 py-2 rounded-md text-sm ${
                                     isActive
-                                      ? "bg-primary text-white"
+                                      ? "bg-[#F5C518] text-black font-medium"
                                       : "text-muted-foreground hover:bg-muted"
                                   }`
                                 }
@@ -133,7 +188,7 @@ export function AdminSidebar() {
                           className={({ isActive }) =>
                             `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                               isActive
-                                ? "bg-primary text-primary-foreground font-medium"
+                                ? "bg-[#F5C518] text-black font-medium"
                                 : "hover:bg-muted text-muted-foreground hover:text-foreground"
                             }`
                           }

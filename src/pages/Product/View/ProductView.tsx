@@ -158,6 +158,7 @@ const ProductView = () => {
       </div>
 
       {/* WAREHOUSE */}
+      
       <div className="warehouse-card">
         <h3>Warehouse Stock</h3>
 

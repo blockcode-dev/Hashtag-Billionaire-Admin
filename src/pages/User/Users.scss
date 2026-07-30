@@ -1,549 +1,257 @@
-// Design tokens
-$primary: #111827;
-$primary-hover: #374151;
-$bg: #f4f6f9;
-$card-bg: #ffffff;
+/** @format */
+
+@use "sass:color";
+
+$primary: #0f172a;
 $border: #e5e7eb;
-$border-light: #f3f4f6;
-$text-main: #111827;
-$text-muted: #6b7280;
-$text-light: #9ca3af;
-$success: #059669;
-$success-bg: #d1fae5;
-$danger: #dc2626;
-$danger-bg: #fee2e2;
-$blue: #2563eb;
-$blue-bg: #eff6ff;
-$radius-sm: 8px;
-$radius-md: 12px;
-$radius-lg: 16px;
-$radius-xl: 20px;
+$text: #111827;
+$text-light: #6b7280;
+$bg: #f5f7fb;
+$white: #fff;
+$danger: #ef4444;
 
-// Skeleton animation
-@keyframes shimmer {
-  0% { background-position: -600px 0; }
-  100% { background-position: 600px 0; }
-}
-
-%skeleton-base {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
-  background-size: 600px 100%;
-  animation: shimmer 1.4s infinite linear;
-  border-radius: 6px;
-}
-
-.users-container {
-  padding: 36px 40px;
-  background-color: $bg;
+.users-page {
+  padding: 24px;
+  background: $bg;
   min-height: 100vh;
-  font-family: "DM Sans", "Inter", sans-serif;
-  color: $text-main;
 
-  // ── Header ──────────────────────────────────────
   .users-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 28px;
-    flex-wrap: wrap;
-    gap: 20px;
+    margin-bottom: 20px;
 
-    .title-section {
-      .title-row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 6px;
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: $text;
+      margin-bottom: 4px;
+    }
 
-        .title-icon {
-          color: $primary;
-          flex-shrink: 0;
-        }
+    p {
+      color: $text-light;
+      font-size: 14px;
+    }
 
-        h1 {
-          font-size: 1.85rem;
-          font-weight: 700;
-          letter-spacing: -0.02em;
-          color: $text-main;
-          margin: 0;
-        }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .search-box {
+      width: 290px;
+      height: 46px;
+      background: $white;
+      border: 1px solid $border;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      gap: 10px;
+
+      svg {
+        color: #9ca3af;
       }
 
-      p {
-        color: $text-muted;
-        font-size: 0.9rem;
-        margin-left: 40px; // align under title text
+      input {
+        flex: 1;
+        border: none;
+        outline: none;
+        background: transparent;
+        font-size: 14px;
+      }
+
+      .clear-btn {
+        border: none;
+        background: transparent;
+        cursor: pointer;
       }
     }
 
-    .action-bar {
+    .add-btn {
+      height: 46px;
+      padding: 0 22px;
+      border: none;
+      border-radius: 14px;
+      background: $primary;
+      color: white;
       display: flex;
-      gap: 12px;
       align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      cursor: pointer;
 
-      .search-wrapper {
-        position: relative;
-        display: flex;
-        align-items: center;
-        background: $card-bg;
-        border: 1.5px solid $border;
-        border-radius: $radius-md;
-        padding: 0 14px;
-        width: 300px;
-        transition: border-color 0.2s, box-shadow 0.2s;
+      &:hover {
+        opacity: 0.9;
+      }
+    }
+  }
 
-        &:focus-within {
-          border-color: $primary;
-          box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.07);
+  .table-wrapper {
+    background: white;
+    border-radius: 18px;
+    border: 1px solid $border;
+    overflow: hidden;
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+
+      thead {
+        background: #fafafa;
+
+        th {
+          padding: 18px 20px;
+          text-align: left;
+          font-size: 12px;
+          text-transform: uppercase;
+          color: #6b7280;
+          letter-spacing: 0.06em;
         }
+      }
 
-        &.has-value {
-          border-color: $primary;
-        }
-
-        .search-icon {
-          color: $text-light;
-          flex-shrink: 0;
-        }
-
-        input {
-          height: 44px;
-          border: none;
-          outline: none;
-          padding: 0 10px;
-          width: 100%;
-          font-size: 0.9rem;
-          color: $text-main;
-          background: transparent;
-          font-family: inherit;
-
-          &::placeholder { color: $text-light; }
-        }
-
-        .clear-search {
-          background: none;
-          border: none;
-          cursor: pointer;
-          color: $text-light;
-          display: flex;
-          align-items: center;
-          padding: 4px;
-          border-radius: 50%;
-          transition: color 0.15s, background 0.15s;
-          flex-shrink: 0;
+      tbody {
+        tr {
+          border-top: 1px solid #f1f5f9;
 
           &:hover {
-            color: $danger;
-            background: $danger-bg;
+            background: #fafafa;
+          }
+
+          td {
+            padding: 18px 20px;
+            font-size: 14px;
+            color: $text;
           }
         }
       }
+    }
 
-      .add-user-btn {
-        background: $primary;
-        color: #fff;
+    .status-badge {
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+
+      &.success {
+        background: #dcfce7;
+        color: #15803d;
+      }
+
+      &.danger {
+        background: #fee2e2;
+        color: #dc2626;
+      }
+
+      &.neutral {
+        background: #f3f4f6;
+        color: #6b7280;
+      }
+    }
+
+    .actions-column {
+      text-align: center;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+
+      button {
+        width: 38px;
+        height: 38px;
         border: none;
-        padding: 0 20px;
-        height: 44px;
-        border-radius: $radius-md;
-        font-weight: 600;
-        font-size: 0.9rem;
+        border-radius: 12px;
+        cursor: pointer;
         display: flex;
         align-items: center;
-        gap: 7px;
-        cursor: pointer;
-        transition: background 0.2s, transform 0.1s;
-        white-space: nowrap;
-        font-family: inherit;
-
-        &:hover { background: $primary-hover; }
-        &:active { transform: scale(0.97); }
+        justify-content: center;
       }
-    }
-  }
 
-  // ── Table Card ───────────────────────────────────
-  .table-card {
-    background: $card-bg;
-    border-radius: $radius-xl;
-    border: 1px solid $border;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
-    overflow: hidden;
-    position: relative;
-
-    // Loading progress bar
-    .loading-bar {
-      height: 3px;
-      background: $border-light;
-      overflow: hidden;
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-
-      .loading-bar-inner {
-        height: 100%;
-        width: 40%;
-        background: $primary;
-        animation: loading-slide 1.2s ease-in-out infinite;
-        border-radius: 2px;
+      .delete-btn {
+        background: #fef2f2;
+        color: #ef4444;
       }
     }
 
-    @keyframes loading-slide {
-      0% { transform: translateX(-150%); }
-      100% { transform: translateX(350%); }
-    }
-  }
-
-  // ── Table ────────────────────────────────────────
-  .table-responsive {
-    overflow-x: auto;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-
-    thead tr {
-      background: #fafafa;
-      border-bottom: 1px solid $border;
-    }
-
-    th {
-      padding: 13px 20px;
-      text-align: left;
-      font-size: 0.72rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: $text-muted;
-      white-space: nowrap;
-    }
-
-    td {
-      padding: 16px 20px;
-      border-bottom: 1px solid $border-light;
-      vertical-align: middle;
-      font-size: 0.9rem;
-    }
-
-    tbody tr {
-      transition: background 0.12s;
-
-      &:last-child td { border-bottom: none; }
-      &:hover { background: #fafbfc; }
-      &.skeleton-row { background: transparent; }
-    }
-  }
-
-  // ── Sr. No. ──────────────────────────────────────
-  .sr-no {
-    display: inline-block;
-    min-width: 28px;
-    text-align: center;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: $text-light;
-    background: $border-light;
-    border-radius: 6px;
-    padding: 3px 8px;
-  }
-
-  // ── User Cell ────────────────────────────────────
-  .user-profile-cell {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    .avatar-square {
-      width: 40px;
-      height: 40px;
-      background: $primary;
-      color: #fff;
+    .pagination {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: $radius-sm;
-      font-weight: 700;
-      font-size: 1rem;
-      flex-shrink: 0;
-    }
-
-    .user-info {
-      display: flex;
-      flex-direction: column;
-
-      .user-name {
-        font-weight: 600;
-        color: $text-main;
-        font-size: 0.9rem;
-      }
-    }
-  }
-
-  // ── Contact Cell ─────────────────────────────────
-  .contact-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-
-    .email { font-size: 0.88rem; color: $text-main; }
-    .phone { font-size: 0.82rem; color: $text-muted; }
-  }
-
-  // ── Date Cell ────────────────────────────────────
-  .date-cell {
-    color: $text-muted;
-    font-size: 0.86rem;
-    white-space: nowrap;
-  }
-
-  // ── Badge ────────────────────────────────────────
-  .badge {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 0.73rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-
-    &-success { background: $success-bg; color: $success; }
-    &-danger  { background: $danger-bg;  color: $danger; }
-    &-neutral { background: $border-light; color: $text-muted; }
-  }
-
-  // ── Action Buttons ───────────────────────────────
-  .action-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 6px;
-
-    .icon-btn {
-      width: 32px;
-      height: 32px;
-      border-radius: $radius-sm;
-      border: 1px solid $border;
-      background: $card-bg;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.18s;
-      color: $text-muted;
-
-      &.view:hover  { color: $blue;   border-color: $blue;   background: $blue-bg; }
-      &.delete:hover { color: $danger; border-color: $danger; background: $danger-bg; }
-    }
-  }
-
-  // ── Empty State ──────────────────────────────────
-  .empty-state {
-    padding: 60px 24px !important;
-
-    .empty-inner {
-      display: flex;
-      flex-direction: column;
       align-items: center;
       gap: 12px;
-      color: $text-light;
+      padding: 18px 20px;
+      border-top: 1px solid #f1f5f9;
 
-      p { font-size: 0.95rem; color: $text-muted; margin: 0; }
-
-      .clear-link {
-        background: none;
-        border: none;
-        color: $blue;
-        cursor: pointer;
-        font-size: 0.9rem;
-        font-weight: 500;
-        font-family: inherit;
-        text-decoration: underline;
-
-        &:hover { color: darken($blue, 10%); }
-      }
-    }
-  }
-
-  // ── Skeleton Loaders ─────────────────────────────
-  .skeleton {
-    @extend %skeleton-base;
-    display: block;
-
-    &-sm      { height: 20px; width: 36px; }
-    &-avatar  { width: 40px; height: 40px; border-radius: $radius-sm; }
-    &-text    { height: 14px; width: 120px; margin-bottom: 6px; }
-    &-text-sm { height: 12px; width: 80px; }
-    &-badge   { height: 22px; width: 60px; border-radius: 6px; }
-    &-actions { height: 28px; width: 72px; border-radius: $radius-sm; }
-  }
-
-  // ── Table Footer ─────────────────────────────────
-  .table-footer {
-    padding: 16px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #fafafa;
-    border-top: 1px solid $border;
-    flex-wrap: wrap;
-    gap: 12px;
-
-    .results-count {
-      color: $text-muted;
-      font-size: 0.85rem;
-    }
-
-    .pagination-controls {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-
-      .pag-btn {
-        width: 32px;
-        height: 32px;
-        border-radius: $radius-sm;
+      button {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
         border: 1px solid $border;
-        background: $card-bg;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        background: white;
         cursor: pointer;
-        color: $text-muted;
-        transition: all 0.15s;
-        font-family: inherit;
 
-        &:disabled { opacity: 0.35; cursor: not-allowed; }
-        &:hover:not(:disabled) { border-color: $primary; color: $primary; }
-      }
-
-      .pag-num {
-        height: 32px;
-        min-width: 32px;
-        border-radius: $radius-sm;
-        border: 1px solid $border;
-        background: $card-bg;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        font-size: 0.85rem;
-        font-weight: 500;
-        color: $text-muted;
-        transition: all 0.15s;
-        padding: 0 6px;
-        font-family: inherit;
-
-        &.active {
-          background: $primary;
-          border-color: $primary;
-          color: #fff;
-          font-weight: 700;
+        &:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
         }
-
-        &:hover:not(.active) { border-color: $primary; color: $primary; }
       }
 
-      .ellipsis {
+      span {
+        font-size: 14px;
         color: $text-light;
-        font-size: 0.9rem;
-        padding: 0 4px;
       }
     }
   }
 }
 
-// ── Modal ──────────────────────────────────────────
 .modal-overlay {
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(5px);
   position: fixed;
   inset: 0;
+  background: rgba(15, 23, 42, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-  animation: fade-in 0.15s ease;
+  z-index: 999;
+}
 
-  @keyframes fade-in {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+.modal-content {
+  width: 100%;
+  max-width: 400px;
+  background: white;
+  border-radius: 20px;
+  padding: 28px;
+
+  h3 {
+    font-size: 20px;
+    margin-bottom: 10px;
   }
 
-  .modal-content {
-    background: #fff;
-    width: 100%;
-    max-width: 400px;
-    padding: 32px;
-    border-radius: 24px;
-    text-align: center;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
-    animation: slide-up 0.2s ease;
+  p {
+    color: $text-light;
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
 
-    @keyframes slide-up {
-      from { transform: translateY(16px); opacity: 0; }
-      to   { transform: translateY(0);    opacity: 1; }
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+
+    button {
+      flex: 1;
+      height: 46px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
     }
 
-    .modal-warning-icon {
-      width: 56px;
-      height: 56px;
-      background: $danger-bg;
-      color: $danger;
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 20px;
+    .cancel-btn {
+      background: #f3f4f6;
     }
 
-    h3 {
-      font-size: 1.35rem;
-      font-weight: 700;
-      margin-bottom: 10px;
-      color: $text-main;
-    }
-
-    p {
-      color: $text-muted;
-      font-size: 0.9rem;
-      margin-bottom: 28px;
-      line-height: 1.6;
-    }
-
-    .modal-footer {
-      display: flex;
-      gap: 10px;
-
-      button {
-        flex: 1;
-        height: 44px;
-        border-radius: $radius-md;
-        font-weight: 600;
-        font-size: 0.9rem;
-        cursor: pointer;
-        border: none;
-        transition: opacity 0.15s, transform 0.1s;
-        font-family: inherit;
-
-        &:active { transform: scale(0.97); }
-      }
-
-      .btn-secondary {
-        background: $border-light;
-        color: $text-main;
-        border: 1px solid $border;
-
-        &:hover { background: darken(#f3f4f6, 3%); }
-      }
-
-      .btn-danger {
-        background: $danger;
-        color: #fff;
-
-        &:hover { opacity: 0.9; }
-      }
+    .confirm-btn {
+      background: $danger;
+      color: white;
     }
   }
 }

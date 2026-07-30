@@ -727,3 +727,379 @@ $transition:     0.18s ease;
   0%   { width: 10%; margin-left: 0; }
   100% { width: 65%; margin-left: 15%; }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADDITIONS — SageImportBySupplierTab improvements
+// Append these rules at the bottom of Sageimporttab.scss.
+// No existing rules are changed.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Improved "Imported" badge on product cards ────────────────────────────────
+.sage-imported-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 99px;
+  margin-bottom: 5px;
+
+  &__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #22c55e;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 2px rgba(#22c55e, 0.25);
+  }
+}
+
+// ── Product detail: hero two-column layout ────────────────────────────────────
+.sage-detail__hero {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+}
+
+// ── Gallery ───────────────────────────────────────────────────────────────────
+.sage-detail__gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sage-detail__gallery-main {
+  position: relative;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f3f4f6;
+
+  img {
+    width: 100%;
+    height: 200px;
+    object-fit: contain;
+    display: block;
+  }
+}
+
+.sage-detail__gallery-logo-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 99px;
+}
+
+.sage-detail__gallery-thumbs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sage-detail__gallery-thumb {
+  width: 48px;
+  height: 38px;
+  object-fit: contain;
+  border: 1px solid #e5e7eb;
+  border-radius: 5px;
+  cursor: pointer;
+  background: #f9fafb;
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &:hover {
+    border-color: #93c5fd;
+  }
+
+  &--active {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  }
+}
+
+// ── Core info column ──────────────────────────────────────────────────────────
+.sage-detail__info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sage-detail__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sage-detail__status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 99px;
+  border: 1px solid transparent;
+
+  &--imported {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #15803d;
+  }
+
+  &--not-imported {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+    color: #6b7280;
+  }
+
+  &--new {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    color: #2563eb;
+  }
+
+  &--discontinued {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #dc2626;
+  }
+}
+
+.sage-detail__status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  &--green {
+    background: #22c55e;
+    box-shadow: 0 0 0 2px rgba(#22c55e, 0.2);
+  }
+
+  &--grey {
+    background: #9ca3af;
+  }
+}
+
+.sage-detail__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sage-detail__meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11.5px;
+  color: #6b7280;
+
+  strong {
+    color: #111827;
+    font-weight: 600;
+  }
+}
+
+.sage-detail__import-info {
+  display: flex;
+  gap: 16px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 7px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
+.sage-detail__import-info-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+}
+
+.sage-detail__import-info-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+// ── Sections (pricing, variants, deco, packaging) ─────────────────────────────
+.sage-detail__section {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.sage-detail__section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+// ── Pricing table ─────────────────────────────────────────────────────────────
+.sage-detail__pricing-table {
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+.sage-detail__pricing-head {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  background: #f3f4f6;
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+}
+
+.sage-detail__pricing-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 7px 12px;
+  border-top: 1px solid #f3f4f6;
+  color: #374151;
+
+  &:nth-child(even) {
+    background: #fafafa;
+  }
+}
+
+.sage-detail__pricing-price {
+  color: #111827;
+  font-weight: 600;
+}
+
+.sage-detail__pricing-net {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.sage-detail__pricing-note {
+  font-size: 11.5px;
+  color: #9ca3af;
+  margin-top: 8px;
+}
+
+// ── Variant cards ─────────────────────────────────────────────────────────────
+.sage-detail__variants-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.sage-detail__variant-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: #fafafa;
+  font-size: 12.5px;
+  transition: box-shadow 0.15s, border-color 0.15s;
+
+  &:hover {
+    border-color: #bfdbfe;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+  }
+}
+
+.sage-detail__variant-color-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.sage-detail__variant-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.sage-detail__variant-color {
+  font-weight: 600;
+  color: #111827;
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sage-detail__variant-sku {
+  font-size: 11px;
+  color: #9ca3af;
+  font-family: monospace;
+}
+
+.sage-detail__variant-stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.sage-detail__variant-price {
+  font-weight: 700;
+  color: #16a34a;
+}
+
+// ── Decoration & packaging grid ───────────────────────────────────────────────
+.sage-detail__deco-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.sage-detail__deco-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.sage-detail__deco-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+}
