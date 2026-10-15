@@ -36,6 +36,7 @@ import {
 import "./AdminSidebar.module.scss";
 import { useState } from "react";
 import logoFull from "@/assets/logo_header.webp";
+import { useSession } from "@/lib/session";
 
 // Each top-level group has a label + a set of items.
 // Items can either link directly (url) or expand into children.
@@ -48,7 +49,8 @@ const navigationGroups = [
     label: "People Management",
     items: [
       { title: "Users", url: "/users", icon: Users },
-      { title: "Admin", url: "/admins", icon: UserCog },
+      // Admin accounts are managed by Super Admins only.
+      { title: "Admin", url: "/admins", icon: UserCog, superAdminOnly: true },
     ],
   },
   {
@@ -118,6 +120,8 @@ export function AdminSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
 
+  const { isSuperAdmin } = useSession();
+
   const isCollapsed = state === "collapsed";
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
@@ -182,7 +186,9 @@ export function AdminSidebar() {
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-0.5">
-                  {group.items.map((item: any) => {
+                  {group.items
+                    .filter((item: any) => !item.superAdminOnly || isSuperAdmin)
+                    .map((item: any) => {
                     // Item with a dropdown of children
                     if (item.children) {
                       const isOpen = openMenus[item.title];

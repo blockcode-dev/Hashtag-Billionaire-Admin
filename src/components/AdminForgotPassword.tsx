@@ -1,134 +1,39 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Eye, EyeOff } from "lucide-react";
+import { MailCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import {
-  SendOtpApi,
-  VerifyOtpApi,
-  ForgotPasswordApi,
-} from "@/services/Api/AuthApi";
+import { ForgotPasswordApi } from "@/services/Api/AuthApi";
 
+// Step 1 of forgot password: the backend emails a link to /reset-password.
 export default function AdminForgotPassword() {
-  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
-  const [token, setToken] = useState("");
-
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  // Password visibility
-  const [showPass, setShowPass] = useState(false);
-  const [showConfirmPass, setShowConfirmPass] = useState(false);
+  // The backend answers the same way whether or not the email exists.
+  const [sentMessage, setSentMessage] = useState("");
 
   const { toast } = useToast();
 
-  // Animation variants
-  const stepAnim = {
-    initial: { opacity: 0, x: 40 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -40 },
-    transition: { duration: 0.35, ease: "easeOut" },
-  };
-
-  // STEP 1 → SEND OTP
-  const handleSendOtp = async () => {
-    if (!email) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) {
       toast({ title: "Email required", variant: "destructive" });
       return;
     }
 
     try {
       setLoading(true);
-
-      const res = await SendOtpApi({
-        email,
-        otp_type: "forgot_password",
-      });
-
-      if (res.data?.success) {
-        toast({ title: "OTP sent!" });
-        setStep(2);
-      }
+      const res = await ForgotPasswordApi({ email: email.trim() });
+      setSentMessage(
+        res.data?.message ||
+          "If an account matches that email, we've sent a link to it.",
+      );
     } catch (err: any) {
+      // 400 for an invalid email, 429 after too many requests.
       toast({
-        title: "Failed to send OTP",
-        description: err.response?.data?.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // STEP 2 → VERIFY OTP
-  const handleVerifyOtp = async () => {
-    if (!otp) {
-      toast({ title: "Enter OTP", variant: "destructive" });
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const res = await VerifyOtpApi({
-        email,
-        otp,
-        otp_type: "forgot_password",
-      });
-
-      if (res.data?.success) {
-        setToken(res.data.data.token);
-
-        toast({ title: "OTP verified!" });
-        setStep(3);
-      }
-    } catch (err: any) {
-      toast({
-        title: "Invalid OTP",
-        description: err.response?.data?.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // STEP 3 → RESET PASSWORD
-  const handleChangePassword = async () => {
-    if (!password || !confirmPassword) {
-      toast({ title: "All fields required", variant: "destructive" });
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      toast({ title: "Passwords do not match", variant: "destructive" });
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const res = await ForgotPasswordApi({
-        email,
-        password,
-        confirm_password: confirmPassword,
-        token,
-      });
-
-      if (res.data?.success) {
-        toast({ title: "Password changed successfully!" });
-        window.location.href = "/";
-      }
-    } catch (err: any) {
-      toast({
-        title: "Failed to change password",
-        description: err.response?.data?.message,
+        title: "Couldn't send the link",
+        description: err.response?.data?.message || "Something went wrong.",
         variant: "destructive",
       });
     } finally {
@@ -141,133 +46,59 @@ export default function AdminForgotPassword() {
       <Card className="w-full max-w-md shadow-md relative overflow-hidden">
         <CardHeader>
           <CardTitle className="text-center text-2xl font-semibold">
-            {step === 1 && "Forgot Password"}
-            {step === 2 && "Verify OTP"}
-            {step === 3 && "Reset Password"}
+            Forgot Password
           </CardTitle>
         </CardHeader>
 
         <CardContent>
-          <AnimatePresence mode="wait">
-            {/* STEP 1 */}
-            {step === 1 && (
-              <motion.div key="step1" {...stepAnim} className="space-y-4">
-                <Input
-                  placeholder="Enter your email"
-                  value={email}
-                  type="email"
-                  onChange={(e) => setEmail(e.target.value)}
-                />
+          {sentMessage ? (
+            <div className="space-y-4 text-center">
+              <MailCheck className="h-10 w-10 mx-auto text-[#E7BA01]" />
+              <p className="text-sm text-muted-foreground">{sentMessage}</p>
+              <p className="text-xs text-muted-foreground">
+                The link is valid for 60 minutes and can be used once.
+              </p>
+              <Button
+                variant="ghost"
+                className="w-full text-primary"
+                onClick={() => (window.location.href = "/")}
+              >
+                Back to Login
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <p className="text-sm text-muted-foreground text-center">
+                Enter your email and we'll send you a link to reset your
+                password.
+              </p>
+              <Input
+                placeholder="Enter your email"
+                value={email}
+                type="email"
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
 
-                <Button
-                  className="w-full"
-                  disabled={loading}
-                  onClick={handleSendOtp}
-                  style={{ backgroundColor: "#E7BA01" }}
-                >
-                  {loading ? "Sending..." : "Send OTP"}
-                </Button>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
+                style={{ backgroundColor: "#E7BA01" }}
+              >
+                {loading ? "Sending..." : "Send Reset Link"}
+              </Button>
 
-                {/* Back to login */}
-                <Button
-                  variant="ghost"
-                  className="w-full text-primary"
-                  onClick={() => (window.location.href = "/")}
-                >
-                  Back to Login
-                </Button>
-              </motion.div>
-            )}
-
-            {/* STEP 2 */}
-            {step === 2 && (
-              <motion.div key="step2" {...stepAnim} className="space-y-4">
-                <Input
-                  placeholder="Enter OTP"
-                  value={otp}
-                  maxLength={6}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                />
-
-                <p className="text-sm text-muted-foreground text-right">
-                  Didn’t receive OTP?{" "}
-                  <button
-                    onClick={handleSendOtp}
-                    className="text-primary underline font-medium"
-                  >
-                    Resend
-                  </button>
-                </p>
-
-                <Button
-                  className="w-full"
-                  disabled={loading}
-                  onClick={handleVerifyOtp}
-                  style={{ backgroundColor: "#E7BA01" }}
-                >
-                  {loading ? "Verifying..." : "Verify OTP"}
-                </Button>
-              </motion.div>
-            )}
-
-            {/* STEP 3 — RESET PASSWORD WITH EYE TOGGLE */}
-            {step === 3 && (
-              <motion.div key="step3" {...stepAnim} className="space-y-4">
-                {/* Password with eye icon */}
-                <div className="relative">
-                  <Input
-                    type={showPass ? "text" : "password"}
-                    placeholder="New Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPass(!showPass)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
-                  >
-                    {showPass ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </button>
-                </div>
-
-                {/* Confirm password with eye icon */}
-                <div className="relative">
-                  <Input
-                    type={showConfirmPass ? "text" : "password"}
-                    placeholder="Confirm Password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPass(!showConfirmPass)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
-                  >
-                    {showConfirmPass ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </button>
-                </div>
-
-                <Button
-                  className="w-full"
-                  disabled={loading}
-                  onClick={handleChangePassword}
-                  style={{ backgroundColor: "#E7BA01" }}
-                >
-                  {loading ? "Updating..." : "Change Password"}
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full text-primary"
+                onClick={() => (window.location.href = "/")}
+              >
+                Back to Login
+              </Button>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>

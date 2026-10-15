@@ -11,21 +11,13 @@
 // for the admin panel's origin. Images that can't be fetched are skipped and
 // reported as `failed` instead of breaking the whole save.
 
+import { IMAGE_BASE_URL } from "@/config/env";
+
 export interface ImageRef {
   id: number;
   file_uri?: string | null;
   file_name?: string | null;
 }
-
-const API_BASE_URL: string =
-  import.meta.env.VITE_API_BASE_URL ||
-  "https://node.hashtagbillionaire.com/api/v1/";
-
-// Where uploaded images live. Override with VITE_IMAGE_BASE_URL if images
-// are served from a different host than the API.
-const IMAGE_ORIGIN: string = (
-  import.meta.env.VITE_IMAGE_BASE_URL || new URL(API_BASE_URL).origin
-).replace(/\/+$/, "");
 
 // Always returns an absolute URL (or "" if there's nothing to go on).
 // A relative file_uri would otherwise be resolved against the admin app
@@ -43,10 +35,10 @@ export function resolveImageUrl(img: {
     const path = uri.replace(/^\/+/, "");
     // Bare file name → it lives in /images like every other upload.
     return path.includes("/")
-      ? `${IMAGE_ORIGIN}/${path}`
-      : `${IMAGE_ORIGIN}/images/${path}`;
+      ? `${IMAGE_BASE_URL}/${path}`
+      : `${IMAGE_BASE_URL}/images/${path}`;
   }
-  if (img.file_name) return `${IMAGE_ORIGIN}/images/${img.file_name}`;
+  if (img.file_name) return `${IMAGE_BASE_URL}/images/${img.file_name}`;
   return "";
 }
 

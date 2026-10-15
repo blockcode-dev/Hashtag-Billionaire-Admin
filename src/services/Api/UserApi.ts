@@ -2,9 +2,7 @@
 
 import axios from "axios";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  "https://node.hashtagbillionaire.com/api/v1/";
+import { API_BASE_URL } from "@/config/env";
 
 export const GetAllUsersAPI = async (params: {
   page?: number;
@@ -58,8 +56,7 @@ export const DeleteUserAPI = async (
 };
 
 export const GetUserDetailsAPI = async (userId: number) => {
-  const token = localStorage.getItem("token");
-  return axios.get(`${API_BASE_URL}admin/user/getUserById/${userId}`, {
-    headers: { "x-access-token": token },
+  return axios.get(`${API_BASE_URL}admin/user/getUserById`, {
+    params: { id: userId },
   });
 };

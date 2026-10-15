@@ -13,6 +13,7 @@ import AdminSettings from "./pages/AdminSettings";
 import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/AdminLayout";
 import AdminForgotPassword from "./components/AdminForgotPassword";
+import AdminResetPassword from "./components/AdminResetPassword";
 import AdminChangePassword from "./components/AdminChangePassword";
 import AdminProfile from "./pages/AdminProfile";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
@@ -64,6 +65,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/forgot-password" element={<AdminForgotPassword />} />
+          <Route path="/reset-password" element={<AdminResetPassword />} />
 
           <Route
             path="/dashboard"
@@ -130,7 +132,7 @@ const App = () => (
           <Route
             path="/admins"
             element={
-              <AdminLayout>
+              <AdminLayout superAdminOnly>
                 <AdminsPage />
               </AdminLayout>
             }
@@ -139,7 +141,7 @@ const App = () => (
           <Route
             path="/admins/add"
             element={
-              <AdminLayout>
+              <AdminLayout superAdminOnly>
                 <AddEditAdmin />
               </AdminLayout>
             }
@@ -147,7 +149,7 @@ const App = () => (
           <Route
             path="/admins/edit/:id"
             element={
-              <AdminLayout>
+              <AdminLayout superAdminOnly>
                 <AddEditAdmin />
               </AdminLayout>
             }
@@ -440,9 +442,10 @@ const App = () => (
             }
           />
 
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
-          <Route path="/unauthorized" element={<UnauthorizedPage />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

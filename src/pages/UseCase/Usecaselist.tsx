@@ -37,7 +37,7 @@ import { GetParentCategoriesAPI } from "@/services/Api/ParentCategoryApi";
 import "./UseCaseList.scss";
 import { useNavigate } from "react-router-dom";
 
-const IMAGE_BASE_URL = "https://node.hashtagbillionaire.com";
+import { IMAGE_BASE_URL } from "@/config/env";
 
 const getImageUrl = (path: string | null | undefined) => {
   if (!path) return null;

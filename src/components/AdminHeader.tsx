@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { GetAdminProfileAPI } from "@/services/Api/AuthApi";
+import { clearSession, setRoleName } from "@/lib/session";
 
 export function AdminHeader() {
   const [adminName, setAdminName] = useState("Admin User");
@@ -19,40 +20,17 @@ export function AdminHeader() {
   useEffect(() => {
     loadAdminProfile();
   }, []);
+  // Also refreshes the stored role, since a Super Admin can change it at any time.
+  // A 401 here (expired or revoked session) is handled by the axios interceptor.
   const loadAdminProfile = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const res = await GetAdminProfileAPI({ token });
+      const res = await GetAdminProfileAPI();
 
       if (res?.data?.success) {
         setAdminName(res.data.data.name || "Admin User");
+        setRoleName(res.data.data.admin_role?.name);
       }
-    } catch (err: any) {
-      const errorMessage =
-        err?.response?.data?.message ||
-        err?.response?.data?.data?.message ||
-        "";
-
-      if (
-        errorMessage.toLowerCase().includes("jwt expired") ||
-        errorMessage.toLowerCase().includes("token expired")
-      ) {
-        // Clear session
-        localStorage.removeItem("token");
-        localStorage.removeItem("isAdmin");
-        localStorage.removeItem("role_id");
-        localStorage.removeItem("admin_id");
-
-        sessionStorage.clear();
-
-        // Redirect to login with session expired flag
-        window.location.href = "/?sessionExpired=true";
-
-        return;
-      }
-
+    } catch {
       console.log("Failed to load profile");
     }
   };
@@ -106,10 +84,7 @@ export function AdminHeader() {
           <DropdownMenuItem
             className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive"
             onClick={() => {
-              localStorage.removeItem("token");
-              localStorage.removeItem("isAdmin");
-              localStorage.removeItem("role_id");
-              localStorage.removeItem("admin_id");
+              clearSession();
               window.location.href = "/";
             }}
           >

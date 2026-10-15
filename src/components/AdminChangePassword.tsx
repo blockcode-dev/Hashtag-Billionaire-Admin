@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Lock, Key } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ChangePasswordAPI } from "@/services/Api/AuthApi";
+import { PASSWORD_RULE_HINT, checkPasswordRule, setToken } from "@/lib/session";
 
 export default function AdminChangePassword() {
   const { toast } = useToast();
@@ -18,10 +19,17 @@ export default function AdminChangePassword() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       toast({ title: "All fields are required", variant: "destructive" });
+      return;
+    }
+
+    const ruleError = checkPasswordRule(newPassword);
+    if (ruleError) {
+      toast({ title: ruleError, variant: "destructive" });
       return;
     }
 
@@ -31,22 +39,26 @@ export default function AdminChangePassword() {
     }
 
     try {
-      const token = localStorage.getItem("token");
-
+      setLoading(true);
       const res = await ChangePasswordAPI({
         old_password: currentPassword,
         new_password: newPassword,
         confirm_password: confirmPassword,
-        token,
       });
 
       if (res.data?.success) {
+        // Older tokens stop working once the password changes; keep this one.
+        const newToken = res.data?.data?.token;
+        if (newToken) setToken(newToken);
+
         toast({
           title: "Password Updated",
-          description: "You can now log in with your new password.",
+          description: "Other sessions have been signed out.",
         });
 
-        setTimeout(() => (window.location.href = "/"), 1500);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
       }
     } catch (err: any) {
       toast({
@@ -54,6 +66,8 @@ export default function AdminChangePassword() {
         description: err.response?.data?.message || "Unexpected error.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -144,14 +158,17 @@ export default function AdminChangePassword() {
           </div>
         </div>
 
+        <p className="text-xs text-gray-500 -mt-4">{PASSWORD_RULE_HINT}</p>
+
         {/* Button */}
         <div className="flex justify-center pt-4">
           <Button
             onClick={handleChangePassword}
+            disabled={loading}
             className="bg-[#ed1c24] hover:bg-[#d1151c] text-white px-6 h-11 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center"
           >
             <Key className="h-4 w-4 mr-2" />
-            Change Password
+            {loading ? "Updating..." : "Change Password"}
           </Button>
         </div>
 

@@ -32,7 +32,7 @@ import {
 } from "@/services/Api/IndustryApi";
 import "./IndustryList.scss";
 
-const IMAGE_BASE_URL = "https://node.hashtagbillionaire.com";
+import { IMAGE_BASE_URL } from "@/config/env";
 
 const getImageUrl = (path: string | null | undefined) => {
   if (!path) return null;

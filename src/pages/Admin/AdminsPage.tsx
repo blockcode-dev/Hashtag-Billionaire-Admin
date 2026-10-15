@@ -14,10 +14,14 @@ import {
 
 import { useNavigate } from "react-router-dom";
 
+import { message } from "antd";
+
 import {
   GetAllAdminsAPI,
   DeleteAdminAPI,
 } from "@/services/Api/AdminApi";
+
+import { SUPER_ADMIN_ROLE, getAdminId } from "@/lib/session";
 
 import "./Admins.scss";
 
@@ -36,6 +40,13 @@ const AdminsPage = () => {
   const [selectedAdminId, setSelectedAdminId] =
     useState<number | null>(null);
 
+  const currentAdminId = getAdminId();
+
+  // The backend refuses both (400 for yourself, 403 for a Super Admin).
+  const canDelete = (a: any) =>
+    a.admin_role?.name !== SUPER_ADMIN_ROLE &&
+    String(a.id) !== String(currentAdminId);
+
   const loadAdmins = useCallback(async () => {
     try {
       const res = await GetAllAdminsAPI({
@@ -44,8 +55,11 @@ const AdminsPage = () => {
       });
 
       setAllAdmins(res.data.data || []);
-    } catch (err) {
-      console.error("Failed to load admins", err);
+    } catch (err: any) {
+      message.error(
+        err?.response?.data?.message ||
+          "Failed to load admins",
+      );
     }
   }, []);
 
@@ -83,15 +97,20 @@ const AdminsPage = () => {
     if (!selectedAdminId) return;
 
     try {
-      await DeleteAdminAPI([selectedAdminId]);
+      await DeleteAdminAPI(selectedAdminId);
 
       setAllAdmins((prev) =>
         prev.filter((a) => a.id !== selectedAdminId),
       );
 
+      message.success("Admin deleted");
+    } catch (err: any) {
+      message.error(
+        err?.response?.data?.message ||
+          "Failed to delete admin",
+      );
+    } finally {
       setDeleteModal(false);
-    } catch (err) {
-      console.error(err);
     }
   };
 
@@ -203,18 +222,20 @@ const AdminsPage = () => {
                       <Edit size={16} />
                     </button>
 
-                    <button
-                      className="delete-btn"
-                      onClick={() => {
-                        setSelectedAdminId(
-                          a.id,
-                        );
+                    {canDelete(a) && (
+                      <button
+                        className="delete-btn"
+                        onClick={() => {
+                          setSelectedAdminId(
+                            a.id,
+                          );
 
-                        setDeleteModal(true);
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                          setDeleteModal(true);
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

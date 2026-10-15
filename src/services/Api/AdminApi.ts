@@ -2,96 +2,54 @@
 
 import axios from "axios";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  "https://node.hashtagbillionaire.com/api/v1/";
+import { API_BASE_URL } from "@/config/env";
+
+// All of these are Super Admin only (other admins get 403). The admin token is
+// attached by the axios interceptor (services/Api/interceptors.ts).
 
 export const GetAllAdminsAPI = async (params?: {
   page?: number;
   limit?: number;
   search?: string;
 }) => {
-  return axios.get(
-    `${API_BASE_URL}admin/auth/getAllAdmins`,
-    {
-      params,
-      headers: {
-        "x-access-token":
-          localStorage.getItem("token") || "",
-      },
-    },
-  );
+  return axios.get(`${API_BASE_URL}admin/auth/getAllAdmins`, { params });
 };
 
+// No password: the new admin is emailed a link to set their own.
 export const AddAdminAPI = async (body: {
   name: string;
   email: string;
-  password: string;
+  role_id: number;
+  department_id: number;
 }) => {
-  return axios.post(
-    `${API_BASE_URL}admin/auth/register`,
-    {
-      ...body,
-      role_id: 1,
-    },
-    {
-      headers: {
-        "x-access-token":
-          localStorage.getItem("token") || "",
-      },
-    },
-  );
+  return axios.post(`${API_BASE_URL}admin/auth/register`, body);
 };
 
 export const UpdateAdminAPI = async (
   admin_id: number,
   body: {
-    name: string;
-    email: string;
+    name?: string;
+    email?: string;
+    role_id?: number;
+    department_id?: number;
   },
 ) => {
-  return axios.put(
-    `${API_BASE_URL}admin/auth/updateAdmin/${admin_id}`,
-    {
-      admin_id,
-      ...body,
-    },
-    {
-      headers: {
-        "x-access-token":
-          localStorage.getItem("token") || "",
-      },
-    },
-  );
+  return axios.put(`${API_BASE_URL}admin/auth/updateAdmin/${admin_id}`, body);
 };
 
-export const DeleteAdminAPI = async (
-  admin_id: number[],
-) => {
-  return axios.post(
-    `${API_BASE_URL}admin/auth/deleteAdmin`,
-    {
-      admin_id,
-    },
-    {
-      headers: {
-        "x-access-token":
-          localStorage.getItem("token") || "",
-      },
-    },
-  );
+export const DeleteAdminAPI = async (admin_id: number) => {
+  return axios.post(`${API_BASE_URL}admin/auth/deleteAdmin`, { admin_id });
 };
 
-export const GetAdminDetailsAPI = async (
-  adminId: number,
-) => {
-  return axios.get(
-    `${API_BASE_URL}admin/auth/findAdminById/${adminId}`,
-    {
-      headers: {
-        "x-access-token":
-          localStorage.getItem("token") || "",
-      },
-    },
-  );
+export const GetAdminDetailsAPI = async (adminId: number) => {
+  return axios.get(`${API_BASE_URL}admin/auth/findAdminById/${adminId}`);
+};
+
+// Readable by any admin.
+export const GetRolesAPI = async () => {
+  return axios.get(`${API_BASE_URL}role`);
+};
+
+export const GetDepartmentsAPI = async () => {
+  return axios.get(`${API_BASE_URL}department`);
 };

@@ -18,8 +18,7 @@ export default function AdminProfile() {
 
 	const fetchProfile = async () => {
 		try {
-			const token = localStorage.getItem("token");
-			const res = await GetAdminProfileAPI({ token });
+			const res = await GetAdminProfileAPI();
 			if (res.data?.success) {
 				setProfile(res.data.data);
 			}

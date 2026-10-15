@@ -68,6 +68,7 @@ import {
   pricingFromVariant,
 } from "@/utils/variantPricing";
 import { filesFromImages, resolveImageUrl } from "@/utils/fileFromUrl";
+import { IMAGE_BASE_URL } from "@/config/env";
 import {
   CustomizationAssignment,
   CustomizationOption,
@@ -248,12 +249,10 @@ const DEFAULT_VARIANT = (optionsCount: number): VariantDraft => ({
 
 const CAT_LIMIT = 50;
 
-const ADDON_IMAGE_BASE_URL = "https://node.hashtagbillionaire.com";
-
 const getAddOnImageUrl = (path: string | null | undefined) => {
   if (!path) return null;
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
-  return `${ADDON_IMAGE_BASE_URL}${path}`;
+  return `${IMAGE_BASE_URL}${path}`;
 };
 
 // Digits + one dot, max 2 decimals — so "0.10" can be typed.

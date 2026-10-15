@@ -80,7 +80,8 @@ $border-color: #e2e8f0;
     .input-container {
       position: relative;
       .input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
-      input {
+      input,
+      select {
         width: 100%;
         padding: 0.8rem 1rem 0.8rem 42px;
         border-radius: 10px;

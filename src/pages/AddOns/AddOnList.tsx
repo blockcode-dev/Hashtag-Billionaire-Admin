@@ -22,7 +22,7 @@ import {
 
 import "./AddOn.scss";
 
-const IMAGE_BASE_URL = "https://node.hashtagbillionaire.com";
+import { IMAGE_BASE_URL } from "@/config/env";
 const PAGE_SIZE = 20;
 const MAX_FEATURES_SHOWN = 3;
 

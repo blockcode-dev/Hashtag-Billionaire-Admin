@@ -124,10 +124,10 @@ const AddUserPage = () => {
 
               <p>
                 Fill user details
-                below. Login
-                credentials will be
-                sent automatically
-                to the user's email.
+                below. The user will
+                receive an email with
+                a link to set their
+                own password.
               </p>
             </div>
 

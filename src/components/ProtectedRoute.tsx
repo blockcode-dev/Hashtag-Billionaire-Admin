@@ -1,42 +1,25 @@
 /** @format */
 
 import { Navigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { getToken, useSession } from "@/lib/session";
+import UnauthorizedPage from "@/pages/UnauthorizedPage";
 
 interface Props {
 	children: React.ReactNode;
+	// Screens backed by Super Admin only endpoints (admin accounts).
+	superAdminOnly?: boolean;
 }
 
-const ProtectedRoute = ({ children }: Props) => {
+const ProtectedRoute = ({ children, superAdminOnly = false }: Props) => {
 	const location = useLocation();
+	const { isSuperAdmin } = useSession();
 
-	const [loading, setLoading] = useState(true);
-	const [authenticated, setAuthenticated] = useState(false);
-
-	useEffect(() => {
-		const token = localStorage.getItem("token");
-
-		if (token && token !== "undefined" && token !== "null") {
-			setAuthenticated(true);
-		}
-
-		setLoading(false);
-	}, []);
-
-	// prevent redirect flicker
-	if (loading) {
-		return null;
+	if (!getToken()) {
+		return <Navigate to="/" replace state={{ from: location }} />;
 	}
 
-	// redirect ONLY if no token
-	if (!authenticated) {
-		return (
-			<Navigate
-				to="/"
-				replace
-				state={{ from: location }}
-			/>
-		);
+	if (superAdminOnly && !isSuperAdmin) {
+		return <UnauthorizedPage />;
 	}
 
 	return <>{children}</>;

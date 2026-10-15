@@ -1,40 +1,54 @@
 /** @format */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { AdminLoginAPI } from "@/services/Api/AuthApi";
+import { AdminLoginAPI, GetAdminProfileAPI } from "@/services/Api/AuthApi";
+import { clearSession, setRoleName, startSession } from "@/lib/session";
 import logoFull from "@/assets/logo_header.webp";
 
 const AdminLogin = () => {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
+	const [loading, setLoading] = useState(false);
 	const { toast } = useToast();
+
+	useEffect(() => {
+		const params = new URLSearchParams(window.location.search);
+		if (params.get("sessionExpired")) {
+			toast({ title: "Please sign in again", description: "Your session has ended." });
+			window.history.replaceState(null, "", window.location.pathname);
+		}
+	}, [toast]);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		if (loading) return;
+		setLoading(true);
 		try {
 			const res = await AdminLoginAPI(email, password);
-			if (res.data?.success) {
-				const token = res.data?.data?.token || "";
-				const roleId = res.data?.data?.role_id || null;
-				const adminId = res.data?.data?.id || null;
-				localStorage.setItem("token", token);
-				localStorage.setItem("role_id", roleId);
-				localStorage.setItem("admin_id", adminId);
-				localStorage.setItem("isAdmin", roleId === 1 ? "true" : "false");
+			const data = res.data?.data;
+			if (res.data?.success && data?.token) {
+				startSession({ token: data.token, id: data.id, role_id: data.role_id });
+				// The role name decides which screens are shown (Super Admin only screens).
+				const profile = await GetAdminProfileAPI();
+				setRoleName(profile.data?.data?.admin_role?.name);
 				toast({ title: "Welcome back!", description: "You've successfully logged in." });
 				setTimeout(() => { window.location.href = "/dashboard"; }, 500);
 			} else {
-				toast({ title: "Login Failed", description: res.data?.message || "Invalid credentials.", variant: "destructive" });
+				toast({ title: "Login Failed", description: res.data?.message || "Invalid email or password. Please try again.", variant: "destructive" });
+				setLoading(false);
 			}
 		} catch (err: any) {
+			clearSession();
+			// Covers wrong credentials (400) and too many attempts (429).
 			toast({ title: "Login Failed", description: err.response?.data?.message || "Something went wrong.", variant: "destructive" });
+			setLoading(false);
 		}
 	};
 
@@ -86,8 +100,8 @@ const AdminLogin = () => {
 							</div>
 						</div>
 
-						<Button type="submit" className="w-full h-10 bg-[#F5C800] hover:bg-[#e6ba00] text-black font-medium mt-2">
-							Login
+						<Button type="submit" disabled={loading} className="w-full h-10 bg-[#F5C800] hover:bg-[#e6ba00] text-black font-medium mt-2">
+							{loading ? "Signing in..." : "Login"}
 						</Button>
 					</form>
 

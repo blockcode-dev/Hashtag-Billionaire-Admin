@@ -1,10 +1,9 @@
 import { Navigate } from "react-router-dom";
 import AdminLogin from "@/components/AdminLogin";
+import { getToken } from "@/lib/session";
 
 const Index = () => {
-  const token = localStorage.getItem("token");
-
-  if (token && token !== "undefined" && token !== "null") {
+  if (getToken()) {
     return <Navigate to="/dashboard" replace />;
   }
 

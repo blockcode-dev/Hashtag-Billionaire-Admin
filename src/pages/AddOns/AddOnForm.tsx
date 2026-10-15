@@ -32,7 +32,7 @@ import {
 
 import "./AddOn.scss";
 
-const IMAGE_BASE_URL = "https://node.hashtagbillionaire.com";
+import { IMAGE_BASE_URL } from "@/config/env";
 const ASPECT_RATIO = 16 / 9;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
