@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 import {
   GetOttoProductsAPI,
@@ -9,6 +9,7 @@ import {
 } from "@/services/Api/OttoImportApi";
 
 import "./OttoCapTab.scss";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 const fmt = (n: any) => Number(n || 0).toLocaleString();
 
@@ -105,7 +106,6 @@ const ImportingOverlay = () => (
    MAIN COMPONENT
 ══════════════════════════════════════ */
 const OttoCapTab = () => {
-  const { show } = useToast();
 
   const [products, setProducts] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -127,11 +127,11 @@ const OttoCapTab = () => {
       const res = await GetOttoProductsAPI();
       setProducts(res.data.data?.data || []);
     } catch {
-      show("Failed to load products", "error");
+      toast.error("Failed to load products");
     } finally {
       setLoadingProducts(false);
     }
-  }, [show]);
+  }, []);
 
   useEffect(() => { loadProducts(); }, [loadProducts]);
 
@@ -154,12 +154,12 @@ const OttoCapTab = () => {
         setSelectedProduct(res.data.data.product);
         setVariants(res.data.data.variants || []);
       } catch {
-        show("Failed to load product details", "error");
+        toast.error("Failed to load product details");
       } finally {
         setDetailsLoading(false);
       }
     },
-    [show]
+    []
   );
 
   /* ── advance ── */
@@ -201,12 +201,12 @@ const OttoCapTab = () => {
         await loadProducts();
         await loadProductDetails(selectedProduct.sku_no);
         setSuccessInfo({ name: selectedProduct.name, sku: selectedProduct.sku_no });
-        show("Imported successfully", "success");
+        toast.success("Imported successfully");
       } else {
-        show(res?.data?.message || "Import failed", "error");
+        toast.error(res?.data?.message || "Import failed");
       }
     } catch {
-      show("Import failed", "error");
+      toast.error("Import failed");
     } finally {
       setImportingAll(false);
     }
@@ -215,7 +215,7 @@ const OttoCapTab = () => {
   /* ── import selected ── */
   const handleImportSelected = async () => {
     if (!selectedProduct) return;
-    if (!selectedVariants.length) { show("Select variants first", "error"); return; }
+    if (!selectedVariants.length) { toast.error("Select variants first"); return; }
     try {
       setImportingSelected(true);
       const res = await ImportOttoSelectedVariantsAPI(selectedProduct.sku_no, selectedVariants);
@@ -223,12 +223,12 @@ const OttoCapTab = () => {
         await loadProducts();
         await loadProductDetails(selectedProduct.sku_no);
         setSuccessInfo({ name: selectedProduct.name, sku: selectedProduct.sku_no });
-        show("Imported successfully", "success");
+        toast.success("Imported successfully");
       } else {
-        show(res?.data?.message || "Import failed", "error");
+        toast.error(res?.data?.message || "Import failed");
       }
     } catch {
-      show("Import failed", "error");
+      toast.error("Import failed");
     } finally {
       setImportingSelected(false);
     }
@@ -280,7 +280,7 @@ const OttoCapTab = () => {
           {loadingProducts
             ? Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="product-card product-card--skeleton">
-                  <span className="skel" style={{ width: 44, height: 44, borderRadius: 8, flexShrink: 0 }} />
+                  <span className="skel" style={{ width: 44, height: 44, borderRadius: "var(--radius-lg)", flexShrink: 0 }} />
                   <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
                     <span className="skel" style={{ width: 52, height: 9 }} />
                     <span className="skel" style={{ width: 120, height: 12 }} />
@@ -335,18 +335,18 @@ const OttoCapTab = () => {
         {detailsLoading && (
           <div className="panel-skeleton">
             <div className="ps-hero">
-              <span className="skel" style={{ width: 80, height: 80, borderRadius: 10, flexShrink: 0 }} />
+              <span className="skel" style={{ width: 80, height: 80, borderRadius: "var(--radius-lg)", flexShrink: 0 }} />
               <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
                 <span className="skel" style={{ height: 9, width: 80 }} />
                 <span className="skel" style={{ height: 20, width: 220 }} />
                 <span className="skel" style={{ height: 10, width: 140 }} />
                 <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-                  <span className="skel" style={{ height: 34, width: 100, borderRadius: 8 }} />
-                  <span className="skel" style={{ height: 34, width: 120, borderRadius: 8 }} />
+                  <span className="skel" style={{ height: 34, width: 100, borderRadius: "var(--radius-lg)" }} />
+                  <span className="skel" style={{ height: 34, width: 120, borderRadius: "var(--radius-lg)" }} />
                 </div>
               </div>
             </div>
-            <span className="skel" style={{ height: 36, borderRadius: 8 }} />
+            <span className="skel" style={{ height: 36, borderRadius: "var(--radius-lg)" }} />
             <div style={{ flex: 1 }}>
               {Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)}
             </div>
@@ -426,7 +426,7 @@ const OttoCapTab = () => {
                 </summary>
                 <div
                   className="desc-body"
-                  dangerouslySetInnerHTML={{ __html: selectedProduct.description }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedProduct.description) }}
                 />
               </details>
             )}
@@ -458,7 +458,9 @@ const OttoCapTab = () => {
                           <input
                             type="checkbox"
                             checked={allChecked}
-                            ref={(el) => el && (el.indeterminate = someChecked)}
+                            ref={(el) => {
+                              if (el) el.indeterminate = someChecked;
+                            }}
                             onChange={toggleAll}
                             disabled={isImporting}
                           />

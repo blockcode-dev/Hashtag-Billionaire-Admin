@@ -24,9 +24,14 @@ import {
   Check,
   X,
   FolderTree,
+  Plus,
 } from "lucide-react";
 import "./Product.scss";
-import { Modal, message, Spin, Tooltip } from "antd";
+import { Thumbnail } from "@/components/common/Thumbnail";
+import { confirm } from "@/components/common/ConfirmDialog";
+import { toast } from "sonner";
+import { Spinner } from "@/components/common/Spinner";
+import { Tip } from "@/components/common/Tip";
 import {
   GetAllProductsAdminAPI,
   GetProductStatsAPI,
@@ -38,7 +43,7 @@ import {
 } from "@/services/Api/GrandCategoryApi";
 import { GetAllTiersAPI } from "@/services/Api/TierApi";
 import { GetUseCasesAPI } from "@/services/Api/IndustryApi";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 const TABS = [
   { label: "All Products", value: "" },
@@ -108,9 +113,9 @@ interface SimpleUseCaseRef {
 }
 
 const TIER_DOT_COLORS: Record<string, string> = {
-  primary: "#2563eb",
-  secondary: "#ea580c",
-  budget: "#16a34a",
+  primary: "var(--primary)",
+  secondary: "var(--warning)",
+  budget: "var(--success-soft-foreground)",
 };
 
 const ProductsPage = () => {
@@ -222,7 +227,7 @@ const ProductsPage = () => {
       const list = res?.data?.data?.data || [];
       setGrandCategories(list.map((g: any) => ({ id: g.id, title: g.title })));
     } catch {
-      message.error("Failed to load categories");
+      toast.error("Failed to load categories");
     }
   };
 
@@ -241,7 +246,7 @@ const ProductsPage = () => {
         })),
       );
     } catch {
-      message.error("Failed to load use cases");
+      toast.error("Failed to load use cases");
     } finally {
       setUseCasesLoading(false);
     }
@@ -271,7 +276,7 @@ const ProductsPage = () => {
       const parents = res?.data?.data?.parent_categories || [];
       setGrandParents(parents.map((p: any) => ({ id: p.id, title: p.title })));
     } catch {
-      message.error("Failed to load sub-categories for this category");
+      toast.error("Failed to load sub-categories for this category");
     } finally {
       setGrandParentsLoading(false);
     }
@@ -442,7 +447,7 @@ const ProductsPage = () => {
   };
 
   const handleDelete = (product: any) => {
-    Modal.confirm({
+    confirm({
       title: "Delete Product",
       content: (
         <div>
@@ -450,7 +455,7 @@ const ProductsPage = () => {
             <strong>{product.name}</strong>
           </p>
 
-          <p style={{ color: "#dc2626", marginTop: 8 }}>
+          <p style={{ color: "var(--destructive)", marginTop: 8 }}>
             This will permanently delete everything associated with this
             product.
           </p>
@@ -473,14 +478,14 @@ const ProductsPage = () => {
 
           await DeleteProductAPI(payload);
 
-          message.success("Product deleted successfully ✅");
+          toast.success("Product deleted");
 
           load();
           loadStats();
         } catch (err) {
           console.error(err);
 
-          message.error("Failed to delete product ❌");
+          toast.error("Couldn't delete the product. Try again.");
         }
       },
     });
@@ -528,7 +533,8 @@ const ProductsPage = () => {
           className="add-product-btn"
           onClick={() => navigate("/create-product")}
         >
-          + Add Product
+          <Plus size={16} aria-hidden />
+          Add Product
         </button>
       </div>
 
@@ -638,7 +644,7 @@ const ProductsPage = () => {
                 </button>
 
                 {tiers.map((t) => {
-                  const dotColor = TIER_DOT_COLORS[t.key] || "#94a3b8";
+                  const dotColor = TIER_DOT_COLORS[t.key] || "var(--muted-foreground)";
                   const isActive = activeTier === t.key;
 
                   return (
@@ -1077,7 +1083,7 @@ const ProductsPage = () => {
       <div className="table-wrap">
         {tableLoading && (
           <div className="table-loading-overlay">
-            <Spin size="large" />
+            <Spinner size="large" />
           </div>
         )}
         <table className={tableLoading ? "dimmed" : ""}>
@@ -1088,7 +1094,7 @@ const ProductsPage = () => {
               <th>Supplier</th>
               <th>Sync Status</th>
               <th>Categories</th>
-              <th>Created Date</th>
+              <th>Created</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -1104,10 +1110,7 @@ const ProductsPage = () => {
                 <tr key={p.id}>
                   <td>
                     <div className="product-cell">
-                      <img
-                        src={p.attachments?.[0]?.file_uri}
-                        alt={p.name}
-                      />
+                      <Thumbnail src={p.attachments?.[0]?.file_uri} alt={p.name} size={44} />
                       <div className="info">
                         <p className="name">{p.name}</p>
                         <span className="sku">
@@ -1160,14 +1163,14 @@ const ProductsPage = () => {
                       )}
                     </div>
                   </td>
-                  <td>
+                  <td className="whitespace-nowrap">
                     {new Date(p.created_at).toLocaleDateString(undefined, {
                       dateStyle: "medium",
                     })}
                   </td>
                   <td>
                     <div className="actions">
-                      <Tooltip title="View">
+                      <Tip content="View">
                         <button
                           className="btn-view"
                           aria-label={`View ${p.name}`}
@@ -1179,9 +1182,9 @@ const ProductsPage = () => {
                         >
                           <Eye size={14} />
                         </button>
-                      </Tooltip>
+                      </Tip>
 
-                      <Tooltip title="Edit">
+                      <Tip content="Edit">
                         <button
                           className="btn-edit"
                           aria-label={`Edit ${p.name}`}
@@ -1195,11 +1198,11 @@ const ProductsPage = () => {
                         >
                           <Pencil size={14} />
                         </button>
-                      </Tooltip>
+                      </Tip>
 
                       {/* Duplicate — manual products only */}
                       {isManual && (
-                        <Tooltip title="Duplicate">
+                        <Tip content="Duplicate">
                           <button
                             className="btn-duplicate"
                             aria-label={`Duplicate ${p.name}`}
@@ -1209,10 +1212,10 @@ const ProductsPage = () => {
                           >
                             <Copy size={14} />
                           </button>
-                        </Tooltip>
+                        </Tip>
                       )}
 
-                      <Tooltip title="Delete">
+                      <Tip content="Delete">
                         <button
                           className="btn-delete"
                           aria-label={`Delete ${p.name}`}
@@ -1220,7 +1223,7 @@ const ProductsPage = () => {
                         >
                           <Trash2 size={14} />
                         </button>
-                      </Tooltip>
+                      </Tip>
                     </div>
                   </td>
                 </tr>

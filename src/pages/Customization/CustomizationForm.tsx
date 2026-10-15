@@ -2,7 +2,9 @@
 
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactElement } from "react";
-import { message, Switch, Tooltip } from "antd";
+import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
+import { Tip } from "@/components/common/Tip";
 import axios from "axios";
 import {
   AlertTriangle,
@@ -17,7 +19,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 
 import {
   GetCustomizationOptionByIdAPI,
@@ -717,7 +719,7 @@ const TierTable = memo(({ value, onTier, onAddTier, onRemoveTier }: TierTablePro
                   </td>
 
                   <td>
-                    <Tooltip title={value.tiers.length > 1 ? "Remove row" : "Keep at least one row"}>
+                    <Tip content={value.tiers.length > 1 ? "Remove row" : "Keep at least one row"}>
                       <button
                         type="button"
                         className="customization__icon-btn"
@@ -727,7 +729,7 @@ const TierTable = memo(({ value, onTier, onAddTier, onRemoveTier }: TierTablePro
                       >
                         <X size={14} />
                       </button>
-                    </Tooltip>
+                    </Tip>
                   </td>
                 </tr>
               );
@@ -855,8 +857,8 @@ const QuantityTable = memo(
                     </td>
 
                     <td>
-                      <Tooltip
-                        title={value.quantities.length > 1 ? "Remove row" : "Keep at least one row"}
+                      <Tip
+                        content={value.quantities.length > 1 ? "Remove row" : "Keep at least one row"}
                       >
                         <button
                           type="button"
@@ -867,7 +869,7 @@ const QuantityTable = memo(
                         >
                           <X size={14} />
                         </button>
-                      </Tooltip>
+                      </Tip>
                     </td>
                   </tr>
                 );
@@ -962,7 +964,7 @@ const ValueCard = memo(
 
           {!value.id && <span className="customization__new-tag">New</span>}
 
-          <Tooltip title="Remove value">
+          <Tip content="Remove value">
             <button
               type="button"
               className="customization__icon-btn customization__icon-btn--danger"
@@ -971,7 +973,7 @@ const ValueCard = memo(
             >
               <Trash2 size={15} />
             </button>
-          </Tooltip>
+          </Tip>
         </div>
 
         <div className="customization__value-pricing">
@@ -1095,7 +1097,7 @@ const CustomizationForm = () => {
 
   useEffect(() => {
     if (!id || !Number.isInteger(optionId) || optionId <= 0) {
-      navigate("/customizations");
+      navigate("/customizations", { replace: true });
       return;
     }
 
@@ -1108,8 +1110,8 @@ const CustomizationForm = () => {
         if (!cancelled) applyData(data);
       } catch (err) {
         if (cancelled) return;
-        message.error(getErrorMessage(err, "Couldn't load this customization."));
-        navigate("/customizations");
+        toast.error(getErrorMessage(err, "Couldn't load this customization."));
+        navigate("/customizations", { replace: true });
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -1279,7 +1281,7 @@ const CustomizationForm = () => {
 
   const save = async () => {
     if (!isDirty) {
-      message.info("No changes to save.");
+      toast.info("No changes to save.");
       return;
     }
 
@@ -1288,7 +1290,7 @@ const CustomizationForm = () => {
     setValueErrors(result.valueErrors);
 
     if (result.titleError || Object.keys(result.valueErrors).length) {
-      message.error("Fix the highlighted fields, then save again.");
+      toast.error("Fix the highlighted fields, then save again.");
 
       const firstKey = Object.keys(result.valueErrors)[0];
       const target = result.titleError
@@ -1389,7 +1391,7 @@ const CustomizationForm = () => {
       }
 
       applyData(await fetchOption());
-      message.success("Customization saved");
+      toast.success("Customization saved");
     } catch (err) {
       const reason = getErrorMessage(err, "Something went wrong while saving.");
 
@@ -1400,9 +1402,9 @@ const CustomizationForm = () => {
         } catch {
           // Keep the drafts on screen if the reload fails too.
         }
-        message.error(`${reason} Some changes were saved; the page now shows what's stored.`);
+        toast.error(`${reason} Some changes were saved; the page now shows what's stored.`);
       } else {
-        message.error(`${reason} Nothing was saved, your changes are still here.`);
+        toast.error(`${reason} Nothing was saved, your changes are still here.`);
       }
     } finally {
       setSaving(false);
@@ -1511,7 +1513,7 @@ const CustomizationForm = () => {
 
             <Switch
               checked={basic.allowTextInput}
-              onChange={(checked) => setBasic((prev) => ({ ...prev, allowTextInput: checked }))}
+              onCheckedChange={(checked) => setBasic((prev) => ({ ...prev, allowTextInput: checked }))}
               aria-label="Customer types text"
             />
           </div>
@@ -1524,7 +1526,7 @@ const CustomizationForm = () => {
 
             <Switch
               checked={basic.allowImageUpload}
-              onChange={(checked) => setBasic((prev) => ({ ...prev, allowImageUpload: checked }))}
+              onCheckedChange={(checked) => setBasic((prev) => ({ ...prev, allowImageUpload: checked }))}
               aria-label="Customer uploads an image"
             />
           </div>

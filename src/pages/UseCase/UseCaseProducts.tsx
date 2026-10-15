@@ -1,8 +1,8 @@
 /** @format */
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { message } from "antd";
+import { useParams, useNavigate } from "react-router";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Search,
@@ -37,10 +37,10 @@ import {
 import "./UseCaseProducts.scss";
 
 const SUPPLIER_COLORS: Record<string, { bg: string; text: string }> = {
-  SANMAR: { bg: "#eff6ff", text: "#2563eb" },
-  SS: { bg: "#f0fdf4", text: "#16a34a" },
-  SAGE: { bg: "#fdf4ff", text: "#a21caf" },
-  OTTOCAP: { bg: "#fff7ed", text: "#c2410c" },
+  SANMAR: { bg: "var(--primary-soft)", text: "var(--primary)" },
+  SS: { bg: "var(--success-soft)", text: "var(--success-soft-foreground)" },
+  SAGE: { bg: "var(--violet-soft)", text: "var(--violet)" },
+  OTTOCAP: { bg: "var(--warning-soft)", text: "var(--warning)" },
 };
 
 // Fixed tier palette — matches the tier `key` values from the backend
@@ -49,23 +49,23 @@ const TIER_COLORS: Record<
   string,
   { bg: string; text: string; border: string }
 > = {
-  primary: { bg: "#eff6ff", text: "#2563eb", border: "#bfdbfe" },
-  secondary: { bg: "#fff7ed", text: "#c2410c", border: "#fed7aa" },
-  budget: { bg: "#f0fdf4", text: "#16a34a", border: "#bbf7d0" },
+  primary: { bg: "var(--primary-soft)", text: "var(--primary)", border: "var(--primary-border)" },
+  secondary: { bg: "var(--warning-soft)", text: "var(--warning)", border: "var(--warning-border)" },
+  budget: { bg: "var(--success-soft)", text: "var(--success-soft-foreground)", border: "var(--success-border)" },
 };
 
 const NEUTRAL_TIER_COLOR = {
-  bg: "#f3f4f6",
-  text: "#6b7280",
-  border: "#e5e7eb",
+  bg: "var(--muted)",
+  text: "var(--muted-foreground)",
+  border: "var(--border)",
 };
 
 const SupplierBadge = ({ supplier }: { supplier?: string | null }) => {
   if (!supplier) return <span className="ucp__none">—</span>;
 
   const colors = SUPPLIER_COLORS[supplier] || {
-    bg: "#f3f4f6",
-    text: "#374151",
+    bg: "var(--muted)",
+    text: "var(--foreground)",
   };
 
   return (
@@ -420,13 +420,13 @@ const UseCaseProducts = () => {
         ),
       );
 
-      message.success(
+      toast.success(
         `${ids.length} product${ids.length === 1 ? "" : "s"} assigned to ${tierTitle}`,
       );
       clearSelection();
     } catch (err) {
       console.error(err);
-      message.error("Failed to assign tier. Please try again.");
+      toast.error("Failed to assign tier. Please try again.");
     } finally {
       setBulkAssigning(null);
     }
@@ -444,13 +444,13 @@ const UseCaseProducts = () => {
       setProducts((prev) =>
         prev.map((p) => (ids.includes(p.id) ? { ...p, tier: null } : p)),
       );
-      message.success(
+      toast.success(
         `Tier removed from ${ids.length} product${ids.length === 1 ? "" : "s"}`,
       );
       clearSelection();
     } catch (err) {
       console.error(err);
-      message.error("Failed to remove tier. Please try again.");
+      toast.error("Failed to remove tier. Please try again.");
     } finally {
       setBulkAssigning(null);
     }
@@ -482,10 +482,10 @@ const UseCaseProducts = () => {
             : p,
         ),
       );
-      message.success(`"${product.name}" tier set to ${newTier?.title}`);
+      toast.success(`"${product.name}" tier set to ${newTier?.title}`);
     } catch (err) {
       console.error(err);
-      message.error("Failed to update tier. Please try again.");
+      toast.error("Failed to update tier. Please try again.");
     } finally {
       setTierSavingId(null);
     }
@@ -501,10 +501,10 @@ const UseCaseProducts = () => {
       setProducts((prev) =>
         prev.map((p) => (p.id === product.id ? { ...p, tier: null } : p)),
       );
-      message.success(`Tier removed from "${product.name}"`);
+      toast.success(`Tier removed from "${product.name}"`);
     } catch (err) {
       console.error(err);
-      message.error("Failed to remove tier. Please try again.");
+      toast.error("Failed to remove tier. Please try again.");
     } finally {
       setTierSavingId(null);
     }
@@ -530,11 +530,11 @@ const UseCaseProducts = () => {
         next.delete(removeTarget.id);
         return next;
       });
-      message.success(`"${removeTarget.name}" removed from this use case`);
+      toast.success(`"${removeTarget.name}" removed from this use case`);
       setRemoveTarget(null);
     } catch (err) {
       console.error(err);
-      message.error("Failed to remove product. Please try again.");
+      toast.error("Failed to remove product. Please try again.");
     } finally {
       setRemoving(false);
     }
@@ -612,12 +612,12 @@ const UseCaseProducts = () => {
       setAddModalOpen(false);
       setPage(1);
       await loadProducts();
-      message.success(
+      toast.success(
         `${count} product${count === 1 ? "" : "s"} added to this use case`,
       );
     } catch (err) {
       console.error(err);
-      message.error("Failed to add products. Please try again.");
+      toast.error("Failed to add products. Please try again.");
     } finally {
       setAdding(false);
     }
@@ -688,12 +688,12 @@ const UseCaseProducts = () => {
 
       setProducts((prev) => prev.filter((p) => p.id !== moveTarget.id));
       setTotal((prev) => Math.max(0, prev - 1));
-      message.success(`"${moveTarget.name}" moved to "${destinationTitle}"`);
+      toast.success(`"${moveTarget.name}" moved to "${destinationTitle}"`);
       setMoveTarget(null);
       setMoveSearch("");
     } catch (err) {
       console.error(err);
-      message.error("Failed to move product. Please try again.");
+      toast.error("Failed to move product. Please try again.");
     } finally {
       setMoveSaving(false);
     }

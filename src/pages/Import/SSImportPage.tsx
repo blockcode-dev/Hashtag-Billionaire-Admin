@@ -4,10 +4,14 @@ import {
   GetStylesByBrandAPI,
   ImportSSProductAPI,
 } from "@/services/Api/ImportApi";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { ArrowRight, ChevronLeft, ChevronRight, CircleCheck, Download, Package, Search } from "lucide-react";
 import SageTabWrapper from "./Sage/SageTabWrapper";
 import SanmarTab from "./Sanmar/SanmarTab";
 import OttoCapTab from "./OttoCap/OttoCapTab";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // ─────────────────────────────────────────────
 // Types
@@ -20,146 +24,6 @@ type Variant = {
   stock: number;
   pricing: { case?: number; piece: number; sale: number; retail: number };
 };
-
-// ─────────────────────────────────────────────
-// Toast
-// ─────────────────────────────────────────────
-type ToastType = "success" | "error" | "info" | "loading";
-type Toast = { id: number; message: string; type: ToastType };
-
-function useToast() {
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const counter = useRef(0);
-  const show = (message: string, type: ToastType = "info", duration = 3500) => {
-    const id = ++counter.current;
-    setToasts((prev) => [...prev, { id, message, type }]);
-    if (type !== "loading")
-      setTimeout(
-        () => setToasts((prev) => prev.filter((t) => t.id !== id)),
-        duration,
-      );
-    return id;
-  };
-  const dismiss = (id: number) =>
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  return { toasts, show, dismiss };
-}
-
-function ToastIcon({ type }: { type: ToastType }) {
-  if (type === "success") return <span style={{ fontSize: 16 }}>✅</span>;
-  if (type === "error") return <span style={{ fontSize: 16 }}>❌</span>;
-  if (type === "loading")
-    return (
-      <span
-        style={{
-          display: "inline-block",
-          width: 16,
-          height: 16,
-          border: "2px solid #fff",
-          borderTop: "2px solid transparent",
-          borderRadius: "50%",
-          animation: "spin 0.7s linear infinite",
-        }}
-      />
-    );
-  return <span style={{ fontSize: 16 }}>ℹ️</span>;
-}
-
-function ToastContainer({
-  toasts,
-  dismiss,
-}: {
-  toasts: Toast[];
-  dismiss: (id: number) => void;
-}) {
-  const colors: Record<ToastType, string> = {
-    success: "#16a34a",
-    error: "#dc2626",
-    info: "#2563eb",
-    loading: "#7c3aed",
-  };
-  return (
-    <div
-      style={{
-        position: "fixed",
-        top: 20,
-        right: 20,
-        zIndex: 9999,
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-      }}
-    >
-      {toasts.map((t) => (
-        <div
-          key={t.id}
-          onClick={() => dismiss(t.id)}
-          style={{
-            background: colors[t.type],
-            color: "#fff",
-            padding: "12px 18px",
-            borderRadius: 10,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            cursor: "pointer",
-            fontSize: 14,
-            fontFamily: "'DM Sans', sans-serif",
-            fontWeight: 500,
-            maxWidth: 340,
-            animation: "slideIn 0.25s ease",
-          }}
-        >
-          <ToastIcon type={t.type} />
-          {t.message}
-        </div>
-      ))}
-      <style>{`
-        @keyframes slideIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────
-// Coming Soon Placeholder
-// ─────────────────────────────────────────────
-function ComingSoon({ name }: { name: string }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "80px 20px",
-        gap: 16,
-        color: "#94a3b8",
-      }}
-    >
-      <div style={{ fontSize: 56 }}>🚧</div>
-      <h3
-        style={{
-          fontSize: 22,
-          fontWeight: 700,
-          color: "#475569",
-          margin: 0,
-          fontFamily: "'DM Sans', sans-serif",
-        }}
-      >
-        {name} — Coming Soon
-      </h3>
-      <p
-        style={{ fontSize: 14, margin: 0, textAlign: "center", maxWidth: 340 }}
-      >
-        We're working on integrating the <strong>{name}</strong> supplier. Check
-        back soon!
-      </p>
-    </div>
-  );
-}
 
 // ─────────────────────────────────────────────
 // Step Badge
@@ -189,8 +53,8 @@ function StepBadge({
           width: 28,
           height: 28,
           borderRadius: "50%",
-          background: done ? "#16a34a" : active ? "#2563eb" : "#e2e8f0",
-          color: done || active ? "#fff" : "#64748b",
+          background: done ? "var(--success-hover)" : active ? "var(--primary)" : "var(--border)",
+          color: done || active ? "#fff" : "var(--muted-foreground)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -206,7 +70,7 @@ function StepBadge({
         style={{
           fontSize: 13,
           fontWeight: active ? 600 : 400,
-          color: active ? "#1e3a5f" : "#64748b",
+          color: active ? "var(--foreground)" : "var(--muted-foreground)",
         }}
       >
         {label}
@@ -254,13 +118,13 @@ function SearchableList({
           fontWeight: 700,
           textTransform: "uppercase",
           letterSpacing: "0.08em",
-          color: "#64748b",
+          color: "var(--muted-foreground)",
           marginBottom: 6,
         }}
       >
         {label}
         {items.length > 0 && (
-          <span style={{ color: "#2563eb", marginLeft: 4 }}>
+          <span style={{ color: "var(--primary)", marginLeft: 4 }}>
             ({items.length})
           </span>
         )}
@@ -275,10 +139,10 @@ function SearchableList({
             top: "50%",
             transform: "translateY(-50%)",
             fontSize: 13,
-            color: "#94a3b8",
+            color: "var(--muted-foreground)",
           }}
         >
-          🔍
+          <Search size={14} aria-hidden />
         </span>
         <input
           placeholder={searchPlaceholder}
@@ -287,8 +151,8 @@ function SearchableList({
           style={{
             width: "100%",
             padding: "8px 12px 8px 30px",
-            borderRadius: 8,
-            border: "1.5px solid #e2e8f0",
+            borderRadius: "var(--radius-lg)",
+            border: "1.5px solid var(--border)",
             fontSize: 13,
             outline: "none",
             fontFamily: "'DM Sans', sans-serif",
@@ -302,10 +166,10 @@ function SearchableList({
           style={{
             padding: 20,
             textAlign: "center",
-            color: "#94a3b8",
+            color: "var(--muted-foreground)",
             fontSize: 13,
-            border: "1.5px solid #e2e8f0",
-            borderRadius: 8,
+            border: "1.5px solid var(--border)",
+            borderRadius: "var(--radius-lg)",
           }}
         >
           ⏳ Loading…
@@ -315,10 +179,10 @@ function SearchableList({
           style={{
             padding: 20,
             textAlign: "center",
-            color: "#94a3b8",
+            color: "var(--muted-foreground)",
             fontSize: 13,
-            border: "1.5px dashed #e2e8f0",
-            borderRadius: 8,
+            border: "1.5px dashed var(--border)",
+            borderRadius: "var(--radius-lg)",
           }}
         >
           {emptyText}
@@ -328,9 +192,9 @@ function SearchableList({
           style={{
             maxHeight: 280,
             overflowY: "auto",
-            border: "1.5px solid #e2e8f0",
-            borderRadius: 8,
-            background: "#fff",
+            border: "1.5px solid var(--border)",
+            borderRadius: "var(--radius-lg)",
+            background: "var(--background)",
           }}
         >
           {items.map((item, i) => {
@@ -343,12 +207,12 @@ function SearchableList({
                 style={{
                   padding: "10px 14px",
                   cursor: "pointer",
-                  background: isSelected ? "#eff6ff" : "transparent",
+                  background: isSelected ? "var(--primary-soft)" : "transparent",
                   borderLeft: isSelected
-                    ? "3px solid #2563eb"
+                    ? "3px solid var(--primary)"
                     : "3px solid transparent",
                   borderBottom:
-                    i < items.length - 1 ? "1px solid #f1f5f9" : "none",
+                    i < items.length - 1 ? "1px solid var(--muted)" : "none",
                   transition: "background 0.15s",
                 }}
               >
@@ -356,13 +220,13 @@ function SearchableList({
                   style={{
                     fontSize: 13,
                     fontWeight: 600,
-                    color: isSelected ? "#1d4ed8" : "#1e293b",
+                    color: isSelected ? "var(--primary)" : "var(--foreground)",
                   }}
                 >
                   {getLabel(item)}
                 </div>
                 {getSubLabel && (
-                  <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>
+                  <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 1 }}>
                     {getSubLabel(item)}
                   </div>
                 )}
@@ -406,8 +270,8 @@ function StickyActionBar({
         position: "sticky",
         top: 0,
         zIndex: 100,
-        background: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)",
-        borderRadius: 12,
+        background: "linear-gradient(135deg, var(--foreground) 0%, var(--foreground) 100%)",
+        borderRadius: "var(--radius-xl)",
         padding: "12px 20px",
         display: "flex",
         alignItems: "center",
@@ -415,14 +279,14 @@ function StickyActionBar({
         gap: 16,
         flexWrap: "wrap",
         marginBottom: 20,
-        boxShadow: "0 4px 24px rgba(15,23,42,0.25)",
+        boxShadow: "var(--shadow-lg)",
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
         <span
           style={{
             fontSize: 11,
-            color: "#94a3b8",
+            color: "var(--muted-foreground)",
             fontWeight: 600,
             letterSpacing: "0.08em",
             textTransform: "uppercase",
@@ -443,28 +307,29 @@ function StickyActionBar({
         >
           {product.product?.name ?? selectedStyle}
         </span>
-        <span style={{ fontSize: 12, color: "#64748b" }}>
+        <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
           {selectedBrand} · Style {selectedStyle}
         </span>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        {(["‹", "›"] as const).map((arrow, idx) => {
+        {([ChevronLeft, ChevronRight] as const).map((Arrow, idx) => {
           const disabled =
             idx === 0 ? currentIndex <= 0 : currentIndex >= totalStyles - 1;
           return (
             <button
-              key={arrow}
+              key={idx}
               onClick={idx === 0 ? onPrev : onNext}
               disabled={disabled}
               title={idx === 0 ? "Previous style" : "Next style"}
+              aria-label={idx === 0 ? "Previous style" : "Next style"}
               style={{
                 width: 34,
                 height: 34,
-                borderRadius: 8,
+                borderRadius: "var(--radius-lg)",
                 border: "1.5px solid rgba(255,255,255,0.15)",
                 background: "rgba(255,255,255,0.07)",
-                color: disabled ? "#475569" : "#e2e8f0",
+                color: disabled ? "var(--muted-foreground)" : "var(--border)",
                 cursor: disabled ? "not-allowed" : "pointer",
                 fontSize: 18,
                 display: "flex",
@@ -472,14 +337,14 @@ function StickyActionBar({
                 justifyContent: "center",
               }}
             >
-              {arrow}
+              <Arrow size={18} aria-hidden />
             </button>
           );
         })}
         <span
           style={{
             fontSize: 13,
-            color: "#94a3b8",
+            color: "var(--muted-foreground)",
             minWidth: 80,
             textAlign: "center",
           }}
@@ -493,11 +358,11 @@ function StickyActionBar({
         disabled={importing}
         style={{
           background: importing
-            ? "#475569"
-            : "linear-gradient(135deg, #2563eb, #16a34a)",
+            ? "var(--muted-foreground)"
+            : "linear-gradient(135deg, var(--primary), var(--success-soft-foreground))",
           color: "#fff",
           border: "none",
-          borderRadius: 10,
+          borderRadius: "var(--radius-lg)",
           padding: "10px 22px",
           fontSize: 14,
           fontWeight: 700,
@@ -506,7 +371,7 @@ function StickyActionBar({
           display: "flex",
           alignItems: "center",
           gap: 8,
-          boxShadow: importing ? "none" : "0 4px 14px rgba(37,99,235,0.45)",
+          boxShadow: importing ? "none" : "0 4px 14px color-mix(in srgb, var(--primary) 45%, transparent)",
           transition: "all 0.2s",
           whiteSpace: "nowrap",
           flexShrink: 0,
@@ -519,7 +384,7 @@ function StickyActionBar({
                 display: "inline-block",
                 width: 14,
                 height: 14,
-                border: "2px solid #fff",
+                border: "2px solid var(--background)",
                 borderTop: "2px solid transparent",
                 borderRadius: "50%",
                 animation: "spin 0.7s linear infinite",
@@ -528,7 +393,7 @@ function StickyActionBar({
             Importing…
           </>
         ) : (
-          <>🚀 Import Product</>
+          <><Download size={16} aria-hidden /> Import product</>
         )}
       </button>
     </div>
@@ -552,9 +417,9 @@ function PostImportBanner({
   return (
     <div
       style={{
-        background: "linear-gradient(135deg, #052e16 0%, #14532d 100%)",
-        border: "1.5px solid #16a34a",
-        borderRadius: 12,
+        background: "linear-gradient(135deg, var(--success-soft-foreground) 0%, var(--success-soft-foreground) 100%)",
+        border: "1.5px solid var(--success-hover)",
+        borderRadius: "var(--radius-xl)",
         padding: "16px 20px",
         display: "flex",
         alignItems: "center",
@@ -566,12 +431,12 @@ function PostImportBanner({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ fontSize: 28 }}>🎉</span>
+        <CircleCheck size={28} color="var(--success)" aria-hidden />
         <div>
-          <div style={{ fontWeight: 700, color: "#4ade80", fontSize: 14 }}>
+          <div style={{ fontWeight: 700, color: "var(--success)", fontSize: 14 }}>
             Import successful!
           </div>
-          <div style={{ fontSize: 13, color: "#86efac", marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: "var(--success)", marginTop: 2 }}>
             <strong>{importedName}</strong> has been added to your store.
           </div>
         </div>
@@ -581,10 +446,10 @@ function PostImportBanner({
           <button
             onClick={onNext}
             style={{
-              background: "#16a34a",
+              background: "var(--success-hover)",
               color: "#fff",
               border: "none",
-              borderRadius: 8,
+              borderRadius: "var(--radius-lg)",
               padding: "9px 18px",
               fontSize: 13,
               fontWeight: 700,
@@ -593,20 +458,21 @@ function PostImportBanner({
               display: "flex",
               alignItems: "center",
               gap: 6,
-              boxShadow: "0 2px 10px rgba(22,163,74,0.4)",
+              boxShadow: "var(--shadow-md)",
               whiteSpace: "nowrap",
             }}
           >
-            Next Product →
+            Next Product
+            <ArrowRight size={14} aria-hidden />
           </button>
         )}
         <button
           onClick={onDismiss}
           style={{
             background: "rgba(255,255,255,0.08)",
-            color: "#86efac",
+            color: "var(--success)",
             border: "1.5px solid rgba(255,255,255,0.12)",
-            borderRadius: 8,
+            borderRadius: "var(--radius-lg)",
             padding: "9px 14px",
             fontSize: 13,
             fontWeight: 600,
@@ -638,7 +504,6 @@ function SSActivewearTab() {
   const [loadingProduct, setLoadingProduct] = useState(false);
   const [importing, setImporting] = useState(false);
   const [lastImportedName, setLastImportedName] = useState<string | null>(null);
-  const { toasts, show, dismiss } = useToast();
 
   const filteredBrands = brands.filter((b) =>
     b.name.toLowerCase().includes(brandSearch.toLowerCase()),
@@ -668,7 +533,7 @@ const loadBrands = async () => {
 
     setBrands(res?.data?.data?.data || []);
   } catch {
-    show("Failed to load brands", "error");
+    toast.error("Failed to load brands");
   } finally {
     setLoadingBrands(false);
   }
@@ -692,9 +557,9 @@ useEffect(() => {
       const res = await GetStylesByBrandAPI(brandName);
       const fetched = res.data.data?.data || [];
       setStyles(fetched);
-      show(`Loaded ${fetched.length} styles for ${brandName}`, "success");
+      toast.success(`Loaded ${fetched.length} styles for ${brandName}`);
     } catch {
-      show("Failed to load styles for this brand", "error");
+      toast.error("Failed to load styles for this brand");
     } finally {
       setLoadingStyles(false);
     }
@@ -715,7 +580,7 @@ useEffect(() => {
       const res = await GetProductByStyleAPI(s.style_id);
       setProduct(res.data.data);
     } catch {
-      show("Failed to fetch product details", "error");
+      toast.error("Failed to fetch product details");
     } finally {
       setLoadingProduct(false);
     }
@@ -729,15 +594,15 @@ useEffect(() => {
   const handleImport = async () => {
     if (!selectedStyle) return;
     setImporting(true);
-    const toastId = show("Importing product…", "loading");
+    const toastId = toast.loading("Importing product…");
     try {
       await ImportSSProductAPI(selectedStyle);
-      dismiss(toastId);
-      show("Product imported successfully!", "success");
+      toast.dismiss(toastId);
+      toast.success("Product imported successfully!");
       setLastImportedName(product?.product?.name ?? selectedStyle);
     } catch {
-      dismiss(toastId);
-      show("Import failed. Please try again.", "error");
+      toast.dismiss(toastId);
+      toast.error("Import failed. Please try again.");
     } finally {
       setImporting(false);
     }
@@ -757,7 +622,6 @@ useEffect(() => {
 
   return (
     <>
-      <ToastContainer toasts={toasts} dismiss={dismiss} />
 
       <StickyActionBar
         product={product}
@@ -783,9 +647,9 @@ useEffect(() => {
       {/* Progress Tracker */}
       <div
         style={{
-          background: "#f8fafc",
-          border: "1px solid #e2e8f0",
-          borderRadius: 12,
+          background: "var(--muted)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius-xl)",
           padding: "16px 24px",
           display: "flex",
           gap: 32,
@@ -799,21 +663,21 @@ useEffect(() => {
           done={step1Done}
           active={!step1Done}
         />
-        <div style={{ color: "#cbd5e1", alignSelf: "center" }}>→</div>
+        <div style={{ color: "var(--placeholder)", alignSelf: "center" }}>→</div>
         <StepBadge
           number={2}
           label="Choose a Style"
           done={step2Done}
           active={step1Done && !step2Done}
         />
-        <div style={{ color: "#cbd5e1", alignSelf: "center" }}>→</div>
+        <div style={{ color: "var(--placeholder)", alignSelf: "center" }}>→</div>
         <StepBadge
           number={3}
           label="Review Product"
           done={step3Done}
           active={step2Done && !step3Done}
         />
-        <div style={{ color: "#cbd5e1", alignSelf: "center" }}>→</div>
+        <div style={{ color: "var(--placeholder)", alignSelf: "center" }}>→</div>
         <StepBadge number={4} label="Import" done={false} active={step3Done} />
       </div>
 
@@ -866,14 +730,14 @@ useEffect(() => {
                 alignItems: "center",
                 justifyContent: "center",
                 height: 320,
-                background: "#f8fafc",
-                borderRadius: 12,
-                border: "2px dashed #e2e8f0",
-                color: "#94a3b8",
+                background: "var(--muted)",
+                borderRadius: "var(--radius-xl)",
+                border: "2px dashed var(--border)",
+                color: "var(--muted-foreground)",
                 gap: 10,
               }}
             >
-              <div style={{ fontSize: 40 }}>📦</div>
+              <Package size={40} strokeWidth={1.5} aria-hidden />
               <p style={{ margin: 0, fontSize: 14 }}>
                 Select a brand & style to preview the product
               </p>
@@ -889,15 +753,15 @@ useEffect(() => {
                 justifyContent: "center",
                 height: 320,
                 gap: 14,
-                color: "#64748b",
+                color: "var(--muted-foreground)",
               }}
             >
               <div
                 style={{
                   width: 40,
                   height: 40,
-                  border: "3px solid #e2e8f0",
-                  borderTop: "3px solid #2563eb",
+                  border: "3px solid var(--border)",
+                  borderTop: "3px solid var(--primary)",
                   borderRadius: "50%",
                   animation: "spin 0.8s linear infinite",
                 }}
@@ -915,8 +779,8 @@ useEffect(() => {
               <div
                 style={{
                   background:
-                    "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",
-                  borderRadius: 12,
+                    "linear-gradient(135deg, var(--foreground) 0%, var(--primary) 100%)",
+                  borderRadius: "var(--radius-xl)",
                   padding: "20px 24px",
                   color: "#fff",
                 }}
@@ -979,33 +843,33 @@ useEffect(() => {
               {/* Variants table */}
               <div
                 style={{
-                  background: "#fff",
-                  borderRadius: 12,
-                  border: "1.5px solid #e2e8f0",
+                  background: "var(--background)",
+                  borderRadius: "var(--radius-xl)",
+                  border: "1.5px solid var(--border)",
                   overflow: "hidden",
                 }}
               >
                 <div
                   style={{
                     padding: "14px 20px",
-                    borderBottom: "1px solid #f1f5f9",
+                    borderBottom: "1px solid var(--border)",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
                   }}
                 >
                   <span
-                    style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}
+                    style={{ fontWeight: 700, fontSize: 14, color: "var(--foreground)" }}
                   >
                     Variants
                   </span>
                   <span
                     style={{
                       fontSize: 12,
-                      background: "#eff6ff",
-                      color: "#2563eb",
+                      background: "var(--primary-soft)",
+                      color: "var(--primary)",
                       padding: "2px 10px",
-                      borderRadius: 20,
+                      borderRadius: "var(--radius-2xl)",
                       fontWeight: 600,
                     }}
                   >
@@ -1022,7 +886,7 @@ useEffect(() => {
                     }}
                   >
                     <thead>
-                      <tr style={{ background: "#f8fafc" }}>
+                      <tr style={{ background: "var(--muted)" }}>
                         {[
                           "SKU",
                           "Variant",
@@ -1041,8 +905,8 @@ useEffect(() => {
                               fontWeight: 700,
                               textTransform: "uppercase",
                               letterSpacing: "0.06em",
-                              color: "#64748b",
-                              borderBottom: "1px solid #e2e8f0",
+                              color: "var(--muted-foreground)",
+                              borderBottom: "1px solid var(--border)",
                               whiteSpace: "nowrap",
                             }}
                           >
@@ -1056,16 +920,16 @@ useEffect(() => {
                         <tr
                           key={v.sku}
                           style={{
-                            background: i % 2 === 0 ? "#fff" : "#fafafa",
+                            background: i % 2 === 0 ? "var(--background)" : "var(--muted)",
                           }}
                         >
                           <td
                             style={{
                               padding: "10px 16px",
-                              fontFamily: "monospace",
+                              fontFamily: "var(--font-mono)",
                               fontSize: 12,
-                              color: "#475569",
-                              borderBottom: "1px solid #f1f5f9",
+                              color: "var(--muted-foreground)",
+                              borderBottom: "1px solid var(--border)",
                             }}
                           >
                             {v.sku}
@@ -1074,8 +938,8 @@ useEffect(() => {
                             style={{
                               padding: "10px 16px",
                               fontWeight: 600,
-                              color: "#1e293b",
-                              borderBottom: "1px solid #f1f5f9",
+                              color: "var(--foreground)",
+                              borderBottom: "1px solid var(--border)",
                             }}
                           >
                             {v.variant_name}
@@ -1083,25 +947,25 @@ useEffect(() => {
                           <td
                             style={{
                               padding: "10px 16px",
-                              borderBottom: "1px solid #f1f5f9",
+                              borderBottom: "1px solid var(--border)",
                             }}
                           >
                             <span
                               style={{
                                 background:
                                   v.stock > 10
-                                    ? "#dcfce7"
+                                    ? "var(--success-soft)"
                                     : v.stock > 0
-                                      ? "#fef9c3"
-                                      : "#fee2e2",
+                                      ? "var(--warning-border)"
+                                      : "var(--destructive-soft)",
                                 color:
                                   v.stock > 10
-                                    ? "#16a34a"
+                                    ? "var(--success-soft-foreground)"
                                     : v.stock > 0
-                                      ? "#b45309"
-                                      : "#dc2626",
+                                      ? "var(--warning-soft-foreground)"
+                                      : "var(--destructive)",
                                 padding: "2px 8px",
-                                borderRadius: 20,
+                                borderRadius: "var(--radius-2xl)",
                                 fontSize: 12,
                                 fontWeight: 600,
                               }}
@@ -1124,8 +988,8 @@ useEffect(() => {
                                 key={key}
                                 style={{
                                   padding: "10px 16px",
-                                  color: "#475569",
-                                  borderBottom: "1px solid #f1f5f9",
+                                  color: "var(--muted-foreground)",
+                                  borderBottom: "1px solid var(--border)",
                                   fontWeight: key === "case" ? 700 : 500,
                                 }}
                               >
@@ -1164,101 +1028,34 @@ const SSImportPage = () => {
   const [activeTab, setActiveTab] = useState("ss");
 
   return (
-    <div
-      style={{
-        fontFamily: "'DM Sans', sans-serif",
-        minHeight: "100vh",
-        background: "#f1f5f9",
-        padding: "32px 24px",
-      }}
-    >
+    <div>
+      {/* Animations used by the supplier tabs. */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
-        * { box-sizing: border-box; }
-        select:focus, input:focus { outline: 2px solid #2563eb !important; outline-offset: 1px; }
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes slideIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
       `}</style>
 
-      <div style={{ marginBottom: 28, maxWidth: 1100, marginInline: "auto" }}>
-        <div
-          style={{
-            fontSize: 12,
-            color: "#94a3b8",
-            marginBottom: 4,
-            fontWeight: 600,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-          }}
-        >
-          Supplier Integration
-        </div>
-        <h1
-          style={{ margin: 0, fontSize: 26, fontWeight: 800, color: "#0f172a" }}
-        >
-          Product Import Center
-        </h1>
-        <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: 14 }}>
-          Browse supplier catalogues, preview products, and import them into
-          your store.
-        </p>
-      </div>
+      <PageHeader
+        title="Product import"
+        description="Browse supplier catalogues, preview products and import them into your store."
+      />
 
-      <div
-        style={{
-          maxWidth: 1100,
-          marginInline: "auto",
-          background: "#fff",
-          borderRadius: 16,
-          boxShadow: "0 4px 24px rgba(0,0,0,0.07)",
-          overflow: "hidden",
-        }}
-      >
-        {/* Tabs */}
-        <div
-          style={{
-            display: "flex",
-            borderBottom: "1.5px solid #e2e8f0",
-            background: "#f8fafc",
-            overflowX: "auto",
-          }}
-        >
-          {TABS.map((tab) => {
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                style={{
-                  padding: "14px 24px",
-                  border: "none",
-                  background: "transparent",
-                  borderBottom: isActive
-                    ? "2.5px solid #2563eb"
-                    : "2.5px solid transparent",
-                  color: isActive ? "#2563eb" : "#64748b",
-                  fontWeight: isActive ? 700 : 500,
-                  fontSize: 14,
-                  cursor: "pointer",
-                  fontFamily: "'DM Sans', sans-serif",
-                  whiteSpace: "nowrap",
-                  transition: "color 0.2s, border-color 0.2s",
-                  marginBottom: -1,
-                }}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-0 overflow-hidden rounded-xl border bg-card shadow-xs">
+        <TabsList variant="line" className="h-12 w-full justify-start gap-6 overflow-x-auto rounded-none border-b px-6">
+          {TABS.map((tab) => (
+            <TabsTrigger key={tab.key} value={tab.key} className="flex-none px-1">
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-        <div style={{ padding: 28 }}>
+        <div className="p-6">
           {activeTab === "ss" && <SSActivewearTab />}
           {activeTab === "sage" && <SageTabWrapper />}
           {activeTab === "sanmar" && <SanmarTab />}
           {activeTab === "ottocap" && <OttoCapTab />}
         </div>
-      </div>
+      </Tabs>
     </div>
   );
 };

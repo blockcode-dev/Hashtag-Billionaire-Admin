@@ -2,6 +2,17 @@
 
 import React, { useState } from "react";
 import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  CircleCheck,
+  CircleX,
+  Download,
+  Package,
+  SearchX,
+  TriangleAlert,
+} from "lucide-react";
+import {
   GetSageProductDetailsAPI,
   ImportSageProductsAPI,
   ImportSelectedSageProductsAPI,
@@ -144,7 +155,7 @@ const SageImportBySupplierTab: React.FC = () => {
   };
 
   return (
-    <div className="sage-import-tab">
+    <div className="sage-import-tab sage-by-supplier">
       {/* ── Import Overlay ── */}
       {importStatus === "importing" && (
         <div className="sage-import-overlay">
@@ -156,7 +167,7 @@ const SageImportBySupplierTab: React.FC = () => {
               <div className="sage-import-overlay__bar-fill" />
             </div>
             <p className="sage-import-overlay__hint">
-              ⚠️ Please don't close or refresh this tab
+              <TriangleAlert size={14} aria-hidden style={{ verticalAlign: "-2px" }} /> Don't close or refresh this tab
             </p>
           </div>
         </div>
@@ -229,7 +240,7 @@ const SageImportBySupplierTab: React.FC = () => {
             importStatus !== "done" &&
             importStatus !== "error" && (
               <div className="sage-preview__placeholder">
-                <div className="sage-preview__placeholder-icon">📦</div>
+                <div className="sage-preview__placeholder-icon"><Package size={40} strokeWidth={1.5} aria-hidden /></div>
                 <span>Enter a supplier ID and fetch products to preview</span>
               </div>
             )}
@@ -313,7 +324,7 @@ const SageImportBySupplierTab: React.FC = () => {
                         importStatus === "importing"
                       }
                     >
-                      🚀 Import Selected ({selectedProducts.length})
+                      <Download size={16} aria-hidden /> Import selected ({selectedProducts.length})
                     </button>
 
                     <button
@@ -325,7 +336,7 @@ const SageImportBySupplierTab: React.FC = () => {
                         importStatus === "importing"
                       }
                     >
-                      🚀 Import All
+                      <Download size={16} aria-hidden /> Import all
                     </button>
                   </div>
                 </div>
@@ -342,7 +353,7 @@ const SageImportBySupplierTab: React.FC = () => {
                     </strong>{" "}
                     of <strong>{pagination.total}</strong> products
                     {pagination.total > 100 && (
-                      <span style={{ color: "#f59e0b", marginLeft: 6 }}>
+                      <span style={{ color: "var(--warning)", marginLeft: 6 }}>
                         · Large catalogue — import may take a few minutes
                       </span>
                     )}
@@ -351,7 +362,7 @@ const SageImportBySupplierTab: React.FC = () => {
 
                 {products.length === 0 && (
                   <div className="sage-preview__placeholder">
-                    <div className="sage-preview__placeholder-icon">🔍</div>
+                    <div className="sage-preview__placeholder-icon"><SearchX size={40} strokeWidth={1.5} aria-hidden /></div>
                     <span>
                       No products found{searchKeyword ? ` for "${searchKeyword}"` : ""}.
                     </span>
@@ -412,7 +423,8 @@ const SageImportBySupplierTab: React.FC = () => {
                       disabled={pagination.page === 1 || productsLoading}
                       onClick={() => fetchProducts(pagination.page - 1)}
                     >
-                      ← Prev
+                      <ChevronLeft size={15} aria-hidden />
+                      Prev
                     </button>
                     <span className="sage-pagination__info">
                       {pagination.page} / {pagination.totalPages}
@@ -424,7 +436,8 @@ const SageImportBySupplierTab: React.FC = () => {
                       }
                       onClick={() => fetchProducts(pagination.page + 1)}
                     >
-                      Next →
+                      Next
+                      <ChevronRight size={15} aria-hidden />
                     </button>
                   </div>
                 )}
@@ -442,7 +455,8 @@ const SageImportBySupplierTab: React.FC = () => {
                   setActiveImageIndex(0);
                 }}
               >
-                ← Back to products
+                <ArrowLeft size={15} aria-hidden />
+                Back to products
               </button>
 
               {detailLoading ? (
@@ -760,13 +774,14 @@ const SageImportBySupplierTab: React.FC = () => {
           {/* Import done – fresh start */}
           {importStatus === "done" && (
             <div className="sage-preview__placeholder">
-              <div style={{ fontSize: 56 }}>✅</div>
-              <span style={{ fontWeight: 600, color: "#16a34a", fontSize: 16 }}>
+              <CircleCheck size={56} strokeWidth={1.5} color="var(--success)" aria-hidden />
+              <span style={{ fontWeight: 600, color: "var(--success-soft-foreground)", fontSize: 16 }}>
                 Import complete!
               </span>
               <span>{importMessage}</span>
               <button className="sage-btn sage-btn--ghost" onClick={resetAll}>
-                ← Start a new import
+                <ArrowLeft size={15} aria-hidden />
+                Start a new import
               </button>
             </div>
           )}
@@ -774,8 +789,8 @@ const SageImportBySupplierTab: React.FC = () => {
           {/* Import error */}
           {importStatus === "error" && (
             <div className="sage-preview__placeholder">
-              <div style={{ fontSize: 56 }}>❌</div>
-              <span style={{ fontWeight: 600, color: "#dc2626", fontSize: 16 }}>
+              <CircleX size={56} strokeWidth={1.5} color="var(--destructive)" aria-hidden />
+              <span style={{ fontWeight: 600, color: "var(--destructive)", fontSize: 16 }}>
                 Import failed
               </span>
               <span>{importMessage}</span>

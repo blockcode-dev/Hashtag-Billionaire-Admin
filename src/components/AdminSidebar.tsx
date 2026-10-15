@@ -1,273 +1,151 @@
 /** @format */
 
-import { NavLink, useLocation } from "react-router-dom";
-import {
-  LayoutDashboard,
-  Import,
-  Store,
-  Users,
-  UserCog,
-  BadgeDollarSign,
-  CreditCard,
-  ShoppingBag,
-  FolderTree,
-  Tags,
-  Mail,
-  BriefcaseBusiness,
-  PackageSearch,
-  ChevronRight,
-  Link2,
-  Globe,
-  PackagePlus,
-  SlidersHorizontal,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, NavLink, useLocation } from "react-router";
+import { ChevronRight } from "lucide-react";
 
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
-  SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import "./AdminSidebar.module.scss";
-import { useState } from "react";
-import logoFull from "@/assets/logo_header.webp";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import logoFull from "@/assets/logo.webp";
 import { useSession } from "@/lib/session";
+import { NAV_GROUPS, isNavActive, type NavItem } from "./navigation";
 
-// Each top-level group has a label + a set of items.
-// Items can either link directly (url) or expand into children.
-const navigationGroups = [
-  {
-    label: "Overview",
-    items: [{ title: "Dashboard", url: "/dashboard", icon: LayoutDashboard }],
-  },
-  {
-    label: "People Management",
-    items: [
-      { title: "Users", url: "/users", icon: Users },
-      // Admin accounts are managed by Super Admins only.
-      { title: "Admin", url: "/admins", icon: UserCog, superAdminOnly: true },
-    ],
-  },
-  {
-    label: "Catalog",
-    items: [
-      { title: "Products", url: "/products", icon: Store },
-      { title: "Variants", url: "/variants", icon: Store },
-      {
-        title: "Add-on Products",
-        url: "/add-ons",
-        icon: PackagePlus,
-      },
-      {
-        title: "Customizations",
-        url: "/customizations",
-        icon: SlidersHorizontal,
-      },
-      {
-        title: "Categories",
-        icon: FolderTree,
-        children: [
-          { title: "Categories", url: "/grand-category" },
-          { title: "Sub Categories", url: "/parent-category" },
-        ],
-      },
-    ],
-  },
-  {
-    label: "Commerce",
-    items: [
-      { title: "Orders", url: "/orders", icon: ShoppingBag },
-      { title: "Payments", url: "/payments", icon: CreditCard },
-      {
-        title: "Pricing Markup",
-        url: "/pricing-markup",
-        icon: BadgeDollarSign,
-      },
-    ],
-  },
-  {
-    label: "Operations",
-    items: [
-      { title: "Import", url: "/import", icon: Import },
-      { title: "SAGE Live Catalog", url: "/sage-live-catalog", icon: Globe },
-      { title: "Brand Management", url: "/brand-management", icon: Tags },
-      { title: "Brand Assignment", url: "/brand-assignment", icon: Link2 },
-      {
-        title: "Industry Management",
-        icon: BriefcaseBusiness,
-        children: [
-          { title: "Industries", url: "/industries" },
-          { title: "Use Cases", url: "/use-cases" },
-        ],
-      },
-      { title: "Contact Us", url: "/contact-us", icon: Mail },
-      {
-        title: "Sourcing Requests",
-        url: "/sourcing-requests",
-        icon: PackageSearch,
-      },
-    ],
-  },
-];
+// Active entries use the brand tint; hover stays neutral.
+const ACTIVE =
+  "data-[active=true]:bg-primary-soft data-[active=true]:text-primary-soft-foreground data-[active=true]:font-semibold";
 
-export function AdminSidebar() {
-  const { state } = useSidebar();
-  const location = useLocation();
-  const currentPath = location.pathname;
+// An entry with sub-pages: inline list when expanded, a flyout when collapsed.
+function NavParent({ item, collapsed, pathname }: { item: NavItem; collapsed: boolean; pathname: string }) {
+  const children = item.children ?? [];
+  const childActive = children.some((c) => isNavActive(pathname, c.url));
+  const [open, setOpen] = useState(childActive);
 
-  const { isSuperAdmin } = useSession();
+  // Open the group when navigation lands on one of its pages.
+  useEffect(() => {
+    if (childActive) setOpen(true);
+  }, [childActive]);
 
-  const isCollapsed = state === "collapsed";
-  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
-
-  const toggleMenu = (title: string) => {
-    setOpenMenus((prev) => ({
-      ...prev,
-      [title]: !prev[title],
-    }));
-  };
-
-  const isChildActive = (children: { url: string }[]) =>
-    children.some((child) => currentPath === child.url);
+  if (collapsed) {
+    return (
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton isActive={childActive} className={ACTIVE} aria-label={item.title}>
+              <item.icon />
+              <span>{item.title}</span>
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="start" className="min-w-44">
+            <DropdownMenuLabel>{item.title}</DropdownMenuLabel>
+            {children.map((child) => (
+              <DropdownMenuItem key={child.url} asChild>
+                <Link to={child.url}>{child.title}</Link>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    );
+  }
 
   return (
-    <div className="AdminSidebar">
-      <Sidebar className={isCollapsed ? "w-14" : "w-60"} collapsible="icon">
-        <SidebarContent>
-          <div className="p-4 flex items-center justify-center">
-            {isCollapsed ? (
-              <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  background: "#F5C518",
-                  borderRadius: 6,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 900,
-                  fontSize: 18,
-                  color: "#000",
-                  fontFamily: "serif",
-                  flexShrink: 0,
-                }}
-              >
-                H
-              </div>
-            ) : (
-              <img
-                src={logoFull}
-                alt="Hashtag Billionaire"
-                style={{
-                  height: 40,
-                  width: "auto",
-                  objectFit: "contain",
-                  maxWidth: "100%",
-                }}
-              />
-            )}
-          </div>
+    <Collapsible asChild open={open} onOpenChange={setOpen} className="group/collapsible">
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton className={childActive ? "font-semibold" : undefined}>
+            <item.icon />
+            <span>{item.title}</span>
+            <ChevronRight className="ml-auto text-muted-foreground transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub>
+            {children.map((child) => (
+              <SidebarMenuSubItem key={child.url}>
+                <SidebarMenuSubButton asChild isActive={isNavActive(pathname, child.url)} className={ACTIVE}>
+                  <NavLink to={child.url}>
+                    <span>{child.title}</span>
+                  </NavLink>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
+  );
+}
 
-          {navigationGroups.map((group) => (
-            <SidebarGroup key={group.label} className="px-2 py-0.5">
-              <SidebarGroupLabel
-                className={
-                  isCollapsed
-                    ? "hidden"
-                    : "px-3 text-[10.5px] font-medium uppercase tracking-wide text-muted-foreground/50"
-                }
-              >
+export function AdminSidebar() {
+  const { pathname } = useLocation();
+  const { isSuperAdmin } = useSession();
+  const { state, isMobile } = useSidebar();
+  const collapsed = state === "collapsed" && !isMobile;
+
+  return (
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="h-16 flex-row items-center border-b border-sidebar-border px-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
+        <Link to="/dashboard" aria-label="Hashtag Billionaire, go to dashboard" className="flex items-center rounded-md">
+          {collapsed ? (
+            <img src="/favicon.ico" alt="" className="size-8 rounded-md" />
+          ) : (
+            <img src={logoFull} alt="Hashtag Billionaire" className="h-9 w-auto" />
+          )}
+        </Link>
+      </SidebarHeader>
+
+      <SidebarContent className="gap-0 py-2">
+        {NAV_GROUPS.map((group) => {
+          const items = group.items.filter((item) => !item.superAdminOnly || isSuperAdmin);
+          if (!items.length) return null;
+          return (
+            <SidebarGroup key={group.label} className="py-1.5">
+              <SidebarGroupLabel className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
                 {group.label}
               </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu className="gap-0.5">
-                  {group.items
-                    .filter((item: any) => !item.superAdminOnly || isSuperAdmin)
-                    .map((item: any) => {
-                    // Item with a dropdown of children
-                    if (item.children) {
-                      const isOpen = openMenus[item.title];
-                      const active = isChildActive(item.children);
-
-                      return (
-                        <SidebarMenuItem key={item.title}>
-                          <div
-                            onClick={() => toggleMenu(item.title)}
-                            className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-sm transition-colors ${
-                              active
-                                ? "text-foreground font-medium"
-                                : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <item.icon className="h-4 w-4 flex-shrink-0" />
-                              {!isCollapsed && <span>{item.title}</span>}
-                            </div>
-
-                            {!isCollapsed && (
-                              <ChevronRight
-                                className={`h-3.5 w-3.5 text-muted-foreground/60 transition-transform duration-200 ${
-                                  isOpen ? "rotate-90" : ""
-                                }`}
-                              />
-                            )}
-                          </div>
-
-                          {isOpen && !isCollapsed && (
-                            <div className="ml-9 mt-0.5 mb-1 flex flex-col gap-0.5">
-                              {item.children.map((child: any) => (
-                                <NavLink
-                                  key={child.title}
-                                  to={child.url}
-                                  className={({ isActive }) =>
-                                    `block px-2.5 py-1.5 rounded-md text-sm transition-colors ${
-                                      isActive
-                                        ? "bg-[#F5C518] text-black font-medium"
-                                        : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                                    }`
-                                  }
-                                >
-                                  {child.title}
-                                </NavLink>
-                              ))}
-                            </div>
-                          )}
-                        </SidebarMenuItem>
-                      );
-                    }
-
-                    // Plain link item
-                    return (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton asChild>
-                          <NavLink
-                            to={item.url}
-                            className={({ isActive }) =>
-                              `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                                isActive
-                                  ? "bg-[#F5C518] text-black font-medium"
-                                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                              }`
-                            }
-                          >
-                            <item.icon className="h-4 w-4 flex-shrink-0" />
-                            {!isCollapsed && <span>{item.title}</span>}
-                          </NavLink>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
+              <SidebarMenu>
+                {items.map((item) =>
+                  item.children ? (
+                    <NavParent key={item.title} item={item} collapsed={collapsed} pathname={pathname} />
+                  ) : (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild isActive={isNavActive(pathname, item.url!)} tooltip={item.title} className={ACTIVE}>
+                        <NavLink to={item.url!}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ),
+                )}
+              </SidebarMenu>
             </SidebarGroup>
-          ))}
-        </SidebarContent>
-      </Sidebar>
-    </div>
+          );
+        })}
+      </SidebarContent>
+
+      <SidebarRail />
+    </Sidebar>
   );
 }

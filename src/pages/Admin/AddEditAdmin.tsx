@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { message } from "antd";
+import { useNavigate, useParams } from "react-router";
+import { toast } from "sonner";
 import {
   AddAdminAPI,
   GetAdminDetailsAPI,
@@ -61,7 +61,7 @@ const AddEditAdmin = () => {
       setRoles(rolesRes.data?.data || []);
       setDepartments(departmentsRes.data?.data || []);
     } catch (err: any) {
-      message.error(err?.response?.data?.message || "Failed to load roles and departments");
+      toast.error(err?.response?.data?.message || "Failed to load roles and departments");
     }
   };
 
@@ -78,7 +78,7 @@ const AddEditAdmin = () => {
       });
       setCurrentRoleName(admin?.admin_role?.name || "");
     } catch (err: any) {
-      message.error(err?.response?.data?.message || "Failed to load admin");
+      toast.error(err?.response?.data?.message || "Failed to load admin");
     } finally {
       setLoading(false);
     }
@@ -88,7 +88,7 @@ const AddEditAdmin = () => {
     e.preventDefault();
 
     if (!formData.department_id || (!roleLocked && !formData.role_id)) {
-      message.error("Please choose a role and a department");
+      toast.error("Please choose a role and a department");
       return;
     }
 
@@ -101,7 +101,7 @@ const AddEditAdmin = () => {
           department_id: Number(formData.department_id),
           ...(roleLocked ? {} : { role_id: Number(formData.role_id) }),
         });
-        message.success("Admin updated");
+        toast.success("Admin updated");
       } else {
         const res = await AddAdminAPI({
           name: formData.name.trim(),
@@ -109,7 +109,7 @@ const AddEditAdmin = () => {
           role_id: Number(formData.role_id),
           department_id: Number(formData.department_id),
         });
-        message.success(
+        toast.success(
           res.data?.message ||
             "Admin created. They will receive an email to set their password.",
         );
@@ -117,7 +117,7 @@ const AddEditAdmin = () => {
       navigate("/admins");
     } catch (err: any) {
       // 400: e.g. email already used by another admin. 403: role not allowed.
-      message.error(err?.response?.data?.message || "Failed to save admin");
+      toast.error(err?.response?.data?.message || "Failed to save admin");
     } finally {
       setLoading(false);
     }

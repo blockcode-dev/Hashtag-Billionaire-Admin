@@ -12,9 +12,9 @@ import {
   Edit,
 } from "lucide-react";
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
-import { message } from "antd";
+import { toast } from "sonner";
 
 import {
   GetAllAdminsAPI,
@@ -56,7 +56,7 @@ const AdminsPage = () => {
 
       setAllAdmins(res.data.data || []);
     } catch (err: any) {
-      message.error(
+      toast.error(
         err?.response?.data?.message ||
           "Failed to load admins",
       );
@@ -103,9 +103,9 @@ const AdminsPage = () => {
         prev.filter((a) => a.id !== selectedAdminId),
       );
 
-      message.success("Admin deleted");
+      toast.success("Admin deleted");
     } catch (err: any) {
-      message.error(
+      toast.error(
         err?.response?.data?.message ||
           "Failed to delete admin",
       );

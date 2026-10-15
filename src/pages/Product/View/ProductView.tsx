@@ -1,8 +1,10 @@
 /** @format */
 
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router";
 import { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { sanitizeHtml } from "@/lib/sanitize";
 import "./ProductView.scss";
 
 const ProductView = () => {
@@ -27,19 +29,32 @@ const ProductView = () => {
     }
   }, [state]);
 
-  if (!variant) return <div>No data</div>;
+  // The variant arrives in router state from the Variants list, so a direct
+  // visit or a refresh has nothing to show.
+  if (!variant)
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-center">
+        <h1>Variant not loaded</h1>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          Open a variant from the Variants list to see its details.
+        </p>
+        <Button asChild variant="outline">
+          <Link to="/variants">
+            <ArrowLeft />
+            Go to Variants
+          </Link>
+        </Button>
+      </div>
+    );
 
   const related = all.filter(
     (v: any) => v.product_id === variant.product_id && v.id !== variant.id,
   );
 
-  const margin =
-    variant.retail_price && variant.sale_price
-      ? (
-          ((variant.retail_price - variant.sale_price) / variant.retail_price) *
-          100
-        ).toFixed(1)
-      : null;
+  // For supplier products `price` is the supplier's cost; the shop adds that supplier's
+  // markup (Pricing Markup). sale_price and retail_price are the supplier's reference
+  // prices and aren't used for pricing.
+  const manual = (variant.supplier ?? variant.product?.supplier ?? "").toUpperCase() === "MANUAL";
 
   return (
     <div className="product-view">
@@ -99,20 +114,22 @@ const ProductView = () => {
             </div>
 
             <div>
-              <span>Sale Price</span>
-              <strong className="price">$ {variant.sale_price}</strong>
+              <span>{manual ? "Price" : "Supplier cost"}</span>
+              <strong className="price">$ {variant.price}</strong>
             </div>
 
-            <div>
-              <span>Retail Price</span>
-              <strong className="retail">$ {variant.retail_price}</strong>
-            </div>
+            {!manual && (
+              <>
+                <div>
+                  <span>Supplier sale price</span>
+                  <strong className="retail">$ {variant.sale_price ?? "—"}</strong>
+                </div>
 
-            {margin && (
-              <div>
-                <span>Margin</span>
-                <strong className="margin">{margin}%</strong>
-              </div>
+                <div>
+                  <span>Supplier retail price</span>
+                  <strong className="retail">$ {variant.retail_price ?? "—"}</strong>
+                </div>
+              </>
             )}
 
             <div>
@@ -152,7 +169,7 @@ const ProductView = () => {
         <h3>Description</h3>
         <div
           dangerouslySetInnerHTML={{
-            __html: variant.product?.description,
+            __html: sanitizeHtml(variant.product?.description),
           }}
         />
       </div>

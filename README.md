@@ -1,73 +1,44 @@
-# Welcome to your Lovable project
+# Hashtag Billionaire Admin
 
-## Project info
+Admin panel for Hashtag Billionaire: products, variants, categories, orders,
+payments, supplier imports (S&S, SAGE, SanMar, OttoCap), users and admins.
 
-**URL**: https://lovable.dev/projects/b1e5dd83-f01c-463c-8287-a72b21244265
+Built with Vite, React 18, TypeScript, Tailwind CSS with shadcn/ui, and Ant Design.
 
-## How can I edit this code?
+## Setup
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/b1e5dd83-f01c-463c-8287-a72b21244265) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Requires Node.js and npm.
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+npm install
+cp .env.example .env   # then fill in the values
+npm run dev            # http://localhost:8080
 ```
 
-**Edit a file directly in GitHub**
+`.env.example` documents every variable. `VITE_API_BASE_URL` is required; the
+dev server and build stop with an error if it is missing. Every `VITE_` value
+is compiled into the browser bundle, so never put a secret in `.env`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Scripts
 
-**Use GitHub Codespaces**
+| Command             | What it does                              |
+| ------------------- | ----------------------------------------- |
+| `npm run dev`       | Start the dev server on port 8080         |
+| `npm run build`     | Production build into `dist/`             |
+| `npm run build:dev` | Build with development mode settings      |
+| `npm run preview`   | Serve the production build locally        |
+| `npm run lint`      | Lint with oxlint (config: `.oxlintrc.json`) |
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Project layout
 
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/b1e5dd83-f01c-463c-8287-a72b21244265) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+```
+src/
+  components/      Layout, sidebar, header, auth screens
+    ui/            shadcn/ui components in use
+  config/env.ts    All environment values, read once
+  lib/session.ts   Sign-in state (token, role) and password rules
+  pages/           One folder per screen
+  services/Api/    Backend calls, one module per area
+    interceptors.ts  Adds the admin token and handles 401s
+  utils/           Shared helpers (pricing, image copying)
+```

@@ -1,89 +1,88 @@
 /** @format */
 
 import { useEffect, useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { User, Mail, Shield, Building2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Link } from "react-router";
+import { KeyRound, Mail, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StatusTag } from "@/components/common/StatusTag";
 import { GetAdminProfileAPI } from "@/services/Api/AuthApi";
 
+interface Profile {
+  name: string;
+  email: string;
+  admin_role?: { name?: string };
+}
+
 export default function AdminProfile() {
-	const [profile, setProfile] = useState<any>(null);
-	const { toast } = useToast();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-	useEffect(() => {
-		fetchProfile();
-	}, []);
+  useEffect(() => {
+    GetAdminProfileAPI()
+      .then((res) => {
+        if (res.data?.success) setProfile(res.data.data);
+        else setError(res.data?.message || "We couldn't load your profile.");
+      })
+      .catch((err) => setError(err.response?.data?.message || "We couldn't load your profile."));
+  }, []);
 
-	const fetchProfile = async () => {
-		try {
-			const res = await GetAdminProfileAPI();
-			if (res.data?.success) {
-				setProfile(res.data.data);
-			}
-		} catch (err: any) {
-			toast({
-				title: "Failed to load profile",
-				description: err.response?.data?.message,
-				variant: "destructive",
-			});
-		}
-	};
+  const initials = (profile?.name || "")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
 
-	return (
-		<div className="p-6 flex justify-center">
-			<Card className="w-full max-w-2xl shadow-md rounded-xl">
-				<CardHeader className="border-b pb-4">
-					<CardTitle className="flex items-center gap-3 text-2xl font-semibold">
-						<User className="h-6 w-6 text-primary" />
-						Admin Profile
-					</CardTitle>
-				</CardHeader>
+  return (
+    <div className="mx-auto max-w-2xl">
+      <PageHeader
+        title="Profile"
+        description="Your admin account details."
+        actions={
+          <Button asChild variant="outline">
+            <Link to="/change-password">
+              <KeyRound />
+              Change password
+            </Link>
+          </Button>
+        }
+      />
 
-				<CardContent className="space-y-6 mt-4">
-					{profile ? (
-						<>
-							{/* Name */}
-							<div className="flex items-center gap-3">
-								<User className="h-5 w-5 text-gray-500" />
-								<div>
-									<p className="text-sm font-medium text-gray-600">Name</p>
-									<p className="text-lg font-semibold">{profile.name}</p>
-								</div>
-							</div>
-
-							<Separator />
-
-							{/* Email */}
-							<div className="flex items-center gap-3">
-								<Mail className="h-5 w-5 text-gray-500" />
-								<div>
-									<p className="text-sm font-medium text-gray-600">Email</p>
-									<p className="text-lg">{profile.email}</p>
-								</div>
-							</div>
-
-							<Separator />
-
-							{/* Role */}
-							<div className="flex items-center gap-3">
-								<Shield className="h-5 w-5 text-gray-500" />
-								<div>
-									<p className="text-sm font-medium text-gray-600">Role</p>
-									<Badge className="px-3 py-1 text-sm">
-										{profile.admin_role?.name || "N/A"}
-									</Badge>
-								</div>
-							</div>
-
-			
-						</>
-					) : (
-						<p className="text-center text-gray-500">Loading profile...</p>
-					)}
-				</CardContent>
-			</Card>
-		</div>
-	);
+      <section className="rounded-xl border bg-card p-6 shadow-xs">
+        {error ? (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        ) : !profile ? (
+          <div className="flex items-center gap-4" aria-busy="true">
+            <Skeleton className="size-14 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-56" />
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-5">
+            <span className="flex size-14 items-center justify-center rounded-full bg-primary-soft text-lg font-semibold text-primary-soft-foreground ring-1 ring-primary-border">
+              {initials}
+            </span>
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <h2 className="text-lg font-semibold text-foreground">{profile.name}</h2>
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Mail className="size-4" />
+                {profile.email}
+              </p>
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                <ShieldCheck className="size-4" />
+                <StatusTag color="gold">{profile.admin_role?.name || "No role"}</StatusTag>
+              </p>
+            </div>
+          </div>
+        )}
+      </section>
+    </div>
+  );
 }

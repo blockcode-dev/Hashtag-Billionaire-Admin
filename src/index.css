@@ -1,122 +1,260 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+@custom-variant dark (&:is(.dark *));
+
+/*
+  Design tokens — the single source of truth for colour, type, radius and
+  elevation. Pages and components use these (Tailwind classes like
+  bg-primary / text-muted-foreground, or var(--primary) in SCSS) and never
+  hard-code their own palette.
+
+  Contrast (WCAG AA): every base colour and *-foreground below is at least
+  4.5:1 against white; every *-soft-foreground is at least 4.5:1 on its tint.
 */
+:root {
+  /* Surfaces */
+  --app-bg: #fafaf9; /* page background behind cards */
+  --background: #ffffff; /* cards, inputs, dialogs */
+  --foreground: #1c1917; /* body text, 17.5:1 */
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --popover: #ffffff;
+  --popover-foreground: #1c1917;
+  --muted: #f5f5f4; /* subtle fills: table headers, hover rows, chips */
+  --muted-strong: #e7e5e4; /* tracks, skeletons, off switches */
+  --muted-foreground: #706963; /* secondary text, 5.4:1 */
+  --placeholder: #a8a29e; /* placeholders and decorative marks only */
+  --secondary: #f5f5f4;
+  --secondary-foreground: #1c1917;
+  --accent: #f5f5f4; /* hover fill for menus and ghost buttons */
+  --accent-foreground: #1c1917;
+  --inverse: #1c1917; /* dark surfaces, e.g. detail headers */
+  --inverse-foreground: #fafaf9;
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+  /* Brand */
+  --brand: #f5c518; /* logo yellow: decoration only, never text on white */
+  --primary: #986d00; /* 4.64:1 on white */
+  --primary-hover: #7d5a00; /* 6.3:1 */
+  --primary-foreground: #ffffff;
+  --primary-soft: #fdf6d8; /* selected / active tint */
+  --primary-soft-foreground: #735300; /* 6.5:1 on the tint */
+  --primary-border: #efd88a;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+  /* Status */
+  --success: #15803d;
+  --success-hover: #166534;
+  --success-foreground: #ffffff;
+  --success-soft: #f0fdf4;
+  --success-soft-foreground: #166534;
+  --success-border: #bbf7d0;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+  --warning: #c2410c;
+  --warning-hover: #9a3412;
+  --warning-foreground: #ffffff;
+  --warning-soft: #fff7ed;
+  --warning-soft-foreground: #9a3412;
+  --warning-border: #fed7aa;
 
-    --primary: 356 69% 48%;
-    --primary-foreground: 0 0% 100%;
-    --primary-hover: 356 69% 42%;
-    
-    --admin-red: 356 69% 48%;
-    --admin-red-hover: 356 69% 42%;
-    --admin-bg: 0 0% 98%;
-    --admin-card: 0 0% 100%;
-    --admin-shadow: 0 0% 0% / 0.1;
-    
-    --success: 142 76% 36%;
-    --success-foreground: 355 20% 98%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 0%;
-    --info: 199 89% 48%;
-    --info-foreground: 0 0% 100%;
+  --destructive: #dc2626;
+  --destructive-hover: #b91c1c;
+  --destructive-foreground: #ffffff;
+  --destructive-soft: #fef2f2;
+  --destructive-soft-foreground: #b91c1c;
+  --destructive-border: #fecaca;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+  --info: #2563eb;
+  --info-hover: #1d4ed8;
+  --info-foreground: #ffffff;
+  --info-soft: #eff6ff;
+  --info-soft-foreground: #1d4ed8;
+  --info-border: #bfdbfe;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+  /* Categorical: labels that carry no status meaning */
+  --violet: #7c3aed;
+  --violet-hover: #6d28d9;
+  --violet-foreground: #ffffff;
+  --violet-soft: #f5f3ff;
+  --violet-soft-foreground: #6d28d9;
+  --violet-border: #ddd6fe;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+  /* Lines and focus */
+  --border: #e7e5e4;
+  --input: #d6d3d1;
+  --ring: #986d00;
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+  /* Sidebar */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1c1917;
+  --sidebar-primary: #986d00;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f5f5f4;
+  --sidebar-accent-foreground: #1c1917;
+  --sidebar-border: #e7e5e4;
+  --sidebar-ring: #986d00;
+}
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+/* Non-colour tokens. `static` keeps every one available as a CSS variable
+   for SCSS, even when no Tailwind class uses it. */
+@theme static {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
 
-    --radius: 0.5rem;
+  --radius: 0.5rem;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
 
-    --sidebar-background: 0 0% 98%;
+  --shadow-xs: 0 1px 2px 0 rgb(28 25 23 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(28 25 23 / 0.08), 0 1px 2px -1px rgb(28 25 23 / 0.06);
+  --shadow-md: 0 4px 12px -2px rgb(28 25 23 / 0.1), 0 2px 4px -2px rgb(28 25 23 / 0.06);
+  --shadow-lg: 0 16px 40px -8px rgb(28 25 23 / 0.18), 0 4px 10px -4px rgb(28 25 23 / 0.08);
+}
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+/* Colour tokens as Tailwind colours: bg-primary, text-success-soft-foreground, ... */
+@theme inline {
+  --color-app-bg: var(--app-bg);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-strong: var(--muted-strong);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-placeholder: var(--placeholder);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-inverse: var(--inverse);
+  --color-inverse-foreground: var(--inverse-foreground);
 
-    --sidebar-primary: 240 5.9% 10%;
+  --color-brand: var(--brand);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-soft-foreground: var(--primary-soft-foreground);
+  --color-primary-border: var(--primary-border);
 
-    --sidebar-primary-foreground: 0 0% 98%;
+  --color-success: var(--success);
+  --color-success-hover: var(--success-hover);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-foreground: var(--success-soft-foreground);
+  --color-success-border: var(--success-border);
 
-    --sidebar-accent: 240 4.8% 95.9%;
+  --color-warning: var(--warning);
+  --color-warning-hover: var(--warning-hover);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-foreground: var(--warning-soft-foreground);
+  --color-warning-border: var(--warning-border);
 
-    --sidebar-accent-foreground: 240 5.9% 10%;
+  --color-destructive: var(--destructive);
+  --color-destructive-hover: var(--destructive-hover);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-destructive-soft-foreground: var(--destructive-soft-foreground);
+  --color-destructive-border: var(--destructive-border);
 
-    --sidebar-border: 220 13% 91%;
+  --color-info: var(--info);
+  --color-info-hover: var(--info-hover);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-soft: var(--info-soft);
+  --color-info-soft-foreground: var(--info-soft-foreground);
+  --color-info-border: var(--info-border);
 
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
+  --color-violet: var(--violet);
+  --color-violet-hover: var(--violet-hover);
+  --color-violet-foreground: var(--violet-foreground);
+  --color-violet-soft: var(--violet-soft);
+  --color-violet-soft-foreground: var(--violet-soft-foreground);
+  --color-violet-border: var(--violet-border);
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-app-bg font-sans text-sm text-foreground;
   }
-}
-.transition-colors {
-    color: black !important;
+
+  /* Numbers line up in tables and totals. */
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Every table header cell looks the same; page stylesheets only set spacing and background. */
+  th {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  ::placeholder {
+    color: var(--placeholder);
+    opacity: 1;
+  }
+
+  ::selection {
+    background: var(--primary-soft);
+    color: var(--primary-soft-foreground);
+  }
+
+  /* Visible keyboard focus for anything that doesn't style its own. */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* Tailwind 4 gives buttons the default cursor; keep the pointer. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  :where(input[type="checkbox"], input[type="radio"]) {
+    accent-color: var(--primary);
+  }
+
+  /* Page titles: the <h1> of every page inside the app shell. Matches
+     <PageHeader>, so pages with their own header markup look the same. */
+  [data-slot="page"] h1 {
+    margin-bottom: 0.25rem;
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--foreground);
+    text-wrap: balance;
+  }
 }

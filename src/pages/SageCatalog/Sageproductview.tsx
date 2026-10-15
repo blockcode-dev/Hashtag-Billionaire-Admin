@@ -1,8 +1,9 @@
 /** @format */
 
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Spin, message } from "antd";
+import { useParams, useNavigate } from "react-router";
+import { Spinner } from "@/components/common/Spinner";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   ExternalLink,
@@ -17,6 +18,7 @@ import {
   ImportSelectedSageProductsAPI,
 } from "@/services/Api/SageApi";
 import "./Sageproductview.scss";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 type TabKey = "original" | "imported";
 
@@ -132,7 +134,7 @@ const SageProductView = () => {
       setData(res?.data?.data || null);
     } catch (err) {
       console.error(err);
-      message.error("Failed to load SAGE product data");
+      toast.error("Failed to load SAGE product data");
     } finally {
       setLoading(false);
     }
@@ -149,15 +151,15 @@ const SageProductView = () => {
       setImporting(true);
       const res = await ImportSelectedSageProductsAPI([Number(prodEId)]);
       if (res?.data?.data?.success > 0) {
-        message.success("Imported successfully");
+        toast.success("Imported successfully");
         await load();
         setTab("imported");
       } else {
-        message.error("Import failed");
+        toast.error("Import failed");
       }
     } catch (err) {
       console.error(err);
-      message.error("Import failed");
+      toast.error("Import failed");
     } finally {
       setImporting(false);
     }
@@ -166,7 +168,7 @@ const SageProductView = () => {
   if (loading) {
     return (
       <div className="spv-loading">
-        <Spin size="large" />
+        <Spinner size="large" />
       </div>
     );
   }
@@ -612,7 +614,7 @@ const SageProductView = () => {
               {warningLbl && (
                 <div className="spv-warning-box">
                   <AlertTriangle size={15} />
-                  <span dangerouslySetInnerHTML={{ __html: warningLbl }} />
+                  <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(warningLbl) }} />
                 </div>
               )}
             </div>

@@ -1,8 +1,14 @@
 /** @format */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { AutoComplete, message, Modal, Pagination, Select, Spin } from "antd";
+import { Link, useNavigate, useParams } from "react-router";
+import { AutoComplete } from "@/components/common/AutoComplete";
+import { Combobox } from "@/components/common/Combobox";
+import { toast } from "sonner";
+import { IMAGE_ACCEPT, checkImageFiles, checkUploadCounts } from "@/lib/uploads";
+import { confirm } from "@/components/common/ConfirmDialog";
+import { Pagination } from "@/components/common/Pagination";
+import { Spinner } from "@/components/common/Spinner";
 import {
   ArrowLeft,
   ArrowLeftCircle,
@@ -84,6 +90,7 @@ import {
 } from "@/pages/Customization/CustomizationPicker";
 
 import styles from "./DuplicateManualProduct.module.scss";
+import { Thumbnail } from "@/components/common/Thumbnail";
 
 /* ─── Types ────────────────────────────────────────────────────────── */
 
@@ -213,11 +220,11 @@ const VARIANTS_STEP = STEPS.indexOf("Variants");
 const ADD_ONS_STEP = STEPS.indexOf("Add-ons");
 
 const OPTION_TYPE_LABELS: Record<OptionType, string> = {
-  dropdown: "📋 Drop-down List",
-  color: "🎨 Color",
-  buttons: "🔘 Radio Buttons",
-  size: "👕 Size",
-  checkbox: "☑️ Checkboxes",
+  dropdown: "Drop-down list",
+  color: "Color",
+  buttons: "Radio buttons",
+  size: "Size",
+  checkbox: "Checkboxes",
 };
 
 const DEFAULT_MEASUREMENTS = (): Measurements => ({
@@ -476,7 +483,7 @@ const ColorNameAutocomplete: React.FC<{
             height: 14,
             borderRadius: "50%",
             background: c.hex,
-            border: "1px solid #d9d9d9",
+            border: "1px solid var(--input)",
             display: "inline-block",
             flexShrink: 0,
           }}
@@ -491,12 +498,6 @@ const ColorNameAutocomplete: React.FC<{
       value={value}
       options={options}
       style={{ width: "100%" }}
-      filterOption={(inputValue, option) =>
-        !!option?.value &&
-        (option.value as string)
-          .toLowerCase()
-          .includes(inputValue.toLowerCase())
-      }
       onSelect={(val) =>
         onSelectColor(val as string, getHexFromColorName(val as string))
       }
@@ -636,7 +637,7 @@ const DuplicateManualProduct: React.FC = () => {
       const res = await GetPublishedBrandsAPI({ page: 1, limit: 500 });
       setBrands(res?.data?.data?.data || []);
     } catch {
-      message.error("Failed to fetch brands");
+      toast.error("Failed to fetch brands");
     }
   };
 
@@ -655,7 +656,7 @@ const DuplicateManualProduct: React.FC = () => {
       setCatTotal(total);
       setCatPage(page);
     } catch {
-      message.error("Failed to fetch categories");
+      toast.error("Failed to fetch categories");
     } finally {
       setCatLoading(false);
     }
@@ -806,7 +807,7 @@ const DuplicateManualProduct: React.FC = () => {
       await fetchCategories(1, "");
     } catch (err) {
       console.error(err);
-      message.error("Failed to load the product to duplicate");
+      toast.error("Failed to load the product to duplicate");
     } finally {
       setLoading(false);
     }
@@ -857,7 +858,7 @@ const DuplicateManualProduct: React.FC = () => {
     try {
       const res = await CreateCategoryAPI({ title, supplier: "MANUAL" });
       const created: CategoryRef | undefined = res?.data?.data;
-      message.success("Category created");
+      toast.success("Category created");
       setNewCategoryName("");
       await fetchCategories(1, catSearch);
       if (created?.id) {
@@ -871,7 +872,7 @@ const DuplicateManualProduct: React.FC = () => {
         });
       }
     } catch (err: any) {
-      message.error(
+      toast.error(
         err?.response?.data?.message || "Failed to create category",
       );
     } finally {
@@ -893,7 +894,7 @@ const DuplicateManualProduct: React.FC = () => {
     setSavingCategoryEdit(true);
     try {
       await UpdateCategoryAPI(catId, { title });
-      message.success("Category updated");
+      toast.success("Category updated");
       setCategories((prev) =>
         prev.map((c) => (c.id === catId ? { ...c, title } : c)),
       );
@@ -902,7 +903,7 @@ const DuplicateManualProduct: React.FC = () => {
       );
       cancelEditCategory();
     } catch (err: any) {
-      message.error(
+      toast.error(
         err?.response?.data?.message || "Failed to update category",
       );
     } finally {
@@ -910,7 +911,7 @@ const DuplicateManualProduct: React.FC = () => {
     }
   };
   const handleDeleteCategory = (cat: CategoryRef) => {
-    Modal.confirm({
+    confirm({
       title: "Delete category",
       content: (
         <span>
@@ -923,12 +924,12 @@ const DuplicateManualProduct: React.FC = () => {
         setDeletingCategoryId(cat.id);
         try {
           await DeleteCategoryAPI(cat.id);
-          message.success("Category deleted");
+          toast.success("Category deleted");
           setCategories((prev) => prev.filter((c) => c.id !== cat.id));
           setAllLoadedCategories((prev) => prev.filter((c) => c.id !== cat.id));
           setSelectedCatIds((prev) => prev.filter((cid) => cid !== cat.id));
         } catch (err: any) {
-          message.error(
+          toast.error(
             err?.response?.data?.message || "Failed to delete category",
           );
         } finally {
@@ -978,7 +979,7 @@ const DuplicateManualProduct: React.FC = () => {
   const removeOption = (oi: number) => {
     const opt = options[oi];
     if (variants.some((v) => v.option_selections[oi])) {
-      message.error(`Can't remove "${opt.name}" — a variant still uses it.`);
+      toast.error(`Can't remove "${opt.name}" — a variant still uses it.`);
       return;
     }
     setOptions((prev) => prev.filter((_, idx) => idx !== oi));
@@ -1029,7 +1030,7 @@ const DuplicateManualProduct: React.FC = () => {
   const removeOptionValue = (oi: number, vi: number) => {
     const value = options[oi].values[vi];
     if (variants.some((v) => v.option_selections[oi] === value._key)) {
-      message.error(`Can't remove "${value.name}" — a variant still uses it.`);
+      toast.error(`Can't remove "${value.name}" — a variant still uses it.`);
       return;
     }
     setOptions((prev) => {
@@ -1095,7 +1096,7 @@ const DuplicateManualProduct: React.FC = () => {
       updated.splice(i + 1, 0, clone);
       return updated;
     });
-    message.info(
+    toast.info(
       "Variant duplicated — change whichever value is different before saving.",
     );
   };
@@ -1266,7 +1267,9 @@ const DuplicateManualProduct: React.FC = () => {
   /* ─── Images ─────────────────────────────────────────────────────── */
   const addVariantImages = (i: number, files: FileList | null) => {
     if (!files) return;
-    const arr = Array.from(files);
+    const { accepted: arr, error } = checkImageFiles(Array.from(files));
+    if (error) toast.error(error);
+    if (!arr.length) return;
     setVariants((prev) =>
       prev.map((v, idx) =>
         idx === i
@@ -1310,7 +1313,9 @@ const DuplicateManualProduct: React.FC = () => {
     setSourceProductImages((prev) => prev.filter((img) => img.id !== imgId));
   const addProductImages = (files: FileList | null) => {
     if (!files) return;
-    const arr = Array.from(files);
+    const { accepted: arr, error } = checkImageFiles(Array.from(files));
+    if (error) toast.error(error);
+    if (!arr.length) return;
     setNewProductFiles((prev) => [...prev, ...arr]);
     setNewProductPreviews((prev) => [
       ...prev,
@@ -1370,14 +1375,14 @@ const DuplicateManualProduct: React.FC = () => {
   /* ─── Validation ─────────────────────────────────────────────────── */
   const validateBasic = (): boolean => {
     if (!productName.trim()) {
-      message.error("Product name is required");
+      toast.error("Product name is required");
       return false;
     }
     if (
       originalName &&
       productName.trim().toLowerCase() === originalName.trim().toLowerCase()
     ) {
-      message.error(
+      toast.error(
         "Give the copy a different name — it can't match the original product.",
       );
       return false;
@@ -1392,7 +1397,7 @@ const DuplicateManualProduct: React.FC = () => {
     const name =
       customizationOptions.find((o) => o.id === emptyIds[0])?.name ||
       "a customization";
-    message.error(
+    toast.error(
       `Pick at least one value for "${name}", or untick it before creating the copy.`,
     );
     return false;
@@ -1400,7 +1405,7 @@ const DuplicateManualProduct: React.FC = () => {
 
   const validateVariants = (): boolean => {
     if (!variants.length) {
-      message.error("Add at least one variant");
+      toast.error("Add at least one variant");
       return false;
     }
 
@@ -1410,7 +1415,7 @@ const DuplicateManualProduct: React.FC = () => {
         const opt = options[oi];
         if (!opt.name.trim() || opt.values.length === 0) continue;
         if (!v.option_selections[oi]) {
-          message.error(`Variant ${i + 1}: pick a value for "${opt.name}"`);
+          toast.error(`Variant ${i + 1}: pick a value for "${opt.name}"`);
           return false;
         }
       }
@@ -1427,7 +1432,7 @@ const DuplicateManualProduct: React.FC = () => {
           .map((oi) => `${oi}:${variants[i].option_selections[oi]}`)
           .join("|");
         if (seen.has(sig)) {
-          message.error(
+          toast.error(
             `Variant ${seen.get(sig)! + 1} and Variant ${i + 1} are the same — change one of them before saving.`,
           );
           return false;
@@ -1444,14 +1449,14 @@ const DuplicateManualProduct: React.FC = () => {
       // SKU is optional on a copy — blank ones are auto-generated.
       if (sku) {
         if (skuSet.has(sku)) {
-          message.error(`Duplicate SKU: ${sku}`);
+          toast.error(`Duplicate SKU: ${sku}`);
           return false;
         }
         skuSet.add(sku);
       }
       const pricingError = getPricingError(v, label);
       if (pricingError) {
-        message.error(pricingError);
+        toast.error(pricingError);
         return false;
       }
     }
@@ -1462,7 +1467,7 @@ const DuplicateManualProduct: React.FC = () => {
     for (const a of addOnsToCopy) {
       const value = Number(a.price);
       if (a.price === "" || !Number.isFinite(value) || value < 0) {
-        message.error(`Enter a price of 0 or more for the "${a.name}" add-on.`);
+        toast.error(`Enter a price of 0 or more for the "${a.name}" add-on.`);
         return false;
       }
     }
@@ -1535,7 +1540,7 @@ const DuplicateManualProduct: React.FC = () => {
 
   const confirmKeepSuggestedName = (name: string) =>
     new Promise<boolean>((resolve) => {
-      Modal.confirm({
+      confirm({
         title: "Keep this name?",
         content: (
           <span>
@@ -1573,7 +1578,7 @@ const DuplicateManualProduct: React.FC = () => {
 
     const name = productName.trim();
     if (await isNameTaken(name)) {
-      message.error(
+      toast.error(
         `A product named "${name}" already exists — give the copy a different name.`,
       );
       setCurrentStep(BASIC_STEP);
@@ -1601,6 +1606,15 @@ const DuplicateManualProduct: React.FC = () => {
       const failedImages =
         productCopy.failed +
         variantCopies.reduce((sum, c) => sum + c.failed, 0);
+
+      const countError = checkUploadCounts(
+        productCopy.files.length + newProductFiles.length,
+        variants.reduce((n, v, vi) => n + variantCopies[vi].files.length + v.newFiles.length, 0),
+      );
+      if (countError) {
+        toast.error(countError);
+        return;
+      }
 
       // 2. Create the product — same shape as Create Product.
       const productFormData = new FormData();
@@ -1690,24 +1704,24 @@ const DuplicateManualProduct: React.FC = () => {
         }
       }
 
-      message.success("Copy created");
+      toast.success("Copy created");
       if (failedImages > 0) {
-        message.warning(
+        toast.warning(
           `${failedImages} image${failedImages === 1 ? "" : "s"} couldn't be copied — add ${failedImages === 1 ? "it" : "them"} again in Edit.`,
         );
       }
       if (failedUseCases > 0) {
-        message.warning(
+        toast.warning(
           `${failedUseCases} use case${failedUseCases === 1 ? "" : "s"} couldn't be assigned — add ${failedUseCases === 1 ? "it" : "them"} in Edit.`,
         );
       }
       if (addOnsFailed) {
-        message.warning(
+        toast.warning(
           "Add-ons couldn't be copied — add them from the Add-ons step in Edit.",
         );
       }
       if (customizationsFailed) {
-        message.warning(
+        toast.warning(
           "Customizations couldn't be copied — add them from the Customizations step in Edit.",
         );
       }
@@ -1717,14 +1731,14 @@ const DuplicateManualProduct: React.FC = () => {
       if (newProductId) {
         // The product exists but its variants didn't save — open it in Edit
         // rather than leave a half-made copy the admin can't find.
-        message.error(
+        toast.error(
           apiMessage
             ? `Copy created, but its variants didn't save: ${apiMessage}. Finish it in Edit.`
             : "Copy created, but its variants didn't save. Finish it in Edit.",
         );
         navigate(`/products/${newProductId}/edit-manual`);
       } else {
-        message.error(apiMessage || "Failed to create the copy");
+        toast.error(apiMessage || "Failed to create the copy");
       }
     } finally {
       setSaving(false);
@@ -1734,7 +1748,7 @@ const DuplicateManualProduct: React.FC = () => {
   if (loading) {
     return (
       <div className={styles.loadingWrap}>
-        <Spin size="large" />
+        <Spinner size="large" />
       </div>
     );
   }
@@ -1763,7 +1777,7 @@ const DuplicateManualProduct: React.FC = () => {
         <div className={styles.fieldGrid}>
           <div className={styles.fieldGroup}>
             <label>
-              Product name <span style={{ color: "#dc2626" }}>*</span>
+              Product name <span style={{ color: "var(--destructive)" }}>*</span>
             </label>
             <input
               value={productName}
@@ -1778,7 +1792,7 @@ const DuplicateManualProduct: React.FC = () => {
           </div>
           <div className={styles.fieldGroup}>
             <label>Brand</label>
-            <Select
+            <Combobox
               placeholder="Select brand"
               style={{ width: "100%" }}
               allowClear
@@ -2025,10 +2039,14 @@ const DuplicateManualProduct: React.FC = () => {
             <span>Add</span>
             <input
               type="file"
-              accept="image/*"
+              accept={IMAGE_ACCEPT}
               multiple
               hidden
-              onChange={(e) => addProductImages(e.target.files)}
+              onChange={(e) => {
+                addProductImages(e.target.files);
+                // Reset so picking the same file again still works.
+                e.target.value = "";
+              }}
             />
           </label>
         </div>
@@ -2511,7 +2529,7 @@ const DuplicateManualProduct: React.FC = () => {
                   <span
                     className={styles.colorPreviewLabel}
                     style={{
-                      color: isLightColor(v.color_code) ? "#333" : "#fff",
+                      color: isLightColor(v.color_code) ? "var(--foreground)" : "var(--background)",
                     }}
                   >
                     {v.color || autoColorName}
@@ -2614,8 +2632,8 @@ const DuplicateManualProduct: React.FC = () => {
                                       size={12}
                                       color={
                                         isLightColor(val.color_code || "#fff")
-                                          ? "#333"
-                                          : "#fff"
+                                          ? "var(--foreground)"
+                                          : "var(--background)"
                                       }
                                     />
                                   )}
@@ -2692,10 +2710,14 @@ const DuplicateManualProduct: React.FC = () => {
                 <Plus size={14} />
                 <input
                   type="file"
-                  accept="image/*"
+                  accept={IMAGE_ACCEPT}
                   multiple
                   hidden
-                  onChange={(e) => addVariantImages(i, e.target.files)}
+                  onChange={(e) => {
+                    addVariantImages(i, e.target.files);
+                    // Reset so picking the same file again still works.
+                    e.target.value = "";
+                  }}
                 />
               </label>
             </div>
@@ -2836,7 +2858,7 @@ const DuplicateManualProduct: React.FC = () => {
                     />
                     <span className={styles.addonThumb}>
                       {image ? (
-                        <img src={image} alt="" loading="lazy" />
+                        <Thumbnail src={image} />
                       ) : (
                         <ImageOff size={14} />
                       )}

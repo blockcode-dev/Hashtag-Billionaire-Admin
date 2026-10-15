@@ -1,11 +1,11 @@
 /** @format */
 
 import React, { useEffect, useState } from "react";
-import { Table, Input, Image, Typography, Empty } from "antd";
-import { SearchOutlined, GlobalOutlined } from "@ant-design/icons";
+import { Globe } from "lucide-react";
+import { DataTable } from "@/components/common/DataTable";
+import { EmptyState } from "@/components/common/EmptyState";
+import { SearchInput } from "@/components/common/SearchInput";
 import { GetPublishedBrandsAPI } from "@/services/Api/BrandsApi";
-
-const { Text } = Typography;
 
 /* ─── helpers ───────────────────────────────────────────────── */
 const initials = (name: string) =>
@@ -17,11 +17,11 @@ const initials = (name: string) =>
     .toUpperCase();
 
 const AVATAR_COLORS = [
-  { bg: "#ede9fe", text: "#6d28d9" },
-  { bg: "#dbeafe", text: "#1d4ed8" },
-  { bg: "#d1fae5", text: "#065f46" },
-  { bg: "#fce7f3", text: "#9d174d" },
-  { bg: "#fef3c7", text: "#92400e" },
+  { bg: "var(--violet-soft)", text: "var(--violet)" },
+  { bg: "var(--primary-soft)", text: "var(--primary)" },
+  { bg: "var(--success-soft)", text: "var(--success-soft-foreground)" },
+  { bg: "var(--violet-soft)", text: "var(--violet-soft-foreground)" },
+  { bg: "var(--warning-soft)", text: "var(--warning-soft-foreground)" },
 ];
 
 const avatarColor = (name: string) =>
@@ -67,10 +67,10 @@ const PublishedBrands: React.FC = () => {
               style={{
                 width: 52,
                 height: 52,
-                borderRadius: 12,
+                borderRadius: "var(--radius-xl)",
                 overflow: "hidden",
-                border: "1px solid #f0f0f0",
-                background: record.logo_url ? "#fff" : color.bg,
+                border: "1px solid var(--border)",
+                background: record.logo_url ? "var(--background)" : color.bg,
                 flexShrink: 0,
                 display: "flex",
                 alignItems: "center",
@@ -102,14 +102,13 @@ const PublishedBrands: React.FC = () => {
             </div>
 
             <div>
-              <Text
-                strong
-                style={{ fontSize: 14, color: "#111827", display: "block" }}
+              <strong
+                style={{ fontSize: 14, color: "var(--foreground)", display: "block", fontWeight: 600 }}
               >
                 {record.name}
-              </Text>
+              </strong>
               {record.supplier && (
-                <span style={{ fontSize: 12, color: "#9ca3af" }}>
+                <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
                   {record.supplier}
                 </span>
               )}
@@ -129,14 +128,14 @@ const PublishedBrands: React.FC = () => {
             alignItems: "center",
             gap: 6,
             padding: "4px 10px",
-            borderRadius: 20,
-            background: "#d1fae5",
-            color: "#065f46",
+            borderRadius: "var(--radius-2xl)",
+            background: "var(--success-soft)",
+            color: "var(--success-soft-foreground)",
             fontSize: 12,
             fontWeight: 600,
           }}
         >
-          <GlobalOutlined style={{ fontSize: 11 }} />
+          <Globe size="1em" style={{ fontSize: 11 }} />
           Live on site
         </span>
       ),
@@ -156,10 +155,9 @@ const PublishedBrands: React.FC = () => {
           gap: 12,
         }}
       >
-        <Input
+        <SearchInput
           size="large"
           placeholder="Search published brands…"
-          prefix={<SearchOutlined style={{ color: "#9ca3af" }} />}
           allowClear
           onChange={(e) => {
             if (!e.target.value) {
@@ -175,27 +173,22 @@ const PublishedBrands: React.FC = () => {
             setPage(1);
             setSearch(e.target.value);
           }}
-          style={{
-            maxWidth: 400,
-            borderRadius: 10,
-            borderColor: "#e5e7eb",
-            fontSize: 14,
-          }}
+          style={{ maxWidth: 400 }}
         />
 
         {/* Count pill */}
         <div
           style={{
             padding: "8px 16px",
-            borderRadius: 10,
-            background: "#d1fae5",
-            border: "1px solid #a7f3d0",
+            borderRadius: "var(--radius-lg)",
+            background: "var(--success-soft)",
+            border: "1px solid var(--success-border)",
           }}
         >
-          <span style={{ fontSize: 20, fontWeight: 700, color: "#065f46" }}>
+          <span style={{ fontSize: 20, fontWeight: 700, color: "var(--success-soft-foreground)" }}>
             {total}
           </span>
-          <span style={{ fontSize: 12, color: "#059669", marginLeft: 6 }}>
+          <span style={{ fontSize: 12, color: "var(--success-soft-foreground)", marginLeft: 6 }}>
             brands live
           </span>
         </div>
@@ -210,9 +203,9 @@ const PublishedBrands: React.FC = () => {
             gap: 10,
             marginBottom: 24,
             padding: "16px",
-            background: "#f8f9fc",
-            borderRadius: 14,
-            border: "1px solid #e5e7eb",
+            background: "var(--muted)",
+            borderRadius: "var(--radius-xl)",
+            border: "1px solid var(--border)",
           }}
         >
           {brands.slice(0, 20).map((brand) => {
@@ -227,32 +220,32 @@ const PublishedBrands: React.FC = () => {
                   alignItems: "center",
                   gap: 7,
                   padding: "12px 8px",
-                  borderRadius: 12,
-                  background: "#fff",
-                  border: "1px solid #f0f0f0",
+                  borderRadius: "var(--radius-xl)",
+                  background: "var(--background)",
+                  border: "1px solid var(--border)",
                   cursor: "default",
                   transition: "box-shadow 0.15s",
                 }}
                 onMouseEnter={(e) => {
                   (e.currentTarget as HTMLElement).style.boxShadow =
-                    "0 4px 16px rgba(79,70,229,0.10)";
+                    "0 4px 16px color-mix(in srgb, var(--primary) 10%, transparent)";
                   (e.currentTarget as HTMLElement).style.borderColor =
-                    "#c7d2fe";
+                    "var(--primary-border)";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLElement).style.boxShadow = "none";
                   (e.currentTarget as HTMLElement).style.borderColor =
-                    "#f0f0f0";
+                    "var(--muted)";
                 }}
               >
                 <div
                   style={{
                     width: 48,
                     height: 48,
-                    borderRadius: 10,
+                    borderRadius: "var(--radius-lg)",
                     overflow: "hidden",
-                    background: brand.logo_url ? "#fafafa" : color.bg,
-                    border: "1px solid #f3f4f6",
+                    background: brand.logo_url ? "var(--muted)" : color.bg,
+                    border: "1px solid var(--border)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -284,7 +277,7 @@ const PublishedBrands: React.FC = () => {
                 <span
                   style={{
                     fontSize: 11,
-                    color: "#374151",
+                    color: "var(--foreground)",
                     fontWeight: 600,
                     textAlign: "center",
                     lineHeight: 1.3,
@@ -308,10 +301,10 @@ const PublishedBrands: React.FC = () => {
                 alignItems: "center",
                 justifyContent: "center",
                 padding: "12px 8px",
-                borderRadius: 12,
-                background: "#f3f4f6",
-                border: "1px dashed #d1d5db",
-                color: "#9ca3af",
+                borderRadius: "var(--radius-xl)",
+                background: "var(--muted)",
+                border: "1px dashed var(--input)",
+                color: "var(--muted-foreground)",
                 fontSize: 12,
                 fontWeight: 600,
               }}
@@ -323,56 +316,24 @@ const PublishedBrands: React.FC = () => {
       )}
 
       {/* Table */}
-      <Table
+      <DataTable
         rowKey="id"
         loading={loading}
         columns={columns}
         dataSource={brands}
-        locale={{
-          emptyText: (
-            <Empty
-              description={
-                <span style={{ color: "#9ca3af" }}>
-                  {search
-                    ? `No brands found for "${search}"`
-                    : "No published brands yet"}
-                </span>
-              }
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
-          ),
-        }}
+        emptyText={
+          <EmptyState
+            description={
+              search ? `No brands found for "${search}"` : "No published brands yet"
+            }
+          />
+        }
         pagination={{
           current: page,
           total,
           pageSize: limit,
           onChange: setPage,
-          showTotal: (t) => (
-            <span style={{ color: "#9ca3af", fontSize: 13 }}>
-              {t} brands total
-            </span>
-          ),
-        }}
-        style={{ borderRadius: 12, overflow: "hidden" }}
-        components={{
-          header: {
-            cell: (props: any) => (
-              <th
-                {...props}
-                style={{
-                  ...props.style,
-                  background: "#f8f9fc",
-                  color: "#6b7280",
-                  fontWeight: 600,
-                  fontSize: 12,
-                  textTransform: "uppercase",
-                  letterSpacing: 0.5,
-                  borderBottom: "1px solid #e5e7eb",
-                  padding: "12px 16px",
-                }}
-              />
-            ),
-          },
+          showTotal: (t) => `${t} brands total`,
         }}
       />
     </div>

@@ -1,7 +1,7 @@
 /** @format */
 
 import { useEffect, useRef, useState } from "react";
-import { message } from "antd";
+import { toast } from "sonner";
 import axios from "axios";
 import ReactCrop, {
   centerCrop,
@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Check,
   Eye,
+  ImageOff,
   ImagePlus,
   Info,
   Plus,
@@ -22,7 +23,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 
 import {
   CreateAddOnProductAPI,
@@ -68,6 +69,12 @@ const AddOnForm = () => {
   const [hadImage, setHadImage] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  // The preview that failed to load (a saved image whose file is gone).
+  const [failedPreview, setFailedPreview] = useState<string | null>(null);
+  const previewFailed = !!previewUrl && failedPreview === previewUrl;
+  // The backend ignores remove_image for now (BACKEND_QUESTIONS.md B8), so a
+  // saved image can be replaced but not removed.
+  const showingSavedImage = isEdit && hadImage && !imageFile;
 
   // Crop
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
@@ -127,8 +134,8 @@ const AddOnForm = () => {
         setPreviewUrl(image);
         setHadImage(!!image);
       } catch (err) {
-        message.error(getErrorMessage(err, "Couldn't load this add-on."));
-        navigate("/add-ons");
+        toast.error(getErrorMessage(err, "Couldn't load this add-on."));
+        navigate("/add-ons", { replace: true });
       } finally {
         setFetching(false);
       }
@@ -273,7 +280,7 @@ const AddOnForm = () => {
       setPreviewUrl(URL.createObjectURL(cropped));
       closeCropModal();
     } catch (err) {
-      message.error(err instanceof Error ? err.message : "Couldn't crop image.");
+      toast.error(err instanceof Error ? err.message : "Couldn't crop image.");
     } finally {
       setCropSaving(false);
     }
@@ -306,7 +313,7 @@ const AddOnForm = () => {
     e.preventDefault();
 
     if (!validate()) {
-      message.error("Please fix the highlighted fields.");
+      toast.error("Please fix the highlighted fields.");
       return;
     }
 
@@ -328,15 +335,15 @@ const AddOnForm = () => {
 
       if (isEdit && id) {
         await UpdateAddOnProductAPI(Number(id), formData);
-        message.success("Add-on saved");
+        toast.success("Add-on saved");
       } else {
         await CreateAddOnProductAPI(formData);
-        message.success("Add-on created");
+        toast.success("Add-on created");
       }
 
       navigate("/add-ons");
     } catch (err) {
-      message.error(getErrorMessage(err, "Couldn't save the add-on. Try again."));
+      toast.error(getErrorMessage(err, "Couldn't save the add-on. Try again."));
     } finally {
       setSaving(false);
     }
@@ -543,13 +550,27 @@ const AddOnForm = () => {
 
           {previewUrl ? (
             <div className="addon__image">
-              <img src={previewUrl} alt={name || "Add-on"} />
+              {previewFailed ? (
+                <div className="addon__image-missing">
+                  <ImageOff size={24} aria-hidden />
+                  <strong>This image's file is missing</strong>
+                  <span>Use Replace to upload it again.</span>
+                </div>
+              ) : (
+                <img
+                  src={previewUrl}
+                  alt={name || "Add-on"}
+                  onError={() => setFailedPreview(previewUrl)}
+                />
+              )}
 
               <div className="addon__image-actions">
-                <button type="button" onClick={() => setLightboxSrc(previewUrl)}>
-                  <Eye size={14} />
-                  View
-                </button>
+                {!previewFailed && (
+                  <button type="button" onClick={() => setLightboxSrc(previewUrl)}>
+                    <Eye size={14} />
+                    View
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -557,14 +578,16 @@ const AddOnForm = () => {
                   <RefreshCw size={14} />
                   Replace
                 </button>
-                <button
-                  type="button"
-                  className="addon__image-remove"
-                  onClick={removeImage}
-                >
-                  <Trash2 size={14} />
-                  Remove
-                </button>
+                {!showingSavedImage && (
+                  <button
+                    type="button"
+                    className="addon__image-remove"
+                    onClick={removeImage}
+                  >
+                    <Trash2 size={14} />
+                    Remove
+                  </button>
+                )}
               </div>
             </div>
           ) : (

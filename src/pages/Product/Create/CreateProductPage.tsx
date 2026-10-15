@@ -1,32 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  AutoComplete,
-  message,
-  Modal,
-  Pagination,
-  Select,
-  Tooltip,
-  Upload,
-} from "antd";
-import type { UploadFile } from "antd";
-import {
-  PlusOutlined,
-  DeleteOutlined,
-  CopyOutlined,
-  EditOutlined,
-  CloseOutlined,
-  ArrowLeftOutlined,
-  ArrowRightOutlined,
-  CheckOutlined,
-  UploadOutlined,
-  InfoCircleOutlined,
-  UnorderedListOutlined,
-  BgColorsOutlined,
-  CheckSquareOutlined,
-  TagsOutlined,
-  DownOutlined,
-  BulbOutlined,
-} from "@ant-design/icons";
+import { Plus, Trash2, Copy as CopyIcon, Pencil, X, ArrowLeft, ArrowRight, Check, Info, List as ListIcon, Palette, SquareCheck, Tags, ChevronDown, Lightbulb , Ruler, SquareDashed } from "lucide-react";
+import { AutoComplete } from "@/components/common/AutoComplete";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Combobox } from "@/components/common/Combobox";
+import { ImageUploadGrid, type UploadItem } from "@/components/common/Upload";
+import { toast } from "sonner";
+import { checkUploadCounts } from "@/lib/uploads";
+import { confirm } from "@/components/common/ConfirmDialog";
+import { Pagination } from "@/components/common/Pagination";
+import { Tip } from "@/components/common/Tip";
 
 import {
   AddProductVariantsAPI,
@@ -109,7 +91,7 @@ interface VariantType {
   // Every option gets its own selection now — the backend keeps the full
   // set in ProductVariant.meta.option_values.
   option_selections: (number | null)[];
-  images: UploadFile[];
+  images: UploadItem[];
   // Used when pricing_mode === "tiered"
   bulk_pricing: BulkTier[];
   // Used when pricing_mode === "quantity_fixed"
@@ -167,7 +149,6 @@ const OPTION_TYPE_INFO: Record<
   {
     label: string;
     icon: React.ReactNode;
-    emoji: string;
     description: string;
     example: string;
     valuePlaceholder: string;
@@ -175,8 +156,7 @@ const OPTION_TYPE_INFO: Record<
 > = {
   dropdown: {
     label: "Drop-down List",
-    icon: <UnorderedListOutlined />,
-    emoji: "📋",
+    icon: <ListIcon size="1em" />,
     description: "Shoppers pick one value from a drop-down menu.",
     example: "Good for lots of choices, e.g. Pages: 100, 200, 500",
     valuePlaceholder: "e.g. 100 Pages",
@@ -184,8 +164,7 @@ const OPTION_TYPE_INFO: Record<
 
   color: {
     label: "Color",
-    icon: <BgColorsOutlined />,
-    emoji: "🎨",
+    icon: <Palette size="1em" />,
     description: "Shoppers pick a value shown as a color swatch.",
     example: "Good for Color, e.g. Black, Royal Blue, Red",
     valuePlaceholder: "e.g. Royal Blue",
@@ -193,8 +172,7 @@ const OPTION_TYPE_INFO: Record<
 
   buttons: {
     label: "Radio Buttons",
-    icon: <CheckSquareOutlined />,
-    emoji: "🔘",
+    icon: <SquareCheck size="1em" />,
     description: "Shoppers pick exactly one value from visible buttons.",
     example: "Good for a short list, e.g. Capacity: 500ml, 1L, 2L",
     valuePlaceholder: "e.g. 500ml",
@@ -202,8 +180,7 @@ const OPTION_TYPE_INFO: Record<
 
   size: {
     label: "Size",
-    icon: <TagsOutlined />,
-    emoji: "👕",
+    icon: <Tags size="1em" />,
     description: "Shown as size buttons, styled like clothing sizes.",
     example: "Good for Size, e.g. S, M, L, XL — optionally with measurements",
     valuePlaceholder: "e.g. M",
@@ -211,8 +188,7 @@ const OPTION_TYPE_INFO: Record<
 
   checkbox: {
     label: "Checkboxes",
-    icon: <CheckSquareOutlined />,
-    emoji: "☑️",
+    icon: <SquareCheck size="1em" />,
     description: "Shoppers can select more than one value at once.",
     example: "Good for add-ons, e.g. Gift Wrap, Extra Strap",
     valuePlaceholder: "e.g. Gift Wrap",
@@ -374,7 +350,7 @@ const ColorNameAutocomplete: React.FC<{
             height: 14,
             borderRadius: "50%",
             background: c.hex,
-            border: "1px solid #d9d9d9",
+            border: "1px solid var(--input)",
             display: "inline-block",
             flexShrink: 0,
           }}
@@ -389,12 +365,6 @@ const ColorNameAutocomplete: React.FC<{
       value={value}
       options={options}
       style={{ width: "100%" }}
-      filterOption={(inputValue, option) =>
-        !!option?.value &&
-        (option.value as string)
-          .toLowerCase()
-          .includes(inputValue.toLowerCase())
-      }
       onSelect={(val) => {
         const hex = getHexFromColorName(val as string);
         onSelectColor(val as string, hex);
@@ -417,9 +387,9 @@ const GuideCard: React.FC<{ open: boolean; onToggle: () => void }> = ({
       type="button"
       aria-expanded={open}
     >
-      <BulbOutlined />
+      <Lightbulb size="1em" />
       How adding a manual product works
-      <DownOutlined className={styles.guideChevron} />
+      <ChevronDown size="1em" className={styles.guideChevron} />
     </button>
 
     {open && (
@@ -491,7 +461,7 @@ const CreateProductPage: React.FC = () => {
   const [productName, setProductName] = useState("");
   const [brandId, setBrandId] = useState<number | null>(null);
   const [description, setDescription] = useState("");
-  const [productImages, setProductImages] = useState<UploadFile[]>([]);
+  const [productImages, setProductImages] = useState<UploadItem[]>([]);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [catSearch, setCatSearch] = useState("");
@@ -553,7 +523,7 @@ const CreateProductPage: React.FC = () => {
       const res = await GetPublishedBrandsAPI({ page: 1, limit: 500 });
       setBrands(res?.data?.data?.data || []);
     } catch {
-      message.error("Failed to fetch brands");
+      toast.error("Failed to fetch brands");
     }
   };
 
@@ -572,7 +542,7 @@ const CreateProductPage: React.FC = () => {
       setCatTotal(total);
       setCatPage(page);
     } catch {
-      message.error("Failed to fetch categories");
+      toast.error("Failed to fetch categories");
     } finally {
       setCatLoading(false);
     }
@@ -610,7 +580,7 @@ const CreateProductPage: React.FC = () => {
     try {
       const res = await CreateCategoryAPI({ title, supplier: "MANUAL" });
       const created: Category | undefined = res?.data?.data;
-      message.success("Category created");
+      toast.success("Category created");
       setNewCategoryName("");
       await fetchCategories(1, catSearch);
       if (created?.id) {
@@ -624,7 +594,7 @@ const CreateProductPage: React.FC = () => {
         });
       }
     } catch (err: any) {
-      message.error(
+      toast.error(
         err?.response?.data?.message || "Failed to create category",
       );
     } finally {
@@ -648,7 +618,7 @@ const CreateProductPage: React.FC = () => {
     setSavingCategoryEdit(true);
     try {
       await UpdateCategoryAPI(catId, { title });
-      message.success("Category updated");
+      toast.success("Category updated");
       setCategories((prev) =>
         prev.map((c) => (c.id === catId ? { ...c, title } : c)),
       );
@@ -657,7 +627,7 @@ const CreateProductPage: React.FC = () => {
       );
       cancelEditCategory();
     } catch (err: any) {
-      message.error(
+      toast.error(
         err?.response?.data?.message || "Failed to update category",
       );
     } finally {
@@ -666,7 +636,7 @@ const CreateProductPage: React.FC = () => {
   };
 
   const handleDeleteCategory = (cat: Category) => {
-    Modal.confirm({
+    confirm({
       title: "Delete category",
       content: (
         <span>
@@ -679,12 +649,12 @@ const CreateProductPage: React.FC = () => {
         setDeletingCategoryId(cat.id);
         try {
           await DeleteCategoryAPI(cat.id);
-          message.success("Category deleted");
+          toast.success("Category deleted");
           setCategories((prev) => prev.filter((c) => c.id !== cat.id));
           setAllLoadedCategories((prev) => prev.filter((c) => c.id !== cat.id));
           setSelectedCatIds((prev) => prev.filter((id) => id !== cat.id));
         } catch (err: any) {
-          message.error(
+          toast.error(
             err?.response?.data?.message || "Failed to delete category",
           );
         } finally {
@@ -809,7 +779,7 @@ const CreateProductPage: React.FC = () => {
       updated.splice(i + 1, 0, clone);
       return updated;
     });
-    message.info(
+    toast.info(
       "Variant duplicated — change whichever value is different (e.g. Size, Capacity) before saving.",
     );
   };
@@ -1011,6 +981,17 @@ const CreateProductPage: React.FC = () => {
     if (!validateStep1()) return setCurrentStep(1);
     if (!validateStep2()) return setCurrentStep(2);
 
+    // Checked before anything is created, so a rejected upload can't leave a
+    // product without its variants.
+    const countError = checkUploadCounts(
+      productImages.length,
+      variants.reduce((n, v) => n + v.images.length, 0),
+    );
+    if (countError) {
+      toast.error(countError);
+      return;
+    }
+
     setLoading(true);
     try {
       const productFormData = new FormData();
@@ -1110,7 +1091,7 @@ const CreateProductPage: React.FC = () => {
       });
 
       await AddProductVariantsAPI(variantFormData);
-      message.success("Product created successfully!");
+      toast.success("Product created successfully!");
       navigate("/products");
       setCurrentStep(0);
       setProductName("");
@@ -1122,7 +1103,7 @@ const CreateProductPage: React.FC = () => {
       setVariants([DEFAULT_VARIANT()]);
       setSamePriceForAll(false);
     } catch (err: any) {
-      message.error(err?.response?.data?.message || "Something went wrong");
+      toast.error(err?.response?.data?.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -1133,7 +1114,7 @@ const CreateProductPage: React.FC = () => {
   const renderStep0 = () => (
     <div className={styles.stepContent}>
       <div className={styles.introBanner}>
-        <InfoCircleOutlined className={styles.introIcon} />
+        <Info size="1em" className={styles.introIcon} />
         <div>
           <div className={styles.introTitle}>Add any type of product</div>
           <span className={styles.introText}>
@@ -1151,7 +1132,7 @@ const CreateProductPage: React.FC = () => {
         <div className={styles.fieldGrid}>
           <div className={styles.fieldGroup}>
             <label>
-              Product name <span style={{ color: "#dc2626" }}>*</span>
+              Product name <span style={{ color: "var(--destructive)" }}>*</span>
             </label>
             <input
               type="text"
@@ -1164,7 +1145,7 @@ const CreateProductPage: React.FC = () => {
             <label>
               Brand <span className={styles.fieldHint}>(optional)</span>
             </label>
-            <Select
+            <Combobox
               placeholder="Select brand"
               style={{ width: "100%" }}
               allowClear
@@ -1225,7 +1206,7 @@ const CreateProductPage: React.FC = () => {
             onClick={handleCreateCategory}
             disabled={creatingCategory || !newCategoryName.trim()}
           >
-            <PlusOutlined /> {creatingCategory ? "Adding…" : "Add category"}
+            <Plus size="1em" /> {creatingCategory ? "Adding…" : "Add category"}
           </button>
         </div>
 
@@ -1268,14 +1249,14 @@ const CreateProductPage: React.FC = () => {
                         disabled={savingCategoryEdit}
                         title="Save"
                       >
-                        <CheckOutlined />
+                        <Check size="1em" />
                       </button>
                       <button
                         className={styles.catEditIconBtn}
                         onClick={cancelEditCategory}
                         title="Cancel"
                       >
-                        <CloseOutlined />
+                        <X size="1em" />
                       </button>
                     </div>
                   );
@@ -1297,7 +1278,7 @@ const CreateProductPage: React.FC = () => {
                       <span
                         className={`${styles.catCheck} ${selectedCatIds.includes(cat.id) ? styles.catCheckOn : ""}`}
                       >
-                        {selectedCatIds.includes(cat.id) && <CheckOutlined />}
+                        {selectedCatIds.includes(cat.id) && <Check size="1em" />}
                       </span>
                       <span>
                         {cat.title}
@@ -1319,7 +1300,7 @@ const CreateProductPage: React.FC = () => {
                           }}
                           title="Rename"
                         >
-                          <EditOutlined />
+                          <Pencil size="1em" />
                         </button>
                         <button
                           className={styles.catEditIconBtn}
@@ -1330,7 +1311,7 @@ const CreateProductPage: React.FC = () => {
                           disabled={deletingCategoryId === cat.id}
                           title="Delete"
                         >
-                          <DeleteOutlined />
+                          <Trash2 size="1em" />
                         </button>
                       </div>
                     )}
@@ -1350,7 +1331,7 @@ const CreateProductPage: React.FC = () => {
             </div>
             {selectedCategories.length === 0 ? (
               <div className={styles.emptyState}>
-                <div className={styles.emptyIcon}>☐</div>
+                <div className={styles.emptyIcon}><SquareDashed size={28} strokeWidth={1.5} aria-hidden /></div>
                 <span>No categories yet</span>
                 <span className={styles.emptyHint}>
                   Pick from the list on the left — this product will still be
@@ -1399,18 +1380,11 @@ const CreateProductPage: React.FC = () => {
             in the Variants step.
           </span>
         </div>
-        <Upload
+        <ImageUploadGrid
           multiple
-          listType="picture-card"
-          beforeUpload={() => false}
           fileList={productImages}
-          onChange={({ fileList }) => setProductImages(fileList)}
-        >
-          <div className={styles.uploadBtn}>
-            <UploadOutlined />
-            <span>Upload</span>
-          </div>
-        </Upload>
+          onChange={(files) => setProductImages(files)}
+        />
       </div>
     </div>
   );
@@ -1430,7 +1404,7 @@ const CreateProductPage: React.FC = () => {
             )}
           </span>
           <button className={styles.btnDanger} onClick={() => removeOption(oi)}>
-            <DeleteOutlined /> Remove option
+            <Trash2 size="1em" /> Remove option
           </button>
         </div>
 
@@ -1438,9 +1412,9 @@ const CreateProductPage: React.FC = () => {
           <div className={styles.fieldGroup}>
             <label>
               Customer selection label
-              <Tooltip title="This is the name customers will see above the choice they make on the product page. Pick whatever fits your product.">
-                <InfoCircleOutlined className={styles.labelInfo} />
-              </Tooltip>
+              <Tip content="This is the name customers will see above the choice they make on the product page. Pick whatever fits your product.">
+                <Info size="1em" className={styles.labelInfo} />
+              </Tip>
             </label>
             <input
               value={option.name}
@@ -1458,9 +1432,9 @@ const CreateProductPage: React.FC = () => {
           <div className={styles.fieldGroup}>
             <label>
               Display style
-              <Tooltip title="Controls how the values below are shown to shoppers.">
-                <InfoCircleOutlined className={styles.labelInfo} />
-              </Tooltip>
+              <Tip content="Controls how the values below are shown to shoppers.">
+                <Info size="1em" className={styles.labelInfo} />
+              </Tip>
             </label>
             <select
               value={option.type}
@@ -1470,7 +1444,7 @@ const CreateProductPage: React.FC = () => {
             >
               {(Object.keys(OPTION_TYPE_INFO) as OptionType[]).map((key) => (
                 <option key={key} value={key}>
-                  {OPTION_TYPE_INFO[key].emoji} {OPTION_TYPE_INFO[key].label}
+                  {OPTION_TYPE_INFO[key].label}
                 </option>
               ))}
             </select>
@@ -1501,7 +1475,7 @@ const CreateProductPage: React.FC = () => {
             <div
               key={vi}
               className={styles.card}
-              style={{ background: "#fafaf9", padding: 16, marginBottom: 12 }}
+              style={{ background: "var(--muted)", padding: 16, marginBottom: 12 }}
             >
               <div className={styles.cardHeader} style={{ marginBottom: 14 }}>
                 <span className={styles.cardTitle} style={{ fontSize: 15 }}>
@@ -1514,7 +1488,7 @@ const CreateProductPage: React.FC = () => {
                   className={styles.btnDanger}
                   onClick={() => removeOptionValue(oi, vi)}
                 >
-                  <DeleteOutlined /> Remove
+                  <Trash2 size="1em" /> Remove
                 </button>
               </div>
 
@@ -1528,8 +1502,8 @@ const CreateProductPage: React.FC = () => {
                       className={styles.colorPreviewLabel}
                       style={{
                         color: isLightColor(value.color_code || "#fff")
-                          ? "#333"
-                          : "#fff",
+                          ? "var(--foreground)"
+                          : "var(--background)",
                       }}
                     >
                       {value.name}
@@ -1642,7 +1616,7 @@ const CreateProductPage: React.FC = () => {
           className={styles.btnOutline}
           onClick={() => addOptionValue(oi)}
         >
-          <PlusOutlined /> Add value
+          <Plus size="1em" /> Add value
         </button>
       </div>
     );
@@ -1660,12 +1634,12 @@ const CreateProductPage: React.FC = () => {
           </span>
         </div>
         <button className={styles.btnPrimary} onClick={addOption}>
-          <PlusOutlined /> Add option
+          <Plus size="1em" /> Add option
         </button>
       </div>
 
       <div className={styles.instructionNote}>
-        <InfoCircleOutlined className={styles.introIcon} />
+        <Info size="1em" className={styles.introIcon} />
         <span>
           This whole step is optional; skip it for products with no choices,
           like a single plain candle. For clothing, add a Size option and a
@@ -1676,17 +1650,17 @@ const CreateProductPage: React.FC = () => {
 
       {options.length === 0 ? (
         <div className={`${styles.card} ${styles.emptyCard}`}>
-          <div className={styles.emptyCardIcon}>📐</div>
+          <div className={styles.emptyCardIcon}><Ruler size={28} strokeWidth={1.5} aria-hidden /></div>
           <span className={styles.emptyCardText}>
             This product has no options
           </span>
           <span className={styles.emptyCardHint}>
-            That's fine for products like ✓ Candle, ✓ Mug, or ✓ Sticker — click
+            That's fine for products like a candle, a mug or a sticker — click
             Next to continue, or add an option below (e.g. Size, Color) if this
             product needs one.
           </span>
           <button className={styles.btnOutline} onClick={addOption}>
-            <PlusOutlined /> Add option
+            <Plus size="1em" /> Add option
           </button>
         </div>
       ) : (
@@ -1751,7 +1725,7 @@ const CreateProductPage: React.FC = () => {
             aria-label={`Remove tier ${ti + 1}`}
             onClick={() => removeBulkTier(i, ti)}
           >
-            <DeleteOutlined />
+            <Trash2 size="1em" />
           </button>
         </div>
       ))}
@@ -1760,7 +1734,7 @@ const CreateProductPage: React.FC = () => {
         className={styles.btnOutline}
         onClick={() => addBulkTier(i)}
       >
-        <PlusOutlined /> Add quantity tier
+        <Plus size="1em" /> Add quantity tier
       </button>
     </>
   );
@@ -1809,7 +1783,7 @@ const CreateProductPage: React.FC = () => {
               aria-label={`Remove quantity ${qi + 1}`}
               onClick={() => removeQuantityPrice(i, qi)}
             >
-              <DeleteOutlined />
+              <Trash2 size="1em" />
             </button>
           </div>
         );
@@ -1819,7 +1793,7 @@ const CreateProductPage: React.FC = () => {
         className={styles.btnOutline}
         onClick={() => addQuantityPrice(i)}
       >
-        <PlusOutlined /> Add quantity
+        <Plus size="1em" /> Add quantity
       </button>
     </>
   );
@@ -1943,7 +1917,7 @@ const CreateProductPage: React.FC = () => {
             </span>
           </div>
           <button className={styles.btnPrimary} onClick={addVariant}>
-            <PlusOutlined /> Add variant
+            <Plus size="1em" /> Add variant
           </button>
         </div>
 
@@ -1951,7 +1925,7 @@ const CreateProductPage: React.FC = () => {
           <div className={`${styles.card} ${styles.emptyCard}`}>
             <span>No variants yet</span>
             <button className={styles.btnPrimary} onClick={addVariant}>
-              <PlusOutlined /> Add first variant
+              <Plus size="1em" /> Add first variant
             </button>
           </div>
         ) : (
@@ -1998,13 +1972,13 @@ const CreateProductPage: React.FC = () => {
                       onClick={() => duplicateVariant(i)}
                       title="Copy this variant exactly, then change the one value that's different"
                     >
-                      <CopyOutlined /> Duplicate
+                      <CopyIcon size="1em" /> Duplicate
                     </button>
                     <button
                       className={styles.btnDanger}
                       onClick={() => removeVariant(i)}
                     >
-                      <DeleteOutlined /> Remove
+                      <Trash2 size="1em" /> Remove
                     </button>
                   </div>
                 </div>
@@ -2034,7 +2008,7 @@ const CreateProductPage: React.FC = () => {
                       <span
                         className={styles.colorPreviewLabel}
                         style={{
-                          color: isLightColor(v.color_code) ? "#333" : "#fff",
+                          color: isLightColor(v.color_code) ? "var(--foreground)" : "var(--background)",
                         }}
                       >
                         {v.color || autoColorName}
@@ -2099,9 +2073,9 @@ const CreateProductPage: React.FC = () => {
                   <div className={styles.fieldGroup}>
                     <label>
                       SKU <span className={styles.fieldHint}>(optional)</span>
-                      <Tooltip title="A unique code you use internally to track this exact variant, e.g. SHIRT-BLUE-M. Leave blank and we'll generate one.">
-                        <InfoCircleOutlined className={styles.labelInfo} />
-                      </Tooltip>
+                      <Tip content="A unique code you use internally to track this exact variant, e.g. SHIRT-BLUE-M. Leave blank and we'll generate one.">
+                        <Info size="1em" className={styles.labelInfo} />
+                      </Tip>
                     </label>
                     <input
                       type="text"
@@ -2148,13 +2122,13 @@ const CreateProductPage: React.FC = () => {
                                     }
                                   >
                                     {active && (
-                                      <CheckOutlined
+                                      <Check size="1em"
                                         style={{
                                           color: isLightColor(
                                             val.color_code || "#fff",
                                           )
-                                            ? "#333"
-                                            : "#fff",
+                                            ? "var(--foreground)"
+                                            : "var(--background)",
                                         }}
                                       />
                                     )}
@@ -2200,20 +2174,11 @@ const CreateProductPage: React.FC = () => {
                     the main product images
                   </span>
                 </div>
-                <Upload
+                <ImageUploadGrid
                   multiple
-                  listType="picture-card"
-                  beforeUpload={() => false}
                   fileList={v.images}
-                  onChange={({ fileList }) =>
-                    updateVariant(i, "images", fileList)
-                  }
-                >
-                  <div className={styles.uploadBtn}>
-                    <UploadOutlined />
-                    <span>Upload</span>
-                  </div>
-                </Upload>
+                  onChange={(files) => updateVariant(i, "images", files)}
+                />
               </div>
             );
           })
@@ -2344,7 +2309,7 @@ const CreateProductPage: React.FC = () => {
           onClick={handleSubmit}
           disabled={loading}
         >
-          <CheckOutlined />
+          <Check size="1em" />
           {loading ? "Creating product…" : "Create product"}
         </button>
       </div>
@@ -2355,7 +2320,7 @@ const CreateProductPage: React.FC = () => {
 
   const validateStep0 = () => {
     if (!productName.trim()) {
-      message.error("Product name is required");
+      toast.error("Product name is required");
       return false;
     }
     return true;
@@ -2374,7 +2339,7 @@ const CreateProductPage: React.FC = () => {
         if (!opt.name.trim() || opt.values.length === 0) continue;
         const selection = variant.option_selections?.[oi];
         if (selection === null || selection === undefined) {
-          message.error(`${variantLabel}: pick a value for "${opt.name}"`);
+          toast.error(`${variantLabel}: pick a value for "${opt.name}"`);
           return false;
         }
       }
@@ -2395,7 +2360,7 @@ const CreateProductPage: React.FC = () => {
 
         if (seenSignatures.has(sig)) {
           const firstIdx = seenSignatures.get(sig)!;
-          message.error(
+          toast.error(
             `Variant ${firstIdx + 1} and Variant ${i + 1} are the same — change one of them (e.g. Size or Capacity) before saving.`,
           );
           return false;
@@ -2411,14 +2376,14 @@ const CreateProductPage: React.FC = () => {
       const variant = variants[i];
       const pricingError = getPricingError(variant, `Variant ${i + 1}`);
       if (pricingError) {
-        message.error(pricingError);
+        toast.error(pricingError);
         return false;
       }
 
       const sku = variant.sku.trim();
       if (!sku) continue;
       if (skuSet.has(sku)) {
-        message.error(`Duplicate SKU: ${sku}`);
+        toast.error(`Duplicate SKU: ${sku}`);
         return false;
       }
       skuSet.add(sku);
@@ -2435,6 +2400,10 @@ const CreateProductPage: React.FC = () => {
 
   return (
     <div className={styles.page}>
+      <PageHeader
+        title="Add product"
+        description="Create a manual product with its options, variants and pricing."
+      />
       <div className={styles.stepper}>
         {STEPS.map((label, i) => (
           <button
@@ -2446,7 +2415,7 @@ const CreateProductPage: React.FC = () => {
             aria-current={i === currentStep ? "step" : undefined}
           >
             <span className={styles.stepNum}>
-              {i < currentStep ? <CheckOutlined /> : i + 1}
+              {i < currentStep ? <Check size="1em" /> : i + 1}
             </span>
             <span>{label}</span>
           </button>
@@ -2463,14 +2432,14 @@ const CreateProductPage: React.FC = () => {
             className={styles.btnOutline}
             onClick={() => setCurrentStep((s) => s - 1)}
           >
-            <ArrowLeftOutlined /> Back
+            <ArrowLeft size="1em" /> Back
           </button>
         ) : (
           <span />
         )}
         {currentStep < STEPS.length - 1 && (
           <button className={styles.btnPrimary} onClick={handleNext}>
-            Next <ArrowRightOutlined />
+            Next <ArrowRight size="1em" />
           </button>
         )}
       </div>

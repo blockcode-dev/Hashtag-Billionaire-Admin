@@ -1,43 +1,28 @@
 /** @format */
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Lock, Key } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/common/PageHeader";
+import { PasswordInput } from "@/components/common/PasswordInput";
+import { Spinner } from "@/components/common/Spinner";
 import { ChangePasswordAPI } from "@/services/Api/AuthApi";
 import { PASSWORD_RULE_HINT, checkPasswordRule, setToken } from "@/lib/session";
 
 export default function AdminChangePassword() {
-  const { toast } = useToast();
-
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleChangePassword = async () => {
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      toast({ title: "All fields are required", variant: "destructive" });
-      return;
-    }
-
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     const ruleError = checkPasswordRule(newPassword);
-    if (ruleError) {
-      toast({ title: ruleError, variant: "destructive" });
-      return;
-    }
+    if (ruleError) return setError(ruleError);
+    if (newPassword !== confirmPassword) return setError("The new passwords don't match.");
 
-    if (newPassword !== confirmPassword) {
-      toast({ title: "Passwords do not match", variant: "destructive" });
-      return;
-    }
-
+    setError(null);
     try {
       setLoading(true);
       const res = await ChangePasswordAPI({
@@ -46,136 +31,81 @@ export default function AdminChangePassword() {
         confirm_password: confirmPassword,
       });
 
-      if (res.data?.success) {
-        // Older tokens stop working once the password changes; keep this one.
-        const newToken = res.data?.data?.token;
-        if (newToken) setToken(newToken);
-
-        toast({
-          title: "Password Updated",
-          description: "Other sessions have been signed out.",
-        });
-
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
+      if (!res.data?.success) {
+        setError(res.data?.message || "We couldn't change your password. Try again.");
+        return;
       }
+      // Older tokens stop working once the password changes; keep this one.
+      const newToken = res.data?.data?.token;
+      if (newToken) setToken(newToken);
+
+      toast.success("Password changed", { description: "You've been signed out on other devices." });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
     } catch (err: any) {
-      toast({
-        title: "Failed to update password",
-        description: err.response?.data?.message || "Unexpected error.",
-        variant: "destructive",
-      });
+      setError(err.response?.data?.message || "We couldn't change your password. Try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-   <div className="w-full flex justify-center items-start py-12 px-6">
-  <div className="w-full max-w-xl">
-    <Card className="shadow-md border border-gray-200 rounded-xl overflow-hidden">
+    <div className="mx-auto max-w-xl">
+      <PageHeader title="Change password" description="Changing your password signs you out on every other device." />
 
-      <CardHeader className="bg-gradient-to-r from-amber-50 to-white border-b py-6">
-        <CardTitle className="flex items-center gap-3 text-gray-900 text-xl">
-          <Key className="h-6 w-6 text-amber-600" />
-          Change Password
-        </CardTitle>
-        <CardDescription className="text-gray-600">
-          Update your password to keep your account secure
-        </CardDescription>
-      </CardHeader>
+      <form onSubmit={handleSubmit} className="space-y-5 rounded-xl border bg-card p-6 shadow-xs">
+        {error && (
+          <p role="alert" className="rounded-md border border-destructive-border bg-destructive-soft px-3 py-2 text-sm text-destructive-soft-foreground">
+            {error}
+          </p>
+        )}
 
-      <CardContent className="space-y-8 py-8 px-6">
-
-        {/* Current Password */}
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-            <Lock className="h-4 w-4 text-gray-400" />
-            Current Password
-          </Label>
-          <div className="relative">
-            <Input
-              type={showCurrent ? "text" : "password"}
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="Enter current password"
-              className="h-11 rounded-md border-gray-300 focus:border-amber-500 focus:ring-amber-500/20 pr-12"
+          <Label htmlFor="current-password">Current password</Label>
+          <PasswordInput
+            id="current-password"
+            autoComplete="current-password"
+            required
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+          />
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="new-password">New password</Label>
+            <PasswordInput
+              id="new-password"
+              autoComplete="new-password"
+              required
+              aria-describedby="password-rule"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
             />
-            <button
-              type="button"
-              onClick={() => setShowCurrent(!showCurrent)}
-              className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-amber-600"
-            >
-              {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirm-password">Confirm new password</Label>
+            <PasswordInput
+              id="confirm-password"
+              autoComplete="new-password"
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
           </div>
         </div>
+        <p id="password-rule" className="text-xs text-muted-foreground">
+          {PASSWORD_RULE_HINT}
+        </p>
 
-        {/* New & Confirm Password */}
-        <div className="grid gap-6 md:grid-cols-2">
-
-          {/* New Password */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-gray-700">New Password</Label>
-            <div className="relative">
-              <Input
-                type={showNew ? "text" : "password"}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter new password"
-                className="h-11 rounded-md border-gray-300 focus:border-amber-500 focus:ring-amber-500/20 pr-12"
-              />
-              <button
-                type="button"
-                onClick={() => setShowNew(!showNew)}
-                className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-amber-600"
-              >
-                {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Confirm Password */}
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-gray-700">Confirm New Password</Label>
-            <div className="relative">
-              <Input
-                type={showConfirm ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm new password"
-                className="h-11 rounded-md border-gray-300 focus:border-amber-500 focus:ring-amber-500/20 pr-12"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-amber-600"
-              >
-                {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <p className="text-xs text-gray-500 -mt-4">{PASSWORD_RULE_HINT}</p>
-
-        {/* Button */}
-        <div className="flex justify-center pt-4">
-          <Button
-            onClick={handleChangePassword}
-            disabled={loading}
-            className="bg-[#ed1c24] hover:bg-[#d1151c] text-white px-6 h-11 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center"
-          >
-            <Key className="h-4 w-4 mr-2" />
-            {loading ? "Updating..." : "Change Password"}
+        <div className="flex justify-end border-t pt-5">
+          <Button type="submit" disabled={loading}>
+            {loading && <Spinner size="small" className="text-current" />}
+            {loading ? "Saving…" : "Change password"}
           </Button>
         </div>
-
-      </CardContent>
-    </Card>
-  </div>
-</div>
-
+      </form>
+    </div>
   );
 }

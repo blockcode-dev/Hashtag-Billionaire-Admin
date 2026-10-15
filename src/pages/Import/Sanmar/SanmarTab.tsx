@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import { ArrowRight, ChevronLeft, ChevronRight, CircleCheck, Download, Package, Search, TriangleAlert } from "lucide-react";
 import {
   GetSanmarBrandsAPI,
   GetSanmarStylesAPI,
@@ -43,15 +44,15 @@ const Spinner: React.FC = () => (
       justifyContent: "center",
       height: 280,
       gap: 14,
-      color: "#64748b",
+      color: "var(--muted-foreground)",
     }}
   >
     <div
       style={{
         width: 40,
         height: 40,
-        border: "3px solid #e2e8f0",
-        borderTop: "3px solid #2563eb",
+        border: "3px solid var(--border)",
+        borderTop: "3px solid var(--primary)",
         borderRadius: "50%",
         animation: "sanmarSpin 0.8s linear infinite",
       }}
@@ -99,13 +100,13 @@ function SearchableList({
           fontWeight: 700,
           textTransform: "uppercase",
           letterSpacing: "0.08em",
-          color: "#64748b",
+          color: "var(--muted-foreground)",
           marginBottom: 6,
         }}
       >
         {label}
         {items.length > 0 && (
-          <span style={{ color: "#2563eb", marginLeft: 4 }}>
+          <span style={{ color: "var(--primary)", marginLeft: 4 }}>
             ({items.length})
           </span>
         )}
@@ -118,10 +119,10 @@ function SearchableList({
             top: "50%",
             transform: "translateY(-50%)",
             fontSize: 13,
-            color: "#94a3b8",
+            color: "var(--muted-foreground)",
           }}
         >
-          🔍
+          <Search size={14} aria-hidden />
         </span>
         <input
           placeholder={searchPlaceholder}
@@ -130,8 +131,8 @@ function SearchableList({
           style={{
             width: "100%",
             padding: "8px 12px 8px 30px",
-            borderRadius: 8,
-            border: "1.5px solid #e2e8f0",
+            borderRadius: "var(--radius-lg)",
+            border: "1.5px solid var(--border)",
             fontSize: 13,
             outline: "none",
             fontFamily: "'DM Sans', sans-serif",
@@ -144,10 +145,10 @@ function SearchableList({
           style={{
             padding: 20,
             textAlign: "center",
-            color: "#94a3b8",
+            color: "var(--muted-foreground)",
             fontSize: 13,
-            border: "1.5px solid #e2e8f0",
-            borderRadius: 8,
+            border: "1.5px solid var(--border)",
+            borderRadius: "var(--radius-lg)",
           }}
         >
           ⏳ Loading…
@@ -157,10 +158,10 @@ function SearchableList({
           style={{
             padding: 20,
             textAlign: "center",
-            color: "#94a3b8",
+            color: "var(--muted-foreground)",
             fontSize: 13,
-            border: "1.5px dashed #e2e8f0",
-            borderRadius: 8,
+            border: "1.5px dashed var(--border)",
+            borderRadius: "var(--radius-lg)",
           }}
         >
           {emptyText}
@@ -170,9 +171,9 @@ function SearchableList({
           style={{
             maxHeight: 280,
             overflowY: "auto",
-            border: "1.5px solid #e2e8f0",
-            borderRadius: 8,
-            background: "#fff",
+            border: "1.5px solid var(--border)",
+            borderRadius: "var(--radius-lg)",
+            background: "var(--background)",
           }}
         >
           {items.map((item, i) => {
@@ -185,12 +186,12 @@ function SearchableList({
                 style={{
                   padding: "10px 14px",
                   cursor: "pointer",
-                  background: isSelected ? "#eff6ff" : "transparent",
+                  background: isSelected ? "var(--primary-soft)" : "transparent",
                   borderLeft: isSelected
-                    ? "3px solid #2563eb"
+                    ? "3px solid var(--primary)"
                     : "3px solid transparent",
                   borderBottom:
-                    i < items.length - 1 ? "1px solid #f1f5f9" : "none",
+                    i < items.length - 1 ? "1px solid var(--muted)" : "none",
                   transition: "background 0.15s",
                 }}
               >
@@ -206,7 +207,7 @@ function SearchableList({
                     style={{
                       fontSize: 13,
                       fontWeight: 600,
-                      color: isSelected ? "#1d4ed8" : "#1e293b",
+                      color: isSelected ? "var(--primary)" : "var(--foreground)",
                     }}
                   >
                     {getLabel(item)}
@@ -215,9 +216,9 @@ function SearchableList({
                   {item.imported && (
                     <span
                       style={{
-                        background: "#dcfce7",
-                        color: "#15803d",
-                        border: "1px solid #bbf7d0",
+                        background: "var(--success-soft)",
+                        color: "var(--success-soft-foreground)",
+                        border: "1px solid var(--success-border)",
                         fontSize: 10,
                         fontWeight: 700,
                         padding: "2px 6px",
@@ -231,7 +232,7 @@ function SearchableList({
                   )}
                 </div>
                 {getSubLabel && (
-                  <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 1 }}>
+                  <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 1 }}>
                     {getSubLabel(item)}
                   </div>
                 )}
@@ -274,8 +275,8 @@ function StickyActionBar({
         position: "sticky",
         top: 0,
         zIndex: 100,
-        background: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)",
-        borderRadius: 12,
+        background: "linear-gradient(135deg, var(--foreground) 0%, var(--foreground) 100%)",
+        borderRadius: "var(--radius-xl)",
         padding: "12px 20px",
         display: "flex",
         alignItems: "center",
@@ -283,14 +284,14 @@ function StickyActionBar({
         gap: 16,
         flexWrap: "wrap",
         marginBottom: 20,
-        boxShadow: "0 4px 24px rgba(15,23,42,0.25)",
+        boxShadow: "var(--shadow-lg)",
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
         <span
           style={{
             fontSize: 11,
-            color: "#94a3b8",
+            color: "var(--muted-foreground)",
             fontWeight: 600,
             letterSpacing: "0.08em",
             textTransform: "uppercase",
@@ -311,7 +312,7 @@ function StickyActionBar({
         >
           {product.product?.name ?? selectedStyle}
         </span>
-        <span style={{ fontSize: 12, color: "#64748b" }}>
+        <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
           {selectedBrand} · {selectedStyle}
         </span>
       </div>
@@ -321,13 +322,14 @@ function StickyActionBar({
           onClick={onPrev}
           disabled={currentIndex <= 0}
           title="Previous style"
+          aria-label="Previous style"
           style={{
             width: 34,
             height: 34,
-            borderRadius: 8,
+            borderRadius: "var(--radius-lg)",
             border: "1.5px solid rgba(255,255,255,0.15)",
             background: "rgba(255,255,255,0.07)",
-            color: currentIndex <= 0 ? "#475569" : "#e2e8f0",
+            color: currentIndex <= 0 ? "var(--muted-foreground)" : "var(--border)",
             cursor: currentIndex <= 0 ? "not-allowed" : "pointer",
             fontSize: 18,
             display: "flex",
@@ -335,12 +337,12 @@ function StickyActionBar({
             justifyContent: "center",
           }}
         >
-          ‹
+          <ChevronLeft size={18} aria-hidden />
         </button>
         <span
           style={{
             fontSize: 13,
-            color: "#94a3b8",
+            color: "var(--muted-foreground)",
             minWidth: 80,
             textAlign: "center",
           }}
@@ -351,13 +353,14 @@ function StickyActionBar({
           onClick={onNext}
           disabled={currentIndex >= totalStyles - 1}
           title="Next style"
+          aria-label="Next style"
           style={{
             width: 34,
             height: 34,
-            borderRadius: 8,
+            borderRadius: "var(--radius-lg)",
             border: "1.5px solid rgba(255,255,255,0.15)",
             background: "rgba(255,255,255,0.07)",
-            color: currentIndex >= totalStyles - 1 ? "#475569" : "#e2e8f0",
+            color: currentIndex >= totalStyles - 1 ? "var(--muted-foreground)" : "var(--border)",
             cursor: currentIndex >= totalStyles - 1 ? "not-allowed" : "pointer",
             fontSize: 18,
             display: "flex",
@@ -365,7 +368,7 @@ function StickyActionBar({
             justifyContent: "center",
           }}
         >
-          ›
+          <ChevronRight size={18} aria-hidden />
         </button>
       </div>
 
@@ -374,11 +377,11 @@ function StickyActionBar({
         disabled={importing}
         style={{
           background: importing
-            ? "#475569"
-            : "linear-gradient(135deg, #2563eb, #16a34a)",
+            ? "var(--muted-foreground)"
+            : "linear-gradient(135deg, var(--primary), var(--success-soft-foreground))",
           color: "#fff",
           border: "none",
-          borderRadius: 10,
+          borderRadius: "var(--radius-lg)",
           padding: "10px 22px",
           fontSize: 14,
           fontWeight: 700,
@@ -387,7 +390,7 @@ function StickyActionBar({
           display: "flex",
           alignItems: "center",
           gap: 8,
-          boxShadow: importing ? "none" : "0 4px 14px rgba(37,99,235,0.45)",
+          boxShadow: importing ? "none" : "0 4px 14px color-mix(in srgb, var(--primary) 45%, transparent)",
           transition: "all 0.2s",
           whiteSpace: "nowrap",
           flexShrink: 0,
@@ -400,7 +403,7 @@ function StickyActionBar({
                 display: "inline-block",
                 width: 14,
                 height: 14,
-                border: "2px solid #fff",
+                border: "2px solid var(--background)",
                 borderTop: "2px solid transparent",
                 borderRadius: "50%",
                 animation: "sanmarSpin 0.7s linear infinite",
@@ -409,7 +412,7 @@ function StickyActionBar({
             Importing…
           </>
         ) : (
-          <>🚀 Import Product</>
+          <><Download size={16} aria-hidden /> Import product</>
         )}
       </button>
     </div>
@@ -432,9 +435,9 @@ function PostImportBanner({
   return (
     <div
       style={{
-        background: "linear-gradient(135deg, #052e16 0%, #14532d 100%)",
-        border: "1.5px solid #16a34a",
-        borderRadius: 12,
+        background: "linear-gradient(135deg, var(--success-soft-foreground) 0%, var(--success-soft-foreground) 100%)",
+        border: "1.5px solid var(--success-hover)",
+        borderRadius: "var(--radius-xl)",
         padding: "16px 20px",
         display: "flex",
         alignItems: "center",
@@ -447,12 +450,12 @@ function PostImportBanner({
     >
       <style>{`@keyframes sanmarSlideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }`}</style>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ fontSize: 28 }}>🎉</span>
+        <CircleCheck size={28} color="var(--success)" aria-hidden />
         <div>
-          <div style={{ fontWeight: 700, color: "#4ade80", fontSize: 14 }}>
+          <div style={{ fontWeight: 700, color: "var(--success)", fontSize: 14 }}>
             Import successful!
           </div>
-          <div style={{ fontSize: 13, color: "#86efac", marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: "var(--success)", marginTop: 2 }}>
             <strong>{importedName}</strong> has been added to your store.
           </div>
         </div>
@@ -462,10 +465,10 @@ function PostImportBanner({
           <button
             onClick={onNext}
             style={{
-              background: "#16a34a",
+              background: "var(--success-hover)",
               color: "#fff",
               border: "none",
-              borderRadius: 8,
+              borderRadius: "var(--radius-lg)",
               padding: "9px 18px",
               fontSize: 13,
               fontWeight: 700,
@@ -474,20 +477,21 @@ function PostImportBanner({
               display: "flex",
               alignItems: "center",
               gap: 6,
-              boxShadow: "0 2px 10px rgba(22,163,74,0.4)",
+              boxShadow: "var(--shadow-md)",
               whiteSpace: "nowrap",
             }}
           >
-            Next Product →
+            Next Product
+            <ArrowRight size={14} aria-hidden />
           </button>
         )}
         <button
           onClick={onDismiss}
           style={{
             background: "rgba(255,255,255,0.08)",
-            color: "#86efac",
+            color: "var(--success)",
             border: "1.5px solid rgba(255,255,255,0.12)",
-            borderRadius: 8,
+            borderRadius: "var(--radius-lg)",
             padding: "9px 14px",
             fontSize: 13,
             fontWeight: 600,
@@ -517,7 +521,7 @@ function ImportOverlay({
         position: "fixed",
         inset: 0,
         zIndex: 9999,
-        background: "rgba(15,23,42,0.75)",
+        background: "color-mix(in srgb, var(--foreground) 75%, transparent)",
         backdropFilter: "blur(4px)",
         display: "flex",
         alignItems: "center",
@@ -526,13 +530,13 @@ function ImportOverlay({
     >
       <div
         style={{
-          background: "#fff",
-          borderRadius: 16,
+          background: "var(--background)",
+          borderRadius: "var(--radius-2xl)",
           padding: "40px 48px",
           maxWidth: 420,
           width: "90%",
           textAlign: "center",
-          boxShadow: "0 24px 60px rgba(0,0,0,0.3)",
+          boxShadow: "var(--shadow-lg)",
         }}
       >
         {/* Animated ring */}
@@ -549,7 +553,7 @@ function ImportOverlay({
                 position: "absolute",
                 inset: 0,
                 borderRadius: "50%",
-                border: "4px solid #e2e8f0",
+                border: "4px solid var(--border)",
               }}
             />
             <div
@@ -558,7 +562,7 @@ function ImportOverlay({
                 inset: 0,
                 borderRadius: "50%",
                 border: "4px solid transparent",
-                borderTopColor: "#2563eb",
+                borderTopColor: "var(--primary)",
                 animation: "sanmarSpin 0.9s linear infinite",
               }}
             />
@@ -569,7 +573,7 @@ function ImportOverlay({
             margin: "0 0 8px",
             fontSize: 20,
             fontWeight: 800,
-            color: "#0f172a",
+            color: "var(--foreground)",
             fontFamily: "'DM Sans', sans-serif",
           }}
         >
@@ -579,7 +583,7 @@ function ImportOverlay({
           style={{
             margin: "0 0 6px",
             fontSize: 14,
-            color: "#475569",
+            color: "var(--muted-foreground)",
             fontFamily: "'DM Sans', sans-serif",
           }}
         >
@@ -590,7 +594,7 @@ function ImportOverlay({
           style={{
             margin: "0 0 24px",
             fontSize: 13,
-            color: "#94a3b8",
+            color: "var(--muted-foreground)",
             fontFamily: "'DM Sans', sans-serif",
           }}
         >
@@ -600,7 +604,7 @@ function ImportOverlay({
         <div
           style={{
             height: 6,
-            background: "#e2e8f0",
+            background: "var(--muted-strong)",
             borderRadius: 99,
             overflow: "hidden",
           }}
@@ -608,7 +612,7 @@ function ImportOverlay({
           <div
             style={{
               height: "100%",
-              background: "linear-gradient(90deg, #2563eb, #16a34a)",
+              background: "linear-gradient(90deg, var(--primary), var(--success-soft-foreground))",
               borderRadius: 99,
               animation: "sanmarProgress 2.5s ease-in-out infinite alternate",
               width: "60%",
@@ -619,11 +623,11 @@ function ImportOverlay({
           style={{
             marginTop: 16,
             fontSize: 12,
-            color: "#f59e0b",
+            color: "var(--warning)",
             fontFamily: "'DM Sans', sans-serif",
           }}
         >
-          ⚠️ Do not close or refresh this tab
+          <TriangleAlert size={14} aria-hidden style={{ verticalAlign: "-2px" }} /> Don&apos;t close or refresh this tab
         </p>
       </div>
       <style>{`
@@ -660,8 +664,8 @@ function StepBadge({
           width: 28,
           height: 28,
           borderRadius: "50%",
-          background: done ? "#16a34a" : active ? "#2563eb" : "#e2e8f0",
-          color: done || active ? "#fff" : "#64748b",
+          background: done ? "var(--success-hover)" : active ? "var(--primary)" : "var(--border)",
+          color: done || active ? "#fff" : "var(--muted-foreground)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -677,7 +681,7 @@ function StepBadge({
         style={{
           fontSize: 13,
           fontWeight: active ? 600 : 400,
-          color: active ? "#1e3a5f" : "#64748b",
+          color: active ? "var(--foreground)" : "var(--muted-foreground)",
         }}
       >
         {label}
@@ -711,7 +715,6 @@ const SanmarTab: React.FC = () => {
   const [importing, setImporting] = useState(false);
   const [lastImportedName, setLastImportedName] = useState<string | null>(null);
 
-  const { show } = useToast();
 
   const filteredBrands = brands.filter((b) =>
     b.name.toLowerCase().includes(brandSearch.toLowerCase()),
@@ -724,7 +727,7 @@ const SanmarTab: React.FC = () => {
   useEffect(() => {
     GetSanmarBrandsAPI()
       .then((res) => setBrands(res.data.data?.data || []))
-      .catch(() => show("Failed to load brands", "error"))
+      .catch(() => toast.error("Failed to load brands"))
       .finally(() => setBrandsLoading(false));
   }, []);
 
@@ -743,7 +746,7 @@ const SanmarTab: React.FC = () => {
       const data = res.data.data?.data || [];
       setStyles(data);
     } catch {
-      show("Failed to load styles", "error");
+      toast.error("Failed to load styles");
     } finally {
       setStylesLoading(false);
     }
@@ -762,7 +765,7 @@ const SanmarTab: React.FC = () => {
       const res = await GetSanmarProductAPI(selectedBrand.name, style);
       setProduct(res.data.data);
     } catch {
-      show("Failed to load product", "error");
+      toast.error("Failed to load product");
     } finally {
       setProductLoading(false);
     }
@@ -790,9 +793,9 @@ const SanmarTab: React.FC = () => {
         ),
       );
       setLastImportedName(product?.product?.name ?? selectedStyle);
-      show("Product imported successfully!", "success");
+      toast.success("Product imported successfully!");
     } catch {
-      show("Import failed. Please try again.", "error");
+      toast.error("Import failed. Please try again.");
     } finally {
       setImporting(false);
     }
@@ -848,9 +851,9 @@ const SanmarTab: React.FC = () => {
       {/* Progress Tracker */}
       <div
         style={{
-          background: "#f8fafc",
-          border: "1px solid #e2e8f0",
-          borderRadius: 12,
+          background: "var(--muted)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius-xl)",
           padding: "16px 24px",
           display: "flex",
           gap: 32,
@@ -864,21 +867,21 @@ const SanmarTab: React.FC = () => {
           done={step1Done}
           active={!step1Done}
         />
-        <div style={{ color: "#cbd5e1", alignSelf: "center" }}>→</div>
+        <div style={{ color: "var(--placeholder)", alignSelf: "center" }}>→</div>
         <StepBadge
           number={2}
           label="Choose a Style"
           done={step2Done}
           active={step1Done && !step2Done}
         />
-        <div style={{ color: "#cbd5e1", alignSelf: "center" }}>→</div>
+        <div style={{ color: "var(--placeholder)", alignSelf: "center" }}>→</div>
         <StepBadge
           number={3}
           label="Review Product"
           done={step3Done}
           active={step2Done && !step3Done}
         />
-        <div style={{ color: "#cbd5e1", alignSelf: "center" }}>→</div>
+        <div style={{ color: "var(--placeholder)", alignSelf: "center" }}>→</div>
         <StepBadge number={4} label="Import" done={false} active={step3Done} />
       </div>
 
@@ -929,14 +932,14 @@ const SanmarTab: React.FC = () => {
                 alignItems: "center",
                 justifyContent: "center",
                 height: 320,
-                background: "#f8fafc",
-                borderRadius: 12,
-                border: "2px dashed #e2e8f0",
-                color: "#94a3b8",
+                background: "var(--muted)",
+                borderRadius: "var(--radius-xl)",
+                border: "2px dashed var(--border)",
+                color: "var(--muted-foreground)",
                 gap: 10,
               }}
             >
-              <div style={{ fontSize: 40 }}>📦</div>
+              <Package size={40} strokeWidth={1.5} aria-hidden />
               <p style={{ margin: 0, fontSize: 14 }}>
                 Select a brand & style to preview the product
               </p>
@@ -953,8 +956,8 @@ const SanmarTab: React.FC = () => {
               <div
                 style={{
                   background:
-                    "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)",
-                  borderRadius: 12,
+                    "linear-gradient(135deg, var(--foreground) 0%, var(--primary) 100%)",
+                  borderRadius: "var(--radius-xl)",
                   padding: "20px 24px",
                   color: "#fff",
                 }}
@@ -999,7 +1002,7 @@ const SanmarTab: React.FC = () => {
                             style={{
                               width: 56,
                               height: 56,
-                              borderRadius: 8,
+                              borderRadius: "var(--radius-lg)",
                               objectFit: "cover",
                               border: "2px solid rgba(255,255,255,0.2)",
                             }}
@@ -1040,33 +1043,33 @@ const SanmarTab: React.FC = () => {
               {/* Variants table */}
               <div
                 style={{
-                  background: "#fff",
-                  borderRadius: 12,
-                  border: "1.5px solid #e2e8f0",
+                  background: "var(--background)",
+                  borderRadius: "var(--radius-xl)",
+                  border: "1.5px solid var(--border)",
                   overflow: "hidden",
                 }}
               >
                 <div
                   style={{
                     padding: "14px 20px",
-                    borderBottom: "1px solid #f1f5f9",
+                    borderBottom: "1px solid var(--border)",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
                   }}
                 >
                   <span
-                    style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}
+                    style={{ fontWeight: 700, fontSize: 14, color: "var(--foreground)" }}
                   >
                     Variants
                   </span>
                   <span
                     style={{
                       fontSize: 12,
-                      background: "#eff6ff",
-                      color: "#2563eb",
+                      background: "var(--primary-soft)",
+                      color: "var(--primary)",
                       padding: "2px 10px",
-                      borderRadius: 20,
+                      borderRadius: "var(--radius-2xl)",
                       fontWeight: 600,
                     }}
                   >
@@ -1083,7 +1086,7 @@ const SanmarTab: React.FC = () => {
                     }}
                   >
                     <thead>
-                      <tr style={{ background: "#f8fafc" }}>
+                      <tr style={{ background: "var(--muted)" }}>
                         {[
                           "SKU",
                           "Variant",
@@ -1100,8 +1103,8 @@ const SanmarTab: React.FC = () => {
                               fontWeight: 700,
                               textTransform: "uppercase",
                               letterSpacing: "0.06em",
-                              color: "#64748b",
-                              borderBottom: "1px solid #e2e8f0",
+                              color: "var(--muted-foreground)",
+                              borderBottom: "1px solid var(--border)",
                               whiteSpace: "nowrap",
                             }}
                           >
@@ -1115,16 +1118,16 @@ const SanmarTab: React.FC = () => {
                         <tr
                           key={v.sku}
                           style={{
-                            background: i % 2 === 0 ? "#fff" : "#fafafa",
+                            background: i % 2 === 0 ? "var(--background)" : "var(--muted)",
                           }}
                         >
                           <td
                             style={{
                               padding: "10px 16px",
-                              fontFamily: "monospace",
+                              fontFamily: "var(--font-mono)",
                               fontSize: 12,
-                              color: "#475569",
-                              borderBottom: "1px solid #f1f5f9",
+                              color: "var(--muted-foreground)",
+                              borderBottom: "1px solid var(--border)",
                             }}
                           >
                             {v.sku}
@@ -1133,8 +1136,8 @@ const SanmarTab: React.FC = () => {
                             style={{
                               padding: "10px 16px",
                               fontWeight: 600,
-                              color: "#1e293b",
-                              borderBottom: "1px solid #f1f5f9",
+                              color: "var(--foreground)",
+                              borderBottom: "1px solid var(--border)",
                             }}
                           >
                             {v.variant_name}
@@ -1142,25 +1145,25 @@ const SanmarTab: React.FC = () => {
                           <td
                             style={{
                               padding: "10px 16px",
-                              borderBottom: "1px solid #f1f5f9",
+                              borderBottom: "1px solid var(--border)",
                             }}
                           >
                             <span
                               style={{
                                 background:
                                   v.stock > 10
-                                    ? "#dcfce7"
+                                    ? "var(--success-soft)"
                                     : v.stock > 0
-                                      ? "#fef9c3"
-                                      : "#fee2e2",
+                                      ? "var(--warning-border)"
+                                      : "var(--destructive-soft)",
                                 color:
                                   v.stock > 10
-                                    ? "#16a34a"
+                                    ? "var(--success-soft-foreground)"
                                     : v.stock > 0
-                                      ? "#b45309"
-                                      : "#dc2626",
+                                      ? "var(--warning-soft-foreground)"
+                                      : "var(--destructive)",
                                 padding: "2px 8px",
-                                borderRadius: 20,
+                                borderRadius: "var(--radius-2xl)",
                                 fontSize: 12,
                                 fontWeight: 600,
                               }}
@@ -1171,8 +1174,8 @@ const SanmarTab: React.FC = () => {
                           <td
                             style={{
                               padding: "10px 16px",
-                              color: "#475569",
-                              borderBottom: "1px solid #f1f5f9",
+                              color: "var(--muted-foreground)",
+                              borderBottom: "1px solid var(--border)",
                               fontWeight: 600,
                             }}
                           >
@@ -1187,8 +1190,8 @@ const SanmarTab: React.FC = () => {
                           <td
                             style={{
                               padding: "10px 16px",
-                              color: "#0f766e",
-                              borderBottom: "1px solid #f1f5f9",
+                              color: "var(--info-soft-foreground)",
+                              borderBottom: "1px solid var(--border)",
                               fontWeight: 700,
                             }}
                           >

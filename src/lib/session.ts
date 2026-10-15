@@ -83,13 +83,18 @@ export const useSession = () => {
   return session;
 };
 
-// Password rule enforced by the backend: at least 8 characters, at least
-// 2 digits, no spaces. Returns an error message, or null when it passes.
+// Same rule as the backend (helpers/validatePassword.js): 8 to 100 characters,
+// at least 2 digits, no spaces, and not one of two blocked values. Returns an
+// error message, or null when it passes.
+const BLOCKED_PASSWORDS = ["Passw0rd", "Password123"];
+
 export const checkPasswordRule = (password: string): string | null => {
   if (password.length < 8) return "Password must be at least 8 characters.";
+  if (password.length > 100) return "Password must be 100 characters or fewer.";
   if ((password.match(/\d/g) || []).length < 2)
     return "Password must contain at least 2 digits.";
   if (/\s/.test(password)) return "Password must not contain spaces.";
+  if (BLOCKED_PASSWORDS.includes(password)) return "This password is too common. Choose another.";
   return null;
 };
 

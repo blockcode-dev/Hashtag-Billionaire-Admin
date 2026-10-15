@@ -1,28 +1,23 @@
 /** @format */
 
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router";
 import { Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-const UnauthorizedPage = () => {
-  const navigate = useNavigate();
-
-  return (
-    <div className="flex flex-col items-center justify-center h-[80vh] text-center px-4">
-      <Lock className="h-16 w-16 text-red-500 mb-4" />
-
-      <h1 className="text-3xl font-bold mb-2">Access Denied</h1>
-
-      <p className="text-muted-foreground max-w-md mb-6">
-        You are not authorized to access this page.  
-        Please contact the system administrator if you believe this is a mistake.
-      </p>
-
-      <Button onClick={() => navigate("/dashboard")}>
-        Go to Dashboard
-      </Button>
-    </div>
-  );
-};
+// Shown inside the app shell when a page needs a role this admin doesn't have.
+const UnauthorizedPage = () => (
+  <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4 text-center">
+    <span className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+      <Lock className="size-5" />
+    </span>
+    <h1 className="text-2xl font-semibold tracking-tight text-foreground">You don't have access</h1>
+    <p className="max-w-md text-sm text-muted-foreground">
+      This page is for Super Admins. Ask one of them if you need access.
+    </p>
+    <Button asChild variant="outline">
+      <Link to="/dashboard">Go to dashboard</Link>
+    </Button>
+  </div>
+);
 
 export default UnauthorizedPage;

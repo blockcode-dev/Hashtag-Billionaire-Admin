@@ -1,30 +1,17 @@
 /** @format */
 
 import React, { useEffect, useState } from "react";
-import {
-  Table,
-  Input,
-  Button,
-  Modal,
-  Upload,
-  message,
-  Image,
-  Avatar,
-  Tag,
-  Typography,
-  Tooltip,
-} from "antd";
-import {
-  UploadOutlined,
-  SearchOutlined,
-  GlobalOutlined,
-  EyeInvisibleOutlined,
-  EditOutlined,
-} from "@ant-design/icons";
+import { Upload as UploadIcon, Globe, EyeOff, Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { DataTable } from "@/components/common/DataTable";
+import { SearchInput } from "@/components/common/SearchInput";
+import { Spinner } from "@/components/common/Spinner";
+import { ImageUploadGrid, type UploadItem } from "@/components/common/Upload";
+import { toast } from "sonner";
+import { Tip } from "@/components/common/Tip";
 import { PublishBrandAPI, GetAllBrandsAPI } from "@/services/Api/BrandsApi";
-import { useNavigate } from "react-router-dom";
-
-const { Text } = Typography;
+import { useNavigate } from "react-router";
 
 /* ─── tiny helpers ──────────────────────────────────────────── */
 const initials = (name: string) =>
@@ -36,12 +23,12 @@ const initials = (name: string) =>
     .toUpperCase();
 
 const AVATAR_COLORS = [
-  { bg: "#ede9fe", text: "#6d28d9" },
-  { bg: "#dbeafe", text: "#1d4ed8" },
-  { bg: "#d1fae5", text: "#065f46" },
-  { bg: "#fce7f3", text: "#9d174d" },
-  { bg: "#fef3c7", text: "#92400e" },
-  { bg: "#fee2e2", text: "#991b1b" },
+  { bg: "var(--violet-soft)", text: "var(--violet)" },
+  { bg: "var(--primary-soft)", text: "var(--primary)" },
+  { bg: "var(--success-soft)", text: "var(--success-soft-foreground)" },
+  { bg: "var(--violet-soft)", text: "var(--violet-soft-foreground)" },
+  { bg: "var(--warning-soft)", text: "var(--warning-soft-foreground)" },
+  { bg: "var(--destructive-soft)", text: "var(--destructive-soft-foreground)" },
 ];
 
 const avatarColor = (name: string) =>
@@ -61,7 +48,7 @@ const AllBrands: React.FC = () => {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState<any>(null);
-  const [fileList, setFileList] = useState<any[]>([]);
+  const [fileList, setFileList] = useState<UploadItem[]>([]);
   const [publishing, setPublishing] = useState(false);
   const [unpublishingId, setUnpublishingId] = useState<number | null>(null);
 
@@ -92,7 +79,7 @@ const AllBrands: React.FC = () => {
         formData.append("images", fileList[0].originFileObj);
       }
       await PublishBrandAPI(formData);
-      message.success(
+      toast.success(
         selectedBrand?.show_on_website
           ? "Logo updated successfully"
           : "Brand published successfully",
@@ -101,7 +88,7 @@ const AllBrands: React.FC = () => {
       setFileList([]);
       getBrands();
     } catch {
-      message.error("Failed to save brand");
+      toast.error("Failed to save brand");
     } finally {
       setPublishing(false);
     }
@@ -114,10 +101,10 @@ const AllBrands: React.FC = () => {
       formData.append("brand_id", String(brandId));
       formData.append("show_on_website", "false");
       await PublishBrandAPI(formData);
-      message.success("Brand unpublished successfully");
+      toast.success("Brand unpublished successfully");
       getBrands();
     } catch {
-      message.error("Failed to unpublish brand");
+      toast.error("Failed to unpublish brand");
     } finally {
       setUnpublishingId(null);
     }
@@ -137,11 +124,11 @@ const AllBrands: React.FC = () => {
               style={{
                 width: 52,
                 height: 52,
-                borderRadius: 12,
+                borderRadius: "var(--radius-xl)",
                 overflow: "hidden",
                 flexShrink: 0,
-                border: "1px solid #f0f0f0",
-                background: record.logo_url ? "#fff" : color.bg,
+                border: "1px solid var(--border)",
+                background: record.logo_url ? "var(--background)" : color.bg,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -178,7 +165,7 @@ const AllBrands: React.FC = () => {
                 style={{
                   fontWeight: 600,
                   fontSize: 14,
-                  color: "#111827",
+                  color: "var(--foreground)",
                   lineHeight: 1.3,
                 }}
               >
@@ -188,7 +175,7 @@ const AllBrands: React.FC = () => {
                 <div
                   style={{
                     fontSize: 12,
-                    color: "#9ca3af",
+                    color: "var(--muted-foreground)",
                     marginTop: 2,
                   }}
                 >
@@ -212,9 +199,9 @@ const AllBrands: React.FC = () => {
               alignItems: "center",
               gap: 6,
               padding: "4px 10px",
-              borderRadius: 20,
-              background: "#d1fae5",
-              color: "#065f46",
+              borderRadius: "var(--radius-2xl)",
+              background: "var(--success-soft)",
+              color: "var(--success-soft-foreground)",
               fontSize: 12,
               fontWeight: 600,
             }}
@@ -224,7 +211,7 @@ const AllBrands: React.FC = () => {
                 width: 6,
                 height: 6,
                 borderRadius: "50%",
-                background: "#10b981",
+                background: "var(--success)",
               }}
             />
             Published
@@ -236,9 +223,9 @@ const AllBrands: React.FC = () => {
               alignItems: "center",
               gap: 6,
               padding: "4px 10px",
-              borderRadius: 20,
-              background: "#f3f4f6",
-              color: "#6b7280",
+              borderRadius: "var(--radius-2xl)",
+              background: "var(--muted)",
+              color: "var(--muted-foreground)",
               fontSize: 12,
               fontWeight: 600,
             }}
@@ -248,7 +235,7 @@ const AllBrands: React.FC = () => {
                 width: 6,
                 height: 6,
                 borderRadius: "50%",
-                background: "#d1d5db",
+                background: "var(--muted-strong)",
               }}
             />
             Hidden
@@ -261,15 +248,12 @@ const AllBrands: React.FC = () => {
       width: 180,
       render: (_: any, record: any) => (
         <div style={{ display: "flex", gap: 8 }}>
-          <Tooltip
-            title={record.show_on_website ? "Edit logo" : "Publish to website"}
+          <Tip
+            content={record.show_on_website ? "Edit logo" : "Publish to website"}
           >
             <Button
-              type="primary"
-              size="small"
-              icon={
-                record.show_on_website ? <EditOutlined /> : <GlobalOutlined />
-              }
+              size="sm"
+              variant={record.show_on_website ? "outline" : "default"}
               onClick={() => {
                 setSelectedBrand(record);
                 setFileList([]);
@@ -278,42 +262,47 @@ const AllBrands: React.FC = () => {
               style={
                 record.show_on_website
                   ? {
-                      background: "#f0f4ff",
-                      borderColor: "#c7d2fe",
-                      color: "#4f46e5",
+                      background: "var(--primary-soft)",
+                      borderColor: "var(--primary-border)",
+                      color: "var(--primary)",
                       fontWeight: 600,
                       fontSize: 12,
                     }
                   : {
-                      background: "#4f46e5",
-                      borderColor: "#4f46e5",
+                      background: "var(--primary)",
+                      borderColor: "var(--primary)",
                       fontWeight: 600,
                       fontSize: 12,
                     }
               }
-              ghost={record.show_on_website}
             >
+              {record.show_on_website ? <Pencil size={13} /> : <Globe size={13} />}
               {record.show_on_website ? "Edit Logo" : "Publish"}
             </Button>
-          </Tooltip>
+          </Tip>
 
           {record.show_on_website && (
-            <Tooltip title="Remove from website">
+            <Tip content="Remove from website">
               <Button
-                size="small"
-                icon={<EyeInvisibleOutlined />}
-                loading={unpublishingId === record.id}
+                size="sm"
+                variant="outline"
+                disabled={unpublishingId === record.id}
                 onClick={() => unpublishBrand(record.id)}
                 style={{
-                  borderColor: "#fca5a5",
-                  color: "#dc2626",
+                  borderColor: "var(--destructive-border)",
+                  color: "var(--destructive)",
                   fontWeight: 600,
                   fontSize: 12,
                 }}
               >
+                {unpublishingId === record.id ? (
+                  <Spinner size="small" className="text-current" />
+                ) : (
+                  <EyeOff size={13} />
+                )}
                 Unpublish
               </Button>
-            </Tooltip>
+            </Tip>
           )}
         </div>
       ),
@@ -334,10 +323,9 @@ const AllBrands: React.FC = () => {
             gap: 12,
           }}
         >
-          <Input
+          <SearchInput
             size="large"
             placeholder="Search brands by name or supplier…"
-            prefix={<SearchOutlined style={{ color: "#9ca3af" }} />}
             allowClear
             onChange={(e) => {
               if (!e.target.value) {
@@ -353,21 +341,15 @@ const AllBrands: React.FC = () => {
               setPage(1);
               setSearch(e.target.value);
             }}
-            style={{
-              maxWidth: 400,
-              borderRadius: 10,
-              borderColor: "#e5e7eb",
-              fontSize: 14,
-            }}
+            style={{ maxWidth: 400 }}
           />
           <Button
-            type="primary"
-            size="large"
+            size="lg"
             onClick={() => navigate("/create-brand")}
             style={{
-              background: "#4f46e5",
-              borderColor: "#4f46e5",
-              borderRadius: 10,
+              background: "var(--primary)",
+              borderColor: "var(--primary)",
+              borderRadius: "var(--radius-lg)",
               fontWeight: 600,
             }}
           >
@@ -376,7 +358,7 @@ const AllBrands: React.FC = () => {
         </div>
 
         {/* Table */}
-        <Table
+        <DataTable
           rowKey="id"
           loading={loading}
           columns={columns}
@@ -385,58 +367,26 @@ const AllBrands: React.FC = () => {
             current: page,
             total,
             pageSize: limit,
-            showSizeChanger: false,
             onChange: setPage,
-            showTotal: (t) => (
-              <span style={{ color: "#9ca3af", fontSize: 13 }}>
-                {t} brands total
-              </span>
-            ),
-          }}
-          rowClassName={(_, idx) => (idx % 2 === 0 ? "" : "row-alt")}
-          style={{ borderRadius: 12, overflow: "hidden" }}
-          components={{
-            header: {
-              cell: (props: any) => (
-                <th
-                  {...props}
-                  style={{
-                    ...props.style,
-                    background: "#f8f9fc",
-                    color: "#6b7280",
-                    fontWeight: 600,
-                    fontSize: 12,
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
-                    borderBottom: "1px solid #e5e7eb",
-                    padding: "12px 16px",
-                  }}
-                />
-              ),
-            },
+            showTotal: (t) => `${t} brands total`,
           }}
         />
       </div>
 
       {/* ── Publish / Edit Logo Modal ── */}
-      <Modal
+      <Dialog
         open={open}
-        footer={null}
-        width={500}
-        title={null}
-        onCancel={() => {
+        onOpenChange={(next) => {
+          if (next) return;
           setOpen(false);
           setFileList([]);
         }}
-        styles={{
-          content: { borderRadius: 20, padding: 0, overflow: "hidden" },
-          mask: { backdropFilter: "blur(4px)", background: "rgba(0,0,0,0.3)" },
-        }}
       >
+        <DialogContent className="gap-0 overflow-hidden rounded-[20px] p-0 sm:max-w-[500px]">
         {/* Modal header band */}
         <div
           style={{
-            background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+            background: "var(--primary)",
             padding: "28px 28px 20px",
             position: "relative",
           }}
@@ -446,7 +396,7 @@ const AllBrands: React.FC = () => {
             style={{
               width: 80,
               height: 80,
-              borderRadius: 16,
+              borderRadius: "var(--radius-2xl)",
               background: "rgba(255,255,255,0.15)",
               border: "2px solid rgba(255,255,255,0.3)",
               display: "flex",
@@ -470,7 +420,7 @@ const AllBrands: React.FC = () => {
           </div>
 
           <div style={{ textAlign: "center" }}>
-            <h2
+            <DialogTitle
               style={{
                 color: "#fff",
                 fontSize: 20,
@@ -480,13 +430,18 @@ const AllBrands: React.FC = () => {
               }}
             >
               {selectedBrand?.name}
-            </h2>
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              {selectedBrand?.show_on_website
+                ? "Replace the logo shown on the website"
+                : "Upload a logo and publish this brand"}
+            </DialogDescription>
             {selectedBrand?.supplier && (
               <span
                 style={{
                   display: "inline-block",
                   padding: "3px 12px",
-                  borderRadius: 20,
+                  borderRadius: "var(--radius-2xl)",
                   background: "rgba(255,255,255,0.2)",
                   color: "rgba(255,255,255,0.9)",
                   fontSize: 12,
@@ -501,11 +456,11 @@ const AllBrands: React.FC = () => {
 
         {/* Modal body */}
         <div style={{ padding: 28 }}>
-          <Text
-            strong
+          <span
             style={{
+              fontWeight: 600,
               fontSize: 14,
-              color: "#374151",
+              color: "var(--foreground)",
               display: "block",
               marginBottom: 14,
             }}
@@ -513,89 +468,73 @@ const AllBrands: React.FC = () => {
             {selectedBrand?.show_on_website
               ? "Replace Website Logo"
               : "Upload Website Logo"}
-          </Text>
+          </span>
 
-          <Upload
-            beforeUpload={() => false}
+          <ImageUploadGrid
             fileList={fileList}
+            onChange={setFileList}
             maxCount={1}
-            listType="picture-card"
-            onChange={({ fileList }) => setFileList(fileList)}
-            style={{ borderRadius: 12 }}
-          >
-            {fileList.length < 1 && (
-              <div style={{ padding: "8px 0" }}>
-                <UploadOutlined style={{ fontSize: 22, color: "#9ca3af" }} />
-                <div style={{ marginTop: 8, fontSize: 13, color: "#6b7280" }}>
-                  Click to upload
-                </div>
-                <div style={{ fontSize: 11, color: "#9ca3af" }}>
-                  PNG, JPG, SVG
-                </div>
-              </div>
-            )}
-          </Upload>
+            addLabel={
+              <>
+                <UploadIcon size={18} />
+                <span>Click to upload</span>
+                <span className="text-[11px]">PNG, JPG, SVG</span>
+              </>
+            }
+          />
 
           {selectedBrand?.logo_url && fileList.length === 0 && (
             <div style={{ marginTop: 20 }}>
-              <Text
+              <span
                 style={{
                   fontSize: 12,
-                  color: "#9ca3af",
+                  color: "var(--muted-foreground)",
                   fontWeight: 600,
                   textTransform: "uppercase",
                   letterSpacing: 0.5,
                 }}
               >
                 Current Logo
-              </Text>
+              </span>
               <div
                 style={{
                   marginTop: 10,
                   padding: 16,
-                  borderRadius: 12,
-                  background: "#f8f9fc",
-                  border: "1px solid #e5e7eb",
+                  borderRadius: "var(--radius-xl)",
+                  background: "var(--muted)",
+                  border: "1px solid var(--border)",
                   display: "inline-block",
                 }}
               >
-                <Image
-                  width={120}
-                  src={selectedBrand.logo_url}
-                  preview={false}
-                />
+                <img width={120} src={selectedBrand.logo_url} alt="Current logo" />
               </div>
             </div>
           )}
 
           {fileList.length > 0 && (
             <div style={{ marginTop: 20 }}>
-              <Text
+              <span
                 style={{
                   fontSize: 12,
-                  color: "#10b981",
+                  color: "var(--success)",
                   fontWeight: 600,
                   textTransform: "uppercase",
                   letterSpacing: 0.5,
                 }}
               >
                 ✓ New Logo Preview
-              </Text>
+              </span>
               <div
                 style={{
                   marginTop: 10,
                   padding: 16,
-                  borderRadius: 12,
-                  background: "#ecfdf5",
-                  border: "1px solid #a7f3d0",
+                  borderRadius: "var(--radius-xl)",
+                  background: "var(--success-soft)",
+                  border: "1px solid var(--success-border)",
                   display: "inline-block",
                 }}
               >
-                <Image
-                  width={120}
-                  preview={false}
-                  src={URL.createObjectURL(fileList[0].originFileObj)}
-                />
+                <img width={120} src={fileList[0].url} alt="New logo preview" />
               </div>
             </div>
           )}
@@ -608,37 +547,39 @@ const AllBrands: React.FC = () => {
               gap: 10,
               marginTop: 28,
               paddingTop: 20,
-              borderTop: "1px solid #f3f4f6",
+              borderTop: "1px solid var(--border)",
             }}
           >
             <Button
-              size="large"
+              variant="outline"
+              size="lg"
               onClick={() => {
                 setOpen(false);
                 setFileList([]);
               }}
-              style={{ borderRadius: 10, fontWeight: 600, minWidth: 90 }}
+              style={{ borderRadius: "var(--radius-lg)", fontWeight: 600, minWidth: 90 }}
             >
               Cancel
             </Button>
             <Button
-              type="primary"
-              size="large"
-              loading={publishing}
+              size="lg"
+              disabled={publishing}
               onClick={publishBrand}
               style={{
-                borderRadius: 10,
+                borderRadius: "var(--radius-lg)",
                 fontWeight: 600,
                 minWidth: 140,
-                background: "#4f46e5",
-                borderColor: "#4f46e5",
+                background: "var(--primary)",
+                borderColor: "var(--primary)",
               }}
             >
+              {publishing && <Spinner size="small" className="text-current" />}
               {selectedBrand?.show_on_website ? "Update Logo" : "Publish Brand"}
             </Button>
           </div>
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

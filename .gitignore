@@ -3,6 +3,9 @@ node_modules/
 
 dist/
 
+# TypeScript build-mode caches
+*.tsbuildinfo
+
 
 # Environment variables
 .env

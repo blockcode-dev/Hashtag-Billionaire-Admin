@@ -1,144 +1,3 @@
-.add-user-root {
-  padding: 24px;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 28px;
-
-  h1 {
-    font-size: 30px;
-    font-weight: 700;
-  }
-
-  p {
-    color: #777;
-    margin-top: 4px;
-  }
-}
-
-.btn-back {
-  height: 44px;
-  padding: 0 18px;
-  border: none;
-  border-radius: 12px;
-  background: white;
-  border: 1px solid #e5e5e5;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.form-card {
-  background: white;
-  border-radius: 22px;
-  padding: 36px;
-  border: 1px solid #f1f1f1;
-}
-
-.form-layout {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 50px;
-
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.left-content {
-  h3 {
-    font-size: 18px;
-    margin-bottom: 12px;
-  }
-
-  p {
-    color: #777;
-    line-height: 1.7;
-  }
-}
-
-.right-content {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.field {
-  label {
-    display: block;
-    margin-bottom: 10px;
-    font-weight: 600;
-  }
-}
-
-.input-wrap {
-  height: 52px;
-  border: 1px solid #e5e5e5;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-  gap: 12px;
-
-  input {
-    flex: 1;
-    border: none;
-    outline: none;
-    background: transparent;
-    font-size: 15px;
-  }
-
-  svg {
-    color: #888;
-  }
-
-  &:focus-within {
-    border-color: black;
-  }
-}
-
-.form-footer {
-  margin-top: 40px;
-  padding-top: 24px;
-  border-top: 1px solid #f1f1f1;
-
-  display: flex;
-  justify-content: flex-end;
-  gap: 14px;
-}
-
-.btn-cancel,
-.btn-submit {
-  height: 48px;
-  padding: 0 24px;
-  border-radius: 14px;
-  border: none;
-  cursor: pointer;
-
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  font-weight: 600;
-}
-
-.btn-cancel {
-  background: #f4f4f4;
-}
-
-.btn-submit {
-  background: black;
-  color: white;
-}
-
-.spin {
-  animation: spin 1s linear infinite;
-}
-
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -148,3 +7,140 @@
     transform: rotate(360deg);
   }
 }
+
+/* Scoped to this page so its class names can't leak into other pages. */
+.add-user-root {
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+
+    p {
+      color: var(--muted-foreground);
+      margin-top: 4px;
+    }
+  }
+
+  .btn-back {
+    height: 44px;
+    padding: 0 18px;
+    border: none;
+    border-radius: var(--radius-xl);
+    background: var(--background);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+
+  .form-card {
+    background: var(--background);
+    border-radius: var(--radius-2xl);
+    padding: 36px;
+    border: 1px solid var(--border);
+  }
+
+  .form-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 50px;
+
+    @media (max-width: 900px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .left-content {
+    h3 {
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+
+    p {
+      color: var(--muted-foreground);
+      line-height: 1.7;
+    }
+  }
+
+  .right-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .field {
+    label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+  }
+
+  .input-wrap {
+    height: 52px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+
+    input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 15px;
+    }
+
+    svg {
+      color: var(--muted-foreground);
+    }
+
+    &:focus-within {
+      border-color: var(--primary);
+    }
+  }
+
+  .form-footer {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+
+    display: flex;
+    justify-content: flex-end;
+    gap: 14px;
+  }
+
+  .btn-cancel,
+  .btn-submit {
+    height: 48px;
+    padding: 0 24px;
+    border-radius: var(--radius-xl);
+    border: none;
+    cursor: pointer;
+
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    font-weight: 600;
+  }
+
+  .btn-cancel {
+    background: var(--muted);
+  }
+
+  .btn-submit {
+    background: var(--primary);
+    color: white;
+  }
+
+  .spin {
+    animation: spin 1s linear infinite;
+  }
+}
+

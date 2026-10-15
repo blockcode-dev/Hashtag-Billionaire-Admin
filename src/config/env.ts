@@ -26,13 +26,3 @@ export const API_BASE_URL = required("VITE_API_BASE_URL").replace(/\/*$/, "/");
 export const IMAGE_BASE_URL = (
   optional("VITE_IMAGE_BASE_URL") || new URL(API_BASE_URL).origin
 ).replace(/\/+$/, "");
-
-// Firebase web app config (optional; only needed if Firestore is used).
-export const FIREBASE_CONFIG = {
-  apiKey: optional("VITE_FIREBASE_API_KEY"),
-  authDomain: optional("VITE_FIREBASE_AUTH_DOMAIN"),
-  projectId: optional("VITE_FIREBASE_PROJECT_ID"),
-  storageBucket: optional("VITE_FIREBASE_STORAGE_BUCKET"),
-  messagingSenderId: optional("VITE_FIREBASE_MESSAGING_SENDER_ID"),
-  appId: optional("VITE_FIREBASE_APP_ID"),
-};

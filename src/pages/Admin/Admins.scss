@@ -2,249 +2,239 @@
 
 @use "sass:color";
 
-$primary: #0f172a;
-$border: #e5e7eb;
-$text: #111827;
-$text-light: #6b7280;
-$bg: #f5f7fb;
-$white: #fff;
-$danger: #ef4444;
+$primary: var(--primary);
+$border: var(--border);
+$text: var(--foreground);
+$text-light: var(--muted-foreground);
+$bg: var(--app-bg);
+$white: var(--background);
+$danger: var(--destructive);
 
+/* Scoped to this page so its class names can't leak into other pages. */
 .admins-page {
-  padding: 24px;
-  background: $bg;
-  min-height: 100vh;
+  & {
 
-  .admins-header {
+    .admins-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+
+      p {
+        color: $text-light;
+        font-size: 14px;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .search-box {
+        width: 290px;
+        height: 46px;
+        background: $white;
+        border: 1px solid $border;
+        border-radius: var(--radius-xl);
+        display: flex;
+        align-items: center;
+        padding: 0 14px;
+        gap: 10px;
+
+        svg {
+          color: var(--muted-foreground);
+        }
+
+        input {
+          flex: 1;
+          border: none;
+          outline: none;
+          background: transparent;
+          font-size: 14px;
+        }
+
+        .clear-btn {
+          border: none;
+          background: transparent;
+          cursor: pointer;
+        }
+      }
+
+      .add-btn {
+        height: 46px;
+        padding: 0 22px;
+        border: none;
+        border-radius: var(--radius-xl);
+        background: $primary;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+
+        &:hover {
+          opacity: 0.9;
+        }
+      }
+    }
+
+    .table-wrapper {
+      background: var(--background);
+      border-radius: var(--radius-2xl);
+      border: 1px solid $border;
+      overflow: hidden;
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+
+        thead {
+          background: var(--muted);
+
+          th {
+            padding: 18px 20px;
+            text-align: left;
+          }
+        }
+
+        tbody {
+          tr {
+            border-top: 1px solid var(--border);
+
+            &:hover {
+              background: var(--muted);
+            }
+
+            td {
+              padding: 18px 20px;
+              font-size: 14px;
+              color: $text;
+            }
+          }
+        }
+      }
+
+      .role-badge {
+        background: var(--success-soft);
+        color: var(--success-soft-foreground);
+        padding: 5px 10px;
+        border-radius: var(--radius-lg);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .actions-column {
+        text-align: center;
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 10px;
+
+        button {
+          width: 38px;
+          height: 38px;
+          border: none;
+          border-radius: var(--radius-xl);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .edit-btn {
+          background: var(--primary-soft);
+          color: var(--primary);
+        }
+
+        .delete-btn {
+          background: var(--destructive-soft);
+          color: var(--destructive);
+        }
+      }
+
+      .pagination {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 18px 20px;
+        border-top: 1px solid var(--border);
+
+        button {
+          width: 34px;
+          height: 34px;
+          border-radius: var(--radius-lg);
+          border: 1px solid $border;
+          background: var(--background);
+          cursor: pointer;
+
+          &:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+          }
+        }
+
+        span {
+          font-size: 14px;
+          color: $text-light;
+        }
+      }
+    }
+  }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: color-mix(in srgb, var(--foreground) 45%, transparent);
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    justify-content: center;
+    z-index: 999;
+  }
 
-    h1 {
-      font-size: 22px;
-      font-weight: 700;
-      color: $text;
-      margin-bottom: 4px;
+  .modal-content {
+    width: 100%;
+    max-width: 400px;
+    background: var(--background);
+    border-radius: var(--radius-2xl);
+    padding: 28px;
+
+    h3 {
+      font-size: 20px;
+      margin-bottom: 10px;
     }
 
     p {
       color: $text-light;
-      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 24px;
     }
 
-    .header-actions {
+    .modal-actions {
       display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .search-box {
-      width: 290px;
-      height: 46px;
-      background: $white;
-      border: 1px solid $border;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      padding: 0 14px;
-      gap: 10px;
-
-      svg {
-        color: #9ca3af;
-      }
-
-      input {
-        flex: 1;
-        border: none;
-        outline: none;
-        background: transparent;
-        font-size: 14px;
-      }
-
-      .clear-btn {
-        border: none;
-        background: transparent;
-        cursor: pointer;
-      }
-    }
-
-    .add-btn {
-      height: 46px;
-      padding: 0 22px;
-      border: none;
-      border-radius: 14px;
-      background: $primary;
-      color: white;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: 0.2s;
-
-      &:hover {
-        opacity: 0.9;
-      }
-    }
-  }
-
-  .table-wrapper {
-    background: white;
-    border-radius: 18px;
-    border: 1px solid $border;
-    overflow: hidden;
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-
-      thead {
-        background: #fafafa;
-
-        th {
-          padding: 18px 20px;
-          text-align: left;
-          font-size: 12px;
-          text-transform: uppercase;
-          color: #6b7280;
-          letter-spacing: 0.06em;
-        }
-      }
-
-      tbody {
-        tr {
-          border-top: 1px solid #f1f5f9;
-
-          &:hover {
-            background: #fafafa;
-          }
-
-          td {
-            padding: 18px 20px;
-            font-size: 14px;
-            color: $text;
-          }
-        }
-      }
-    }
-
-    .role-badge {
-      background: #dcfce7;
-      color: #15803d;
-      padding: 5px 10px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .actions-column {
-      text-align: center;
-    }
-
-    .action-buttons {
-      display: flex;
-      gap: 10px;
-
-      button {
-        width: 38px;
-        height: 38px;
-        border: none;
-        border-radius: 12px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .edit-btn {
-        background: #eff6ff;
-        color: #2563eb;
-      }
-
-      .delete-btn {
-        background: #fef2f2;
-        color: #ef4444;
-      }
-    }
-
-    .pagination {
-      display: flex;
-      align-items: center;
       gap: 12px;
-      padding: 18px 20px;
-      border-top: 1px solid #f1f5f9;
 
       button {
-        width: 34px;
-        height: 34px;
-        border-radius: 10px;
-        border: 1px solid $border;
-        background: white;
+        flex: 1;
+        height: 46px;
+        border-radius: var(--radius-xl);
+        border: none;
         cursor: pointer;
-
-        &:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-        }
+        font-weight: 600;
       }
 
-      span {
-        font-size: 14px;
-        color: $text-light;
+      .cancel-btn {
+        background: var(--muted);
+      }
+
+      .confirm-btn {
+        background: $danger;
+        color: white;
       }
     }
   }
 }
 
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-}
-
-.modal-content {
-  width: 100%;
-  max-width: 400px;
-  background: white;
-  border-radius: 20px;
-  padding: 28px;
-
-  h3 {
-    font-size: 20px;
-    margin-bottom: 10px;
-  }
-
-  p {
-    color: $text-light;
-    line-height: 1.6;
-    margin-bottom: 24px;
-  }
-
-  .modal-actions {
-    display: flex;
-    gap: 12px;
-
-    button {
-      flex: 1;
-      height: 46px;
-      border-radius: 12px;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    .cancel-btn {
-      background: #f3f4f6;
-    }
-
-    .confirm-btn {
-      background: $danger;
-      color: white;
-    }
-  }
-}

@@ -4,41 +4,41 @@
 // TOKENS
 // ============================================================
 
-$bg: #f8f8f7;
-$surface: #ffffff;
-$surface-sunk: #fafaf9;
-$border: #e9e9e9;
-$border-soft: #f1f1f0;
-$input-border: #e5e7eb;
+$bg: var(--app-bg);
+$surface: var(--background);
+$surface-sunk: var(--muted);
+$border: var(--border);
+$border-soft: var(--border);
+$input-border: var(--border);
 
-$text: #18181b;
-$text-body: #3f3f46;
-$muted: #71717a;
-$faint: #a1a1aa;
-$placeholder: #b8b8bf;
+$text: var(--foreground);
+$text-body: var(--foreground);
+$muted: var(--muted-foreground);
+$faint: var(--muted-foreground);
+$placeholder: var(--placeholder);
 
-$primary: #111827;
-$blue: #2563eb;
-$blue-soft: #eff6ff;
-$blue-border: #bfdbfe;
+$primary: var(--primary);
+$blue: var(--primary);
+$blue-soft: var(--primary-soft);
+$blue-border: var(--primary-border);
 
-$red: #dc2626;
-$red-soft: #fff5f5;
-$red-border: #fecaca;
+$red: var(--destructive);
+$red-soft: var(--destructive-soft);
+$red-border: var(--destructive-border);
 
-$green: #15803d;
-$green-soft: #f0fdf4;
-$green-border: #bbf7d0;
+$green: var(--success-soft-foreground);
+$green-soft: var(--success-soft);
+$green-border: var(--success-border);
 
-$amber: #b45309;
-$amber-soft: #fffbeb;
-$amber-border: #fde68a;
+$amber: var(--warning-soft-foreground);
+$amber-soft: var(--warning-soft);
+$amber-border: var(--warning-border);
 
 $radius-lg: 18px;
 $radius-md: 12px;
 $radius-sm: 10px;
 
-$focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
+$focus: var(--focus-ring);
 
 @mixin input-base {
   width: 100%;
@@ -67,11 +67,6 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
 // ============================================================
 
 .customization {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 28px;
-  min-height: 100vh;
-  background: $bg;
   color: $text-body;
 
   &--form {
@@ -130,7 +125,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     color: #fff;
 
     &:hover:not(:disabled) {
-      background: #000;
+      background: var(--primary-hover);
     }
   }
 
@@ -141,7 +136,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
 
     &:hover:not(:disabled) {
       background: $surface-sunk;
-      border-color: #d4d4d8;
+      border-color: var(--input);
     }
   }
 
@@ -151,7 +146,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     color: #fff;
 
     &:hover:not(:disabled) {
-      background: #b91c1c;
+      background: var(--destructive);
     }
   }
 
@@ -248,13 +243,6 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
 
   &__header-text,
   &__title-row > div:first-child {
-    h1 {
-      margin: 0;
-      font-size: 26px;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-      color: $text;
-    }
 
     p {
       margin: 6px 0 0;
@@ -423,8 +411,6 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     th {
       padding: 6px 8px;
       text-align: left;
-      font-weight: 600;
-      color: $muted;
       border-bottom: 1px solid $border;
     }
 
@@ -459,7 +445,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     margin-bottom: 14px;
     background: $surface;
     border: 1px solid $border;
-    border-radius: 16px;
+    border-radius: var(--radius-2xl);
   }
 
   &__search {
@@ -502,7 +488,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     padding: 0;
     border: none;
     border-radius: 999px;
-    background: #f4f4f5;
+    background: var(--muted);
     color: $muted;
     display: flex;
     align-items: center;
@@ -510,14 +496,14 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     cursor: pointer;
 
     &:hover {
-      background: #e4e4e7;
+      background: var(--muted-strong);
     }
   }
 
   &__count {
     padding: 6px 12px;
     border-radius: 999px;
-    background: #f4f4f5;
+    background: var(--muted);
     font-size: 13px;
     font-weight: 600;
     color: $muted;
@@ -549,9 +535,6 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
       background: $surface-sunk;
       border-bottom: 1px solid $border;
       text-align: left;
-      font-size: 12px;
-      font-weight: 600;
-      color: $muted;
       white-space: nowrap;
     }
 
@@ -564,7 +547,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
       }
 
       &:hover {
-        background: #fcfcfb;
+        background: var(--muted);
       }
     }
 
@@ -620,7 +603,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
 
     &:focus-visible {
       outline: none;
-      border-radius: 4px;
+      border-radius: var(--radius-md);
       box-shadow: $focus;
     }
   }
@@ -654,7 +637,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     padding: 4px 9px;
     border: 1px solid transparent;
     border-radius: 999px;
-    background: #f4f4f5;
+    background: var(--muted);
     font-size: 12px;
     font-weight: 500;
     color: $text-body;
@@ -769,7 +752,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
   &__spinner,
   &__mini-spinner {
     border-radius: 999px;
-    border: 2px solid #e4e4e7;
+    border: 2px solid var(--border);
     border-top-color: $blue;
     animation: customization-spin 0.8s linear infinite;
   }
@@ -785,7 +768,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
 
     &--light {
       border-color: rgba(255, 255, 255, 0.35);
-      border-top-color: #fff;
+      border-top-color: var(--background);
     }
   }
 
@@ -817,8 +800,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     width: 56px;
     height: 56px;
     margin-bottom: 6px;
-    border-radius: 16px;
-    background: #f4f4f5;
+    border-radius: var(--radius-2xl);
+    background: var(--muted);
     color: $faint;
     display: flex;
     align-items: center;
@@ -858,7 +841,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
 
     &:focus-visible {
       outline: none;
-      border-radius: 4px;
+      border-radius: var(--radius-md);
       box-shadow: $focus;
     }
   }
@@ -880,7 +863,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
   &__summary-pill {
     padding: 4px 10px;
     border-radius: 999px;
-    background: #f4f4f5;
+    background: var(--muted);
     font-size: 12px;
     font-weight: 600;
     color: $text-body;
@@ -965,7 +948,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
   }
 
   &__req {
-    color: #ef4444;
+    color: var(--destructive);
   }
 
   &__optional {
@@ -975,10 +958,10 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
   }
 
   &__input--error {
-    border-color: #f87171 !important;
+    border-color: var(--destructive-border) !important;
 
     &:focus {
-      box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.16) !important;
+      box-shadow: var(--focus-ring);
     }
   }
 
@@ -997,7 +980,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
 
   &__suggestion {
     padding: 5px 10px;
-    border: 1px dashed #d4d4d8;
+    border: 1px dashed var(--input);
     border-radius: 999px;
     background: $surface;
     font-family: inherit;
@@ -1060,13 +1043,11 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
   // ADD VALUE BAR
   // ==========================================================
 
-
-
   &__empty-values {
     margin-top: 10px;
     padding: 34px 20px;
-    border: 1px dashed #d4d4d8;
-    border-radius: 14px;
+    border: 1px dashed var(--input);
+    border-radius: var(--radius-xl);
     background: $surface-sunk;
     display: flex;
     flex-direction: column;
@@ -1099,13 +1080,11 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     gap: 12px;
   }
 
-
-
   &__value-icon {
     width: 30px;
     height: 30px;
     flex-shrink: 0;
-    border-radius: 9px;
+    border-radius: var(--radius-lg);
     background: $surface;
     border: 1px solid $border;
     color: $muted;
@@ -1113,12 +1092,6 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     align-items: center;
     justify-content: center;
   }
-
-
-
-
-
-
 
   // ==========================================================
   // TIERS TABLE
@@ -1141,9 +1114,6 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
       background: $surface-sunk;
       border-bottom: 1px solid $border;
       text-align: left;
-      font-size: 12px;
-      font-weight: 600;
-      color: $muted;
 
       &:last-child {
         width: 52px;
@@ -1172,7 +1142,6 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     font-size: 13px;
     color: $muted;
   }
-
 
   &__tier-input {
     @include input-base;
@@ -1222,13 +1191,11 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     }
   }
 
-
-
   &__tier-add {
     margin-top: 10px;
     height: 36px;
     padding: 0 12px;
-    border: 1px dashed #c7d2fe;
+    border: 1px dashed var(--primary-border);
     border-radius: $radius-sm;
     background: transparent;
     display: inline-flex;
@@ -1252,7 +1219,6 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     }
   }
 
-
   // ==========================================================
   // VALUE CARD (simple price by default, optional quantity rows)
   // ==========================================================
@@ -1263,13 +1229,13 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     flex-direction: column;
     gap: 14px;
     border: 1px solid $border;
-    border-radius: 14px;
+    border-radius: var(--radius-xl);
     background: $surface;
     transition: border-color 0.15s ease;
 
     &--error {
-      border-color: #fca5a5;
-      background: #fffafa;
+      border-color: var(--destructive-border);
+      background: var(--destructive-soft);
     }
 
     > .customization__error {
@@ -1354,7 +1320,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     margin-top: 12px;
     width: 100%;
     height: 44px;
-    border: 1px dashed #d4d4d8;
+    border: 1px dashed var(--input);
     border-radius: $radius-md;
     background: $surface;
     display: inline-flex;
@@ -1393,7 +1359,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
 
   &__pc-card {
     border: 1px solid $border;
-    border-radius: 14px;
+    border-radius: var(--radius-xl);
     background: $surface;
     transition: border-color 0.15s ease;
 
@@ -1500,8 +1466,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     width: 16px;
     height: 16px;
     flex-shrink: 0;
-    border: 1.5px solid #d4d4d8;
-    border-radius: 4px;
+    border: 1.5px solid var(--input);
+    border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1689,7 +1655,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     transition: border-color 0.15s ease, background 0.15s ease;
 
     &:hover {
-      border-color: #d4d4d8;
+      border-color: var(--input);
     }
 
     &:focus-visible {
@@ -1721,7 +1687,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     height: 36px;
     flex-shrink: 0;
     border-radius: $radius-sm;
-    background: #f4f4f5;
+    background: var(--muted);
     color: $muted;
     display: flex;
     align-items: center;
@@ -1753,7 +1719,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     width: 18px;
     height: 18px;
     flex-shrink: 0;
-    border: 1.5px solid #d4d4d8;
+    border: 1.5px solid var(--input);
     border-radius: 999px;
 
     &::after {
@@ -1784,7 +1750,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     flex: 1;
     height: 8px;
     border-radius: 999px;
-    background: #f4f4f5;
+    background: var(--muted);
     overflow: hidden;
 
     span {
@@ -1832,7 +1798,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
   }
 
   &__money-input--error {
-    border-color: #f87171;
+    border-color: var(--destructive-border);
   }
 
   &__form-actions-warn {
@@ -1907,7 +1873,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
       cursor: pointer;
 
       &:hover {
-        background: #fee2e2;
+        background: var(--destructive-soft);
       }
 
       &:focus-visible {
@@ -1972,8 +1938,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     padding: 12px 16px;
     background: rgba(255, 255, 255, 0.97);
     border: 1px solid $border;
-    border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(17, 24, 39, 0.06);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-lg);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1998,7 +1964,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     height: 8px;
     flex-shrink: 0;
     border-radius: 999px;
-    background: #f59e0b;
+    background: var(--warning);
   }
 
   &__form-actions-buttons {
@@ -2015,7 +1981,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     inset: 0;
     z-index: 1000;
     padding: 20px;
-    background: rgba(17, 24, 39, 0.45);
+    background: color-mix(in srgb, var(--foreground) 45%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2030,8 +1996,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     overflow-y: auto;
     padding: 26px;
     background: $surface;
-    border-radius: 20px;
-    box-shadow: 0 24px 64px rgba(17, 24, 39, 0.18);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-lg);
     animation: customization-pop 0.18s ease-out;
 
     &--form {
@@ -2088,7 +2054,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     padding: 0;
     border: none;
     border-radius: $radius-sm;
-    background: #f4f4f5;
+    background: var(--muted);
     color: $muted;
     display: flex;
     align-items: center;
@@ -2096,7 +2062,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     cursor: pointer;
 
     &:hover:not(:disabled) {
-      background: #e4e4e7;
+      background: var(--muted-strong);
       color: $text;
     }
 
@@ -2119,7 +2085,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     width: 52px;
     height: 52px;
     margin: 0 auto 14px;
-    border-radius: 16px;
+    border-radius: var(--radius-2xl);
     background: $red-soft;
     color: $red;
     display: flex;
@@ -2170,9 +2136,6 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.14);
     }
 
     &__header-text h1,
-    &__title-row h1 {
-      font-size: 22px !important;
-    }
 
     &__toolbar {
       flex-direction: column;

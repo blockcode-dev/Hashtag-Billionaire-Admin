@@ -15,13 +15,13 @@
      align-items: center;
      justify-content: center;
      z-index: 50;
-     border-radius: 12px;
+     border-radius: var(--radius-xl);
  }
 
  .sanmar-import-overlay__card {
-     background: white;
-     border: 1px solid #e2e8f0;
-     border-radius: 16px;
+     background: var(--background);
+     border: 1px solid var(--border);
+     border-radius: var(--radius-2xl);
      padding: 32px;
      max-width: 420px;
      width: 100%;
@@ -35,8 +35,8 @@
  .sanmar-import-overlay__spinner {
      width: 48px;
      height: 48px;
-     border: 4px solid #e2e8f0;
-     border-top-color: #2563eb;
+     border: 4px solid var(--border);
+     border-top-color: var(--primary);
      border-radius: 50%;
      animation: sanmar-spin 0.8s linear infinite;
  }
@@ -55,7 +55,7 @@
 
  .sanmar-import-overlay__msg {
      font-size: 14px;
-     color: #64748b;
+     color: var(--muted-foreground);
      margin: 0;
      line-height: 1.6;
  }
@@ -63,7 +63,7 @@
  .sanmar-import-overlay__bar {
      width: 100%;
      height: 6px;
-     background: #e2e8f0;
+     background: var(--muted-strong);
      border-radius: 99px;
      overflow: hidden;
  }
@@ -71,7 +71,7 @@
  .sanmar-import-overlay__bar-fill {
      height: 100%;
      width: 40%;
-     background: #2563eb;
+     background: var(--primary);
      border-radius: 99px;
      animation: sanmar-bar 1.6s ease-in-out infinite alternate;
  }
@@ -88,7 +88,7 @@
 
  .sanmar-import-overlay__hint {
      font-size: 12px;
-     color: #f59e0b;
+     color: var(--warning);
      margin: 0;
  }
 
@@ -111,8 +111,8 @@
      width: 28px;
      height: 28px;
      border-radius: 50%;
-     background: #f1f5f9;
-     color: #94a3b8;
+     background: var(--muted);
+     color: var(--muted-foreground);
      font-size: 13px;
      font-weight: 600;
      display: flex;
@@ -122,31 +122,31 @@
  }
 
  .sanmar-steps__circle--active {
-     background: #2563eb;
+     background: var(--primary);
      color: white;
  }
 
  .sanmar-steps__circle--done {
-     background: #dcfce7;
-     color: #16a34a;
+     background: var(--success-soft);
+     color: var(--success-soft-foreground);
  }
 
  .sanmar-steps__label {
      font-size: 13px;
-     color: #94a3b8;
+     color: var(--muted-foreground);
  }
 
  .sanmar-steps__label--active {
-     color: #1e293b;
+     color: var(--foreground);
      font-weight: 600;
  }
 
  .sanmar-steps__label--done {
-     color: #16a34a;
+     color: var(--success-soft-foreground);
  }
 
  .sanmar-steps__arrow {
-     color: #d1d5db;
+     color: var(--placeholder);
      margin: 0 4px;
      font-size: 16px;
  }
@@ -169,7 +169,7 @@
  .sanmar-panel__label {
      font-size: 11px;
      font-weight: 600;
-     color: #64748b;
+     color: var(--muted-foreground);
      letter-spacing: 0.05em;
      text-transform: uppercase;
      margin-bottom: 2px;
@@ -179,10 +179,10 @@
      display: flex;
      align-items: center;
      gap: 8px;
-     border: 1px solid #e2e8f0;
-     border-radius: 8px;
+     border: 1px solid var(--border);
+     border-radius: var(--radius-lg);
      padding: 0 10px;
-     background: white;
+     background: var(--background);
  }
 
  .sanmar-panel__search-icon {
@@ -208,18 +208,18 @@
  .sanmar-panel__list {
      max-height: 220px;
      overflow-y: auto;
-     border: 1px solid #e2e8f0;
-     border-radius: 8px;
-     background: white;
+     border: 1px solid var(--border);
+     border-radius: var(--radius-lg);
+     background: var(--background);
  }
 
  .sanmar-panel__list-item {
      padding: 9px 12px;
      font-size: 13px;
      cursor: pointer;
-     border-bottom: 1px solid #f8fafc;
+     border-bottom: 1px solid var(--border);
      transition: background 0.12s;
-     color: #334155;
+     color: var(--foreground);
  }
 
  .sanmar-panel__list-item:last-child {
@@ -227,12 +227,12 @@
  }
 
  .sanmar-panel__list-item:hover {
-     background: #f8fafc;
+     background: var(--muted);
  }
 
  .sanmar-panel__list-item--selected {
-     background: #eff6ff;
-     color: #2563eb;
+     background: var(--primary-soft);
+     color: var(--primary);
      font-weight: 600;
  }
 
@@ -240,7 +240,7 @@
      padding: 20px;
      text-align: center;
      font-size: 13px;
-     color: #94a3b8;
+     color: var(--muted-foreground);
  }
 
  /* ── RIGHT PREVIEW ── */
@@ -258,10 +258,10 @@
      justify-content: center;
      gap: 10px;
      text-align: center;
-     border: 2px dashed #e2e8f0;
-     border-radius: 12px;
+     border: 2px dashed var(--border);
+     border-radius: var(--radius-xl);
      padding: 40px 20px;
-     color: #94a3b8;
+     color: var(--muted-foreground);
      font-size: 14px;
  }
 
@@ -271,9 +271,9 @@
 
  /* ── PRODUCT ── */
  .sanmar-product {
-     background: white;
-     border: 1px solid #e2e8f0;
-     border-radius: 12px;
+     background: var(--background);
+     border: 1px solid var(--border);
+     border-radius: var(--radius-xl);
      padding: 20px;
      display: flex;
      flex-direction: column;
@@ -289,12 +289,12 @@
  .sanmar-product__name {
      font-size: 16px;
      font-weight: 600;
-     color: #1e293b;
+     color: var(--foreground);
  }
 
  .sanmar-product__sub {
      font-size: 12px;
-     color: #94a3b8;
+     color: var(--muted-foreground);
      margin-top: 2px;
  }
 
@@ -308,9 +308,9 @@
      width: 80px;
      height: 80px;
      object-fit: contain;
-     border: 1px solid #e2e8f0;
-     border-radius: 8px;
-     background: #fafafa;
+     border: 1px solid var(--border);
+     border-radius: var(--radius-lg);
+     background: var(--muted);
  }
 
  .sanmar-product__stats {
@@ -319,8 +319,8 @@
  }
 
  .sanmar-product__stat {
-     background: #f8fafc;
-     border-radius: 8px;
+     background: var(--muted);
+     border-radius: var(--radius-lg);
      padding: 10px 18px;
      display: flex;
      flex-direction: column;
@@ -331,12 +331,12 @@
  .sanmar-product__stat-value {
      font-size: 20px;
      font-weight: 700;
-     color: #1e293b;
+     color: var(--foreground);
  }
 
  .sanmar-product__stat-label {
      font-size: 11px;
-     color: #94a3b8;
+     color: var(--muted-foreground);
      text-transform: uppercase;
      letter-spacing: 0.04em;
  }
@@ -352,28 +352,23 @@
  }
 
  .sanmar-product__table-wrap th {
-     background: #f1f5f9;
+     background: var(--muted);
      padding: 8px 10px;
      text-align: left;
-     font-size: 11px;
-     font-weight: 600;
-     color: #64748b;
-     text-transform: uppercase;
-     letter-spacing: 0.04em;
  }
 
  .sanmar-product__table-wrap td {
      padding: 8px 10px;
-     border-top: 1px solid #f1f5f9;
-     color: #334155;
+     border-top: 1px solid var(--border);
+     color: var(--foreground);
  }
 
  .sanmar-product__table-wrap code {
      font-size: 12px;
-     background: #f1f5f9;
+     background: var(--muted);
      padding: 2px 5px;
-     border-radius: 4px;
-     color: #475569;
+     border-radius: var(--radius-md);
+     color: var(--muted-foreground);
  }
 
  /* ── SPINNER ── */
@@ -387,8 +382,8 @@
  .sanmar-spinner__ring {
      width: 28px;
      height: 28px;
-     border: 3px solid #e2e8f0;
-     border-top-color: #2563eb;
+     border: 3px solid var(--border);
+     border-top-color: var(--primary);
      border-radius: 50%;
      animation: sanmar-spin 0.8s linear infinite;
  }
@@ -399,7 +394,7 @@
      align-items: center;
      justify-content: space-between;
      padding: 16px 0 4px;
-     border-top: 1px solid #f1f5f9;
+     border-top: 1px solid var(--border);
      margin-top: 16px;
      gap: 12px;
      flex-wrap: wrap;
@@ -407,11 +402,11 @@
 
  .sanmar-footer__info {
      font-size: 13px;
-     color: #64748b;
+     color: var(--muted-foreground);
  }
 
  .sanmar-footer__info strong {
-     color: #1e293b;
+     color: var(--foreground);
  }
 
  .sanmar-footer__actions {
@@ -422,7 +417,7 @@
  /* ── BUTTONS ── */
  .sanmar-btn {
      padding: 9px 16px;
-     border-radius: 8px;
+     border-radius: var(--radius-lg);
      font-size: 13px;
      font-weight: 500;
      cursor: pointer;
@@ -431,23 +426,23 @@
  }
 
  .sanmar-btn--ghost {
-     background: white;
-     border-color: #e2e8f0;
-     color: #475569;
+     background: var(--background);
+     border-color: var(--border);
+     color: var(--muted-foreground);
  }
 
  .sanmar-btn--ghost:hover {
-     background: #f8fafc;
+     background: var(--muted);
  }
 
  .sanmar-btn--primary {
-     background: #2563eb;
+     background: var(--primary);
      color: white;
-     border-color: #2563eb;
+     border-color: var(--primary);
  }
 
  .sanmar-btn--primary:hover {
-     background: #1d4ed8;
+     background: var(--primary);
  }
 
  .sanmar-btn--primary:disabled {

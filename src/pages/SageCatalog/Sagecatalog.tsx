@@ -15,8 +15,12 @@ import {
   Globe,
   Info,
 } from "lucide-react";
-import { message, Spin, Select, Modal, Tooltip } from "antd";
-import { useNavigate } from "react-router-dom";
+import { Combobox } from "@/components/common/Combobox";
+import { toast } from "sonner";
+import { Spinner } from "@/components/common/Spinner";
+import { confirm } from "@/components/common/ConfirmDialog";
+import { Tip } from "@/components/common/Tip";
+import { useNavigate } from "react-router";
 import {
   SearchSageCatalogProductsAPI,
   GetAllCategoriesAPI,
@@ -174,7 +178,7 @@ const SageCatalogPage = () => {
     } catch (err) {
       if (thisRequestId !== requestIdRef.current) return;
       console.error("Failed to load SAGE catalog", err);
-      message.error("Failed to load SAGE catalog");
+      toast.error("Failed to load SAGE catalog");
     } finally {
       if (thisRequestId === requestIdRef.current) setLoading(false);
     }
@@ -213,7 +217,7 @@ const SageCatalogPage = () => {
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
 
-    Modal.confirm({
+    confirm({
       title: `Import ${ids.length} product${ids.length === 1 ? "" : "s"}?`,
       content:
         "This pulls each product's full data from SAGE and saves it to your catalog. It may take a moment for larger selections.",
@@ -227,17 +231,17 @@ const SageCatalogPage = () => {
           );
           const data = res?.data?.data;
           if (data?.failed > 0) {
-            message.warning(
+            toast.warning(
               `Imported ${data.success} of ${data.total} — ${data.failed} failed`,
             );
           } else {
-            message.success(`Imported ${data?.success ?? ids.length} products`);
+            toast.success(`Imported ${data?.success ?? ids.length} products`);
           }
           setSelectedIds(new Set());
           load();
         } catch (err) {
           console.error(err);
-          message.error("Bulk import failed");
+          toast.error("Bulk import failed");
         } finally {
           setBulkImporting(false);
         }
@@ -337,9 +341,9 @@ const SageCatalogPage = () => {
         </div>
 
         {scope === "live" ? (
-          <Select
-            showSearch
+          <Combobox
             placeholder="All categories"
+            searchPlaceholder="Search categories…"
             allowClear
             style={{ width: 260 }}
             value={category}
@@ -347,25 +351,21 @@ const SageCatalogPage = () => {
               setCategory(v ?? undefined);
               setPage(1);
             }}
-            filterOption={(input, option) =>
-              (option?.label ?? "")
-                .toString()
-                .toLowerCase()
-                .includes(input.toLowerCase())
-            }
             options={categories.map((c) => ({
               label: c.title,
               value: c.title,
             }))}
           />
         ) : (
-          <Tooltip title="Category filtering searches SAGE's live taxonomy — switch to SAGE Live Catalog to use it.">
-            <Select
+          <Tip content="Category filtering searches SAGE's live taxonomy — switch to SAGE Live Catalog to use it.">
+            <Combobox
               disabled
+              options={[]}
+              onChange={() => {}}
               placeholder="Category filter (Live only)"
               style={{ width: 260 }}
             />
-          </Tooltip>
+          </Tip>
         )}
       </div>
 
@@ -415,7 +415,7 @@ const SageCatalogPage = () => {
       <div className="sage-catalog-table-wrap">
         {(loading || bulkImporting) && (
           <div className="sage-catalog-loading-overlay">
-            <Spin size="large" />
+            <Spinner size="large" />
             {bulkImporting && (
               <span className="sage-catalog-loading-text">
                 Importing {selectedIds.size} product

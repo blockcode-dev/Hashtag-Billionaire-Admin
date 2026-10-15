@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
+import { ArrowLeft } from "lucide-react";
 import { GetProductByIdAPI } from "@/services/Api/ProductApi";
 import "./ProductDetail.scss";
+import { Thumbnail } from "@/components/common/Thumbnail";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 /* ─── supplier badge ───────────────────────────────────────────────────── */
 const SUPPLIER_LABELS: Record<string, string> = {
@@ -55,12 +58,12 @@ function getStockLabel(stock: any): string {
 
 /* ─── color swatch (handles multi-color codes like "#000,#0f0") ────────── */
 function ColorSwatch({ codes, size = 14 }: { codes?: string | null; size?: number }) {
-  const list = (codes || "#ccc").split(",").map((c) => c.trim()).filter(Boolean);
+  const list = (codes || "var(--border)").split(",").map((c) => c.trim()).filter(Boolean);
   if (list.length <= 1) {
     return (
       <span
         className="pd-color-dot"
-        style={{ background: list[0] || "#ccc", width: size, height: size }}
+        style={{ background: list[0] || "var(--muted-strong)", width: size, height: size }}
       />
     );
   }
@@ -337,7 +340,7 @@ function ImageGalleryGrid({
             onClick={() => onSelect(img.src)}
             title={img.label || ""}
           >
-            <img src={img.src} alt={img.label || `image ${i + 1}`} loading="lazy" />
+            <Thumbnail src={img.src} alt={img.label || `image ${i + 1}`} />
             {img.label && <span className="pd-gallery-cell-label">{img.label}</span>}
           </button>
         ))}
@@ -413,7 +416,7 @@ function ColorImageCard({
         onClick={() => cover && onSelect(cover.src)}
       >
         {cover ? (
-          <img src={cover.src} alt={group.color} loading="lazy" />
+          <Thumbnail src={cover.src} alt={group.color} />
         ) : (
           <span className="pd-color-card-placeholder">No image</span>
         )}
@@ -448,7 +451,7 @@ function ColorImageCard({
               onClick={() => onSelect(img.src)}
               title={img.label || ""}
             >
-              <img src={img.src} alt="" loading="lazy" />
+              <Thumbnail src={img.src} />
             </button>
           ))}
         </div>
@@ -473,7 +476,7 @@ const ProductDetails = () => {
       const firstImage =
         data.attachments?.[0]?.file_uri ||
         data.variants?.[0]?.images?.[0]?.file_uri ||
-        "/placeholder.png";
+        "";
       setActiveImage(firstImage);
     } catch (err) {
       console.error(err);
@@ -568,7 +571,8 @@ const ProductDetails = () => {
       {/* BACK BUTTON + BREADCRUMB */}
       <div className="pd-topbar">
         <button className="pd-back-btn" type="button" onClick={() => navigate(-1)}>
-          ← Back to Products
+          <ArrowLeft size={14} aria-hidden />
+          Back to Products
         </button>
         <div className="pd-breadcrumb">
           <span>Products</span>
@@ -709,7 +713,7 @@ const ProductDetails = () => {
         {/* IMAGE COLUMN */}
         <div className="pd-image-col">
           <div className="pd-main-image">
-            <img src={activeImage || "/placeholder.png"} alt={product.name} />
+            <Thumbnail src={activeImage} alt={product.name} fit="contain" />
             <span className="pd-image-count">
               {allImagesForMainViewer.length} image{allImagesForMainViewer.length === 1 ? "" : "s"} total
             </span>
@@ -814,7 +818,7 @@ const ProductDetails = () => {
             {product.description ? (
               <div className="pd-description">
                 <label>Description</label>
-                <div dangerouslySetInnerHTML={{ __html: product.description }} />
+                <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.description) }} />
               </div>
             ) : (
               <div className="pd-description">

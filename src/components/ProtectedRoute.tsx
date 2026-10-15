@@ -1,6 +1,6 @@
 /** @format */
 
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation } from "react-router";
 import { getToken, useSession } from "@/lib/session";
 import UnauthorizedPage from "@/pages/UnauthorizedPage";
 

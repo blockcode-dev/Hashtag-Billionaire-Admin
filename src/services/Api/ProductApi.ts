@@ -112,6 +112,8 @@ export interface DuplicateOptionValue {
 export interface DuplicateOption {
   name: string;
   type: string;
+  // How the option is shown to shoppers; older products may not have it.
+  display_style?: string;
   values: DuplicateOptionValue[];
 }
 

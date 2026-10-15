@@ -1,7 +1,7 @@
 /** @format */
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { message } from "antd";
+import { toast } from "sonner";
 import axios from "axios";
 import {
   AlertTriangle,
@@ -11,7 +11,7 @@ import {
   SlidersHorizontal,
   X,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 import {
   GetCustomizationOptionsAPI,
@@ -209,7 +209,7 @@ const ProductCustomizationsStep = ({ productId }: ProductCustomizationsStepProps
         } catch (err) {
           if (requestId === requestRef.current) {
             setStatus("error");
-            message.error(getErrorMessage(err, "Couldn't save customizations."));
+            toast.error(getErrorMessage(err, "Couldn't save customizations."));
           }
         }
       });

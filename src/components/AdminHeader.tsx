@@ -1,41 +1,24 @@
 /** @format */
 
-import { useEffect, useState } from "react";
-import { User, LogOut, Key, ChevronDown } from "lucide-react";
+import { Fragment, useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
+import { ChevronDown, KeyRound, LogOut, UserRound } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { GetAdminProfileAPI } from "@/services/Api/AuthApi";
-import { clearSession, setRoleName } from "@/lib/session";
+import { clearSession, setRoleName, useSession } from "@/lib/session";
+import { findNavLocation } from "./navigation";
 
-export function AdminHeader() {
-  const [adminName, setAdminName] = useState("Admin User");
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    loadAdminProfile();
-  }, []);
-  // Also refreshes the stored role, since a Super Admin can change it at any time.
-  // A 401 here (expired or revoked session) is handled by the axios interceptor.
-  const loadAdminProfile = async () => {
-    try {
-      const res = await GetAdminProfileAPI();
-
-      if (res?.data?.success) {
-        setAdminName(res.data.data.name || "Admin User");
-        setRoleName(res.data.data.admin_role?.name);
-      }
-    } catch {
-      console.log("Failed to load profile");
-    }
-  };
-
-  const initials = adminName
+const initialsOf = (name: string) =>
+  name
     .trim()
     .split(/\s+/)
     .slice(0, 2)
@@ -43,53 +26,89 @@ export function AdminHeader() {
     .join("")
     .toUpperCase();
 
-  return (
-    <header className="h-16 sticky top-0 z-10 border-b bg-background/95 backdrop-blur px-6 flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <SidebarTrigger className="rounded-md p-1.5 text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors" />
-      </div>
+export function AdminHeader() {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const { roleName } = useSession();
+  const [profile, setProfile] = useState<{ name: string; email: string } | null>(null);
 
-      <DropdownMenu onOpenChange={setMenuOpen}>
+  // Also refreshes the stored role, since a Super Admin can change it at any time.
+  // A 401 here (expired or revoked session) is handled by the axios interceptor.
+  useEffect(() => {
+    GetAdminProfileAPI()
+      .then((res) => {
+        if (!res?.data?.success) return;
+        setProfile({ name: res.data.data.name || "Admin", email: res.data.data.email || "" });
+        setRoleName(res.data.data.admin_role?.name);
+      })
+      .catch(() => {});
+  }, []);
+
+  const location = findNavLocation(pathname);
+  const crumbs = [location?.group, location?.parent].filter(Boolean) as string[];
+  const name = profile?.name ?? "";
+
+  const signOut = () => {
+    clearSession();
+    navigate("/", { replace: true });
+  };
+
+  return (
+    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3 border-b bg-background/90 px-4 backdrop-blur-sm sm:px-6">
+      <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground" />
+      <Separator orientation="vertical" className="data-[orientation=vertical]:h-5" />
+
+      <nav aria-label="Breadcrumb" className="min-w-0 flex-1">
+        <ol className="flex items-center gap-1.5 text-sm">
+          {crumbs.map((crumb) => (
+            <Fragment key={crumb}>
+              <li className="hidden text-muted-foreground sm:block">{crumb}</li>
+              <li aria-hidden className="hidden text-placeholder sm:block">
+                /
+              </li>
+            </Fragment>
+          ))}
+          <li className="truncate font-medium text-foreground" aria-current="page">
+            {location?.title ?? ""}
+          </li>
+        </ol>
+      </nav>
+
+      <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-full transition-colors hover:bg-muted/60 outline-none">
-            <div className="w-8 h-8 rounded-full bg-[#F5C518]/15 ring-1 ring-[#F5C518]/30 flex items-center justify-center text-[#B08900] text-xs font-semibold">
-              {initials || <User className="h-4 w-4" />}
-            </div>
-            <span className="text-sm font-medium text-foreground">
-              {adminName}
+          <button
+            type="button"
+            className="group flex items-center gap-2.5 rounded-full py-1 pr-2 pl-1 transition-colors hover:bg-muted"
+            aria-label="Account menu"
+          >
+            <span className="flex size-8 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary-soft-foreground ring-1 ring-primary-border">
+              {name ? initialsOf(name) : <UserRound className="size-4" />}
             </span>
-            <ChevronDown
-              className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${
-                menuOpen ? "rotate-180" : ""
-              }`}
-            />
+            <span className="hidden text-left leading-tight sm:block">
+              <span className="block text-sm font-medium text-foreground">{name || "Loading…"}</span>
+              {roleName && <span className="block text-xs text-muted-foreground">{roleName}</span>}
+            </span>
+            <ChevronDown className="size-3.5 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52 border shadow-lg">
-          <DropdownMenuItem
-            className="flex items-center gap-2 cursor-pointer"
-            onClick={() => (window.location.href = "/admin/profile")}
-          >
-            <User className="h-4 w-4" />
+        <DropdownMenuContent align="end" className="w-60">
+          <DropdownMenuLabel className="font-normal">
+            <span className="block truncate text-sm font-medium text-foreground">{name}</span>
+            {profile?.email && <span className="block truncate text-xs text-muted-foreground">{profile.email}</span>}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => navigate("/admin/profile")}>
+            <UserRound />
             Profile
           </DropdownMenuItem>
-          <DropdownMenuItem
-            className="flex items-center gap-2 cursor-pointer"
-            onClick={() => (window.location.href = "/change-password")}
-          >
-            <Key className="h-4 w-4" />
-            Change Password
+          <DropdownMenuItem onSelect={() => navigate("/change-password")}>
+            <KeyRound />
+            Change password
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive"
-            onClick={() => {
-              clearSession();
-              window.location.href = "/";
-            }}
-          >
-            <LogOut className="h-4 w-4" />
-            Logout
+          <DropdownMenuItem variant="destructive" onSelect={signOut}>
+            <LogOut />
+            Log out
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

@@ -2,7 +2,10 @@
 
 import { memo, useCallback, useEffect, useState } from "react";
 import type { ReactElement } from "react";
-import { message, Pagination, Switch, Tooltip } from "antd";
+import { toast } from "sonner";
+import { Pagination } from "@/components/common/Pagination";
+import { Switch } from "@/components/ui/switch";
+import { Tip } from "@/components/common/Tip";
 import axios from "axios";
 import {
   AlertTriangle,
@@ -16,7 +19,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 import {
   GetCustomizationOptionsAPI,
@@ -267,7 +270,7 @@ const OptionRow = memo(
               Values &amp; pricing
             </button>
 
-            <Tooltip title="Rename or edit description">
+            <Tip content="Rename or edit description">
               <button
                 type="button"
                 className="customization__icon-btn"
@@ -276,9 +279,9 @@ const OptionRow = memo(
               >
                 <Pencil size={15} />
               </button>
-            </Tooltip>
+            </Tip>
 
-            <Tooltip title="Delete customization">
+            <Tip content="Delete customization">
               <button
                 type="button"
                 className="customization__icon-btn customization__icon-btn--danger"
@@ -287,7 +290,7 @@ const OptionRow = memo(
               >
                 <Trash2 size={15} />
               </button>
-            </Tooltip>
+            </Tip>
           </div>
         </td>
       </tr>
@@ -357,7 +360,7 @@ const CreateCustomizationModal = memo(
           throw new Error("Customization was created but no ID was returned.");
         }
 
-        message.success("Customization created. Now add its values.");
+        toast.success("Customization created. Now add its values.");
         onCreated(Number(created.id));
       } catch (err) {
         setError(
@@ -485,7 +488,7 @@ const CreateCustomizationModal = memo(
 
                 <Switch
                   checked={allowText}
-                  onChange={setAllowText}
+                  onCheckedChange={setAllowText}
                   aria-label="Allow text input"
                 />
               </div>
@@ -498,7 +501,7 @@ const CreateCustomizationModal = memo(
 
                 <Switch
                   checked={allowImage}
-                  onChange={setAllowImage}
+                  onCheckedChange={setAllowImage}
                   aria-label="Allow image upload"
                 />
               </div>
@@ -582,7 +585,7 @@ const EditCustomizationModal = memo(
           description: description.trim(),
         });
 
-        message.success("Customization saved");
+        toast.success("Customization saved");
         onSaved();
       } catch (err) {
         setError(getErrorMessage(err, "Couldn't save customization."));
@@ -878,7 +881,7 @@ const CustomizationList = () => {
 
       await DeleteCustomizationOptionAPI(deleteTarget.id);
 
-      message.success(`“${deleteTarget.name}” deleted`);
+      toast.success(`“${deleteTarget.name}” deleted`);
       setDeleteTarget(null);
 
       if (customizations.length === 1 && page > 1) {
@@ -887,7 +890,7 @@ const CustomizationList = () => {
         await load();
       }
     } catch (err) {
-      message.error(getErrorMessage(err, "Couldn't delete this customization."));
+      toast.error(getErrorMessage(err, "Couldn't delete this customization."));
     } finally {
       setDeleteLoading(false);
     }

@@ -1,11 +1,9 @@
 /** @format */
 
-import React from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ConfirmDialogHost } from "@/components/common/ConfirmDialog";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Users from "./pages/User/Users";
@@ -27,7 +25,6 @@ import AddUserPage from "./pages/User/AddUser/AddUserPage";
 import PaymentsPage from "./pages/Payment/PaymentsPage";
 import OrdersPage from "./pages/Order/OrdersPage";
 import ParentCategoryPage from "./pages/ParentCategory/ParentCategoryPage";
-import AddEditParentCategory from "./pages/ParentCategory/AddParentCategoryPage";
 import AddParentCategoryPage from "./pages/ParentCategory/AddParentCategoryPage";
 import EditParentCategoryPage from "./pages/ParentCategory/EditParentCategoryPage";
 import CreateProductPage from "./pages/Product/Create/CreateProductPage";
@@ -54,14 +51,11 @@ import AddOnForm from "./pages/AddOns/AddOnForm";
 import CustomizationList from "./pages/Customization/CustomizationList";
 import CustomizationForm from "./pages/Customization/CustomizationForm";
 
-const queryClient = new QueryClient();
-
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+  <TooltipProvider>
+    <Toaster />
+    <ConfirmDialogHost />
+    <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/forgot-password" element={<AdminForgotPassword />} />
@@ -415,7 +409,16 @@ const App = () => (
             }
           />
 
-           <Route
+          <Route
+            path="/add-ons/:id/edit"
+            element={
+              <AdminLayout>
+                <AddOnForm />
+              </AdminLayout>
+            }
+          />
+
+          <Route
             path="/customizations"
             element={
               <AdminLayout>
@@ -424,14 +427,8 @@ const App = () => (
             }
           />
 
-          <Route
-            path="/customizations/new"
-            element={
-              <AdminLayout>
-                <CustomizationForm />
-              </AdminLayout>
-            }
-          />
+          {/* Customizations are created from a dialog on the list. */}
+          <Route path="/customizations/new" element={<Navigate to="/customizations" replace />} />
 
           <Route
             path="/customizations/:id/edit"
@@ -447,9 +444,8 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+    </BrowserRouter>
+  </TooltipProvider>
 );
 
 export default App;

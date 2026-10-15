@@ -340,7 +340,7 @@ const getLowestPrice = (
     products.map((p) => p.prodEId).every((id) => selectedProducts.includes(id));
 
   return (
-    <div className="sage-import-tab">
+    <div className="sage-import-tab sage-by-category">
       {/* Import Overlay */}
       {importStatus === "importing" && (
         <div className="sage-import-overlay">
@@ -774,7 +774,7 @@ const getLowestPrice = (
                               <div className="sage-variant-card__color-row">
                                 <div
                                   className="sage-variant-card__swatch"
-                                  style={{ background: variant.color?.toLowerCase() || "#ccc" }}
+                                  style={{ background: variant.color?.toLowerCase() || "var(--muted-strong)" }}
                                   title={variant.color}
                                 />
                                 <span className="sage-variant-card__color-name">

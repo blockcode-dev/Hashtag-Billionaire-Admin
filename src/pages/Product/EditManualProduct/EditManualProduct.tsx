@@ -1,8 +1,13 @@
 /** @format */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { AutoComplete, message, Modal, Pagination, Select, Spin } from "antd";
+import { useNavigate, useParams } from "react-router";
+import { AutoComplete } from "@/components/common/AutoComplete";
+import { Combobox } from "@/components/common/Combobox";
+import { toast } from "sonner";
+import { confirm } from "@/components/common/ConfirmDialog";
+import { Pagination } from "@/components/common/Pagination";
+import { Spinner } from "@/components/common/Spinner";
 
 import {
   ArrowLeft,
@@ -22,6 +27,7 @@ import {
   UploadCloud,
   Lightbulb,
   ChevronDown,
+  ImageOff,
 } from "lucide-react";
 
 import {
@@ -52,6 +58,8 @@ import {
 } from "@/services/Api/IndustryApi";
 
 import NumberField from "@/components/common/Numberfield";
+import { IMAGE_ACCEPT, checkImageFiles, checkUploadCounts } from "@/lib/uploads";
+import { resolveImageUrl } from "@/utils/fileFromUrl";
 import {
   BulkTier,
   DEFAULT_BULK_TIER,
@@ -187,11 +195,11 @@ const BASIC_STEP = STEPS.indexOf("Basic Info");
 const VARIANTS_STEP = STEPS.indexOf("Variants");
 
 const OPTION_TYPE_LABELS: Record<OptionType, string> = {
-  dropdown: "📋 Drop-down List",
-  color: "🎨 Color",
-  buttons: "🔘 Radio Buttons",
-  size: "👕 Size",
-  checkbox: "☑️ Checkboxes",
+  dropdown: "Drop-down list",
+  color: "Color",
+  buttons: "Radio buttons",
+  size: "Size",
+  checkbox: "Checkboxes",
 };
 
 const DEFAULT_MEASUREMENTS = (): Measurements => ({
@@ -241,6 +249,19 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const num = parseInt(full, 16);
   return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
 }
+
+// Loads an image only to learn whether its file still exists on the server.
+const probeImage = (url: string, onMissing: () => void) => {
+  if (!url) return onMissing();
+  const img = new Image();
+  img.onerror = onMissing;
+  img.src = url;
+};
+
+const markMissing = (
+  setIds: React.Dispatch<React.SetStateAction<Set<number>>>,
+  imageId: number,
+) => setIds((prev) => (prev.has(imageId) ? prev : new Set(prev).add(imageId)));
 
 function isLightColor(hex: string): boolean {
   const rgb = hexToRgb(hex);
@@ -326,7 +347,7 @@ const ColorNameAutocomplete: React.FC<{
             height: 14,
             borderRadius: "50%",
             background: c.hex,
-            border: "1px solid #d9d9d9",
+            border: "1px solid var(--input)",
             display: "inline-block",
             flexShrink: 0,
           }}
@@ -341,12 +362,6 @@ const ColorNameAutocomplete: React.FC<{
       value={value}
       options={options}
       style={{ width: "100%" }}
-      filterOption={(inputValue, option) =>
-        !!option?.value &&
-        (option.value as string)
-          .toLowerCase()
-          .includes(inputValue.toLowerCase())
-      }
       onSelect={(val) =>
         onSelectColor(val as string, getHexFromColorName(val as string))
       }
@@ -404,23 +419,21 @@ const CategoryAddSelect: React.FC<{
   };
 
   return (
-    <Select
-      showSearch
+    <Combobox
       value={undefined}
       placeholder={placeholder}
       className={styles.catHierarchyAddSelect}
-      optionFilterProp="label"
-      onDropdownVisibleChange={(open) => {
+      onOpenChange={(open) => {
         if (open) ensureLoaded();
       }}
-      onChange={handleChange}
+      onChange={(v) => v !== undefined && handleChange(v)}
       loading={loadingOpts || adding}
       disabled={adding}
-      notFoundContent={
-        loadingOpts ? <Spin size="small" /> : "Nothing left to add"
+      emptyText={
+        loadingOpts ? <Spinner size="small" /> : "Nothing left to add"
       }
       options={opts}
-      suffixIcon={<Plus size={13} />}
+      triggerIcon={<Plus size={13} />}
     />
   );
 };
@@ -523,6 +536,8 @@ const EditManualProduct: React.FC = () => {
   const [keepProductImageIds, setKeepProductImageIds] = useState<number[]>([]);
   const [newProductFiles, setNewProductFiles] = useState<File[]>([]);
   const [newProductPreviews, setNewProductPreviews] = useState<string[]>([]);
+  const [missingProductImageIds, setMissingProductImageIds] = useState<Set<number>>(new Set());
+  const [missingVariantImageIds, setMissingVariantImageIds] = useState<Set<number>>(new Set());
 
   /* Options & Variants */
   const [options, setOptions] = useState<OptionDraft[]>([]);
@@ -580,7 +595,7 @@ const EditManualProduct: React.FC = () => {
       if (!data) throw new Error("Not found");
 
       if (data.supplier !== "MANUAL") {
-        message.error("This page only supports manually-created products.");
+        toast.error("This page only supports manually-created products.");
         navigate(`/products/${id}/edit`);
         return;
       }
@@ -740,6 +755,17 @@ const EditManualProduct: React.FC = () => {
           : [DEFAULT_VARIANT(optionDrafts.length)],
       );
 
+      setMissingProductImageIds(new Set());
+      setMissingVariantImageIds(new Set());
+      (data.attachments || []).forEach((a: any) =>
+        probeImage(resolveImageUrl(a), () => markMissing(setMissingProductImageIds, a.id)),
+      );
+      (data.variants || []).forEach((v: any) =>
+        (v.images || []).forEach((img: any) =>
+          probeImage(resolveImageUrl(img), () => markMissing(setMissingVariantImageIds, img.id)),
+        ),
+      );
+
       setProductCategoryHierarchy(data.categories || []);
       setSelectedCatIds((data.categories || []).map((c: any) => c.id));
       setAllLoadedCategories(data.categories || []);
@@ -748,7 +774,7 @@ const EditManualProduct: React.FC = () => {
       await fetchCategories(1, "");
     } catch (err) {
       console.error(err);
-      message.error("Failed to load product");
+      toast.error("Failed to load product");
     } finally {
       setLoading(false);
     }
@@ -798,7 +824,7 @@ const EditManualProduct: React.FC = () => {
       const res = await GetPublishedBrandsAPI({ page: 1, limit: 500 });
       setBrands(res?.data?.data?.data || []);
     } catch {
-      message.error("Failed to fetch brands");
+      toast.error("Failed to fetch brands");
     }
   };
 
@@ -817,7 +843,7 @@ const EditManualProduct: React.FC = () => {
       setCatTotal(total);
       setCatPage(page);
     } catch {
-      message.error("Failed to fetch categories");
+      toast.error("Failed to fetch categories");
     } finally {
       setCatLoading(false);
     }
@@ -848,7 +874,7 @@ const EditManualProduct: React.FC = () => {
     try {
       const res = await CreateCategoryAPI({ title, supplier: "MANUAL" });
       const created: CategoryRef | undefined = res?.data?.data;
-      message.success("Category created");
+      toast.success("Category created");
       setNewCategoryName("");
       await fetchCategories(1, catSearch);
       if (created?.id) {
@@ -862,7 +888,7 @@ const EditManualProduct: React.FC = () => {
         });
       }
     } catch (err: any) {
-      message.error(
+      toast.error(
         err?.response?.data?.message || "Failed to create category",
       );
     } finally {
@@ -884,7 +910,7 @@ const EditManualProduct: React.FC = () => {
     setSavingCategoryEdit(true);
     try {
       await UpdateCategoryAPI(catId, { title });
-      message.success("Category updated");
+      toast.success("Category updated");
       setCategories((prev) =>
         prev.map((c) => (c.id === catId ? { ...c, title } : c)),
       );
@@ -893,7 +919,7 @@ const EditManualProduct: React.FC = () => {
       );
       cancelEditCategory();
     } catch (err: any) {
-      message.error(
+      toast.error(
         err?.response?.data?.message || "Failed to update category",
       );
     } finally {
@@ -901,7 +927,7 @@ const EditManualProduct: React.FC = () => {
     }
   };
   const handleDeleteCategory = (cat: CategoryRef) => {
-    Modal.confirm({
+    confirm({
       title: "Delete category",
       content: (
         <span>
@@ -914,12 +940,12 @@ const EditManualProduct: React.FC = () => {
         setDeletingCategoryId(cat.id);
         try {
           await DeleteCategoryAPI(cat.id);
-          message.success("Category deleted");
+          toast.success("Category deleted");
           setCategories((prev) => prev.filter((c) => c.id !== cat.id));
           setAllLoadedCategories((prev) => prev.filter((c) => c.id !== cat.id));
           setSelectedCatIds((prev) => prev.filter((cid) => cid !== cat.id));
         } catch (err: any) {
-          message.error(
+          toast.error(
             err?.response?.data?.message || "Failed to delete category",
           );
         } finally {
@@ -948,7 +974,7 @@ const EditManualProduct: React.FC = () => {
       variants.map((v) => v.option_selections[oi]).filter(Boolean),
     );
     if (usedIds.size > 0) {
-      message.error(`Can't remove "${opt.name}" — a variant still uses it.`);
+      toast.error(`Can't remove "${opt.name}" — a variant still uses it.`);
       return;
     }
     setOptions((prev) => prev.filter((_, idx) => idx !== oi));
@@ -1004,7 +1030,7 @@ const EditManualProduct: React.FC = () => {
       (v) => v.option_selections[oi] === value._key,
     );
     if (usedByVariant) {
-      message.error(`Can't remove "${value.name}" — a variant still uses it.`);
+      toast.error(`Can't remove "${value.name}" — a variant still uses it.`);
       return;
     }
     setOptions((prev) => {
@@ -1073,7 +1099,7 @@ const EditManualProduct: React.FC = () => {
       updated.splice(i + 1, 0, clone);
       return updated;
     });
-    message.info(
+    toast.info(
       "Variant duplicated — change whichever value is different before saving.",
     );
   };
@@ -1248,7 +1274,9 @@ const EditManualProduct: React.FC = () => {
 
   const addVariantImages = (i: number, files: FileList | null) => {
     if (!files) return;
-    const arr = Array.from(files);
+    const { accepted: arr, error } = checkImageFiles(Array.from(files));
+    if (error) toast.error(error);
+    if (!arr.length) return;
     setVariants((prev) =>
       prev.map((v, idx) =>
         idx === i
@@ -1300,13 +1328,58 @@ const EditManualProduct: React.FC = () => {
   };
   const addProductImages = (files: FileList | null) => {
     if (!files) return;
-    const arr = Array.from(files);
+    const { accepted: arr, error } = checkImageFiles(Array.from(files));
+    if (error) toast.error(error);
+    if (!arr.length) return;
     setNewProductFiles((prev) => [...prev, ...arr]);
     setNewProductPreviews((prev) => [
       ...prev,
       ...arr.map((f) => URL.createObjectURL(f)),
     ]);
   };
+  const missingProductCount = existingProductImages.filter((a) =>
+    missingProductImageIds.has(a.id),
+  ).length;
+  const missingVariantCount = variants.reduce(
+    (n, v) => n + v.existingImages.filter((img) => missingVariantImageIds.has(img.id)).length,
+    0,
+  );
+
+  // Drops every image whose file is gone, so the save deletes those records.
+  const removeMissingImages = () => {
+    setExistingProductImages((prev) => prev.filter((a) => !missingProductImageIds.has(a.id)));
+    setKeepProductImageIds((prev) => prev.filter((x) => !missingProductImageIds.has(x)));
+    setVariants((prev) =>
+      prev.map((v) => ({
+        ...v,
+        existingImages: v.existingImages.filter((img) => !missingVariantImageIds.has(img.id)),
+        keepImageIds: v.keepImageIds.filter((x) => !missingVariantImageIds.has(x)),
+      })),
+    );
+  };
+
+  const renderMissingBanner = () => {
+    const total = missingProductCount + missingVariantCount;
+    if (!total) return null;
+    const parts = [
+      missingProductCount ? `${missingProductCount} product image${missingProductCount === 1 ? "" : "s"}` : "",
+      missingVariantCount ? `${missingVariantCount} variant image${missingVariantCount === 1 ? "" : "s"}` : "",
+    ].filter(Boolean);
+    return (
+      <div className={styles.missingBanner} role="status">
+        <ImageOff size={18} aria-hidden />
+        <div className={styles.missingBannerText}>
+          <strong>{parts.join(" and ")} can't be loaded.</strong> Their files are missing on the
+          server. Remove them and upload replacements; otherwise the shop keeps showing a blank
+          image.
+        </div>
+        <button type="button" className={styles.btnOutline} onClick={removeMissingImages}>
+          Remove missing images
+        </button>
+      </div>
+    );
+  };
+
   const removeNewProductImage = (idx: number) => {
     setNewProductFiles((prev) => prev.filter((_, i) => i !== idx));
     setNewProductPreviews((prev) => prev.filter((_, i) => i !== idx));
@@ -1334,7 +1407,7 @@ const EditManualProduct: React.FC = () => {
         parent_category_id: parentId,
         product_category_id: categoryId,
       });
-      message.success(`Added to "${parentTitle}"`);
+      toast.success(`Added to "${parentTitle}"`);
       const existingGrandCategories =
         res?.data?.data?.parent?.grand_categories || [];
       setProductCategoryHierarchy((prev) =>
@@ -1355,7 +1428,7 @@ const EditManualProduct: React.FC = () => {
         ),
       );
     } catch (err: any) {
-      message.error(
+      toast.error(
         err?.response?.data?.message || "Failed to add sub-category",
       );
     }
@@ -1385,7 +1458,7 @@ const EditManualProduct: React.FC = () => {
         ),
       );
     } catch (err: any) {
-      message.error(
+      toast.error(
         err?.response?.data?.message || "Failed to remove sub-category",
       );
     } finally {
@@ -1403,7 +1476,7 @@ const EditManualProduct: React.FC = () => {
         grand_category_id: grandId,
         parent_category_id: parentId,
       });
-      message.success(`Added to "${grandTitle}"`);
+      toast.success(`Added to "${grandTitle}"`);
       setProductCategoryHierarchy((prev) =>
         prev.map((c) => ({
           ...c,
@@ -1421,7 +1494,7 @@ const EditManualProduct: React.FC = () => {
         })),
       );
     } catch (err: any) {
-      message.error(err?.response?.data?.message || "Failed to add category");
+      toast.error(err?.response?.data?.message || "Failed to add category");
     }
   };
 
@@ -1452,7 +1525,7 @@ const EditManualProduct: React.FC = () => {
         })),
       );
     } catch (err: any) {
-      message.error(
+      toast.error(
         err?.response?.data?.message || "Failed to remove category",
       );
     } finally {
@@ -1468,7 +1541,7 @@ const EditManualProduct: React.FC = () => {
       const res = await GetUseCasesForProductAPI(Number(id));
       setProductUseCases(res?.data?.data || []);
     } catch {
-      message.error("Failed to load use cases");
+      toast.error("Failed to load use cases");
     } finally {
       setUcLoading(false);
     }
@@ -1505,13 +1578,13 @@ const EditManualProduct: React.FC = () => {
     try {
       setUcAdding(true);
       await AddProductsToUseCaseAPI(useCaseId, [productIdRef.current]);
-      message.success(`Added to "${title}"`);
+      toast.success(`Added to "${title}"`);
       setUcPickerOpen(false);
       setUcSearch("");
       setUcOptions([]);
       await loadProductUseCases();
     } catch {
-      message.error("Failed to add to use case");
+      toast.error("Failed to add to use case");
     } finally {
       setUcAdding(false);
     }
@@ -1527,9 +1600,9 @@ const EditManualProduct: React.FC = () => {
         await ExcludeProductsFromUseCaseAPI(uc.id, [productIdRef.current]);
       }
       setProductUseCases((prev) => prev.filter((x) => x.id !== uc.id));
-      message.success(`Removed from "${uc.title}"`);
+      toast.success(`Removed from "${uc.title}"`);
     } catch {
-      message.error("Failed to remove from use case");
+      toast.error("Failed to remove from use case");
     } finally {
       setUcActionId(null);
     }
@@ -1547,7 +1620,7 @@ const EditManualProduct: React.FC = () => {
   /* ─── Validation ─────────────────────────────────────────────────── */
   const validateBasic = (): boolean => {
     if (!productName.trim()) {
-      message.error("Product name is required");
+      toast.error("Product name is required");
       return false;
     }
     return true;
@@ -1563,7 +1636,7 @@ const EditManualProduct: React.FC = () => {
         if (!opt.name.trim() || opt.values.length === 0) continue;
         const selection = v.option_selections[oi];
         if (selection === null || selection === undefined) {
-          message.error(`${label}: pick a value for "${opt.name}"`);
+          toast.error(`${label}: pick a value for "${opt.name}"`);
           return false;
         }
       }
@@ -1582,7 +1655,7 @@ const EditManualProduct: React.FC = () => {
           .join("|");
         if (seenSignatures.has(sig)) {
           const firstIdx = seenSignatures.get(sig)!;
-          message.error(
+          toast.error(
             `Variant ${firstIdx + 1} and Variant ${i + 1} are the same — change one of them before saving.`,
           );
           return false;
@@ -1601,7 +1674,7 @@ const EditManualProduct: React.FC = () => {
       const sku = v.sku.trim();
       if (sku) {
         if (skuSet.has(sku)) {
-          message.error(`Duplicate SKU: ${sku}`);
+          toast.error(`Duplicate SKU: ${sku}`);
           return false;
         }
         skuSet.add(sku);
@@ -1610,7 +1683,7 @@ const EditManualProduct: React.FC = () => {
       // Same pricing rules as Create Product.
       const pricingError = getPricingError(v, label);
       if (pricingError) {
-        message.error(pricingError);
+        toast.error(pricingError);
         return false;
       }
     }
@@ -1641,6 +1714,15 @@ const EditManualProduct: React.FC = () => {
     //   setCurrentStep(2);
     //   return;
     // }
+
+    const countError = checkUploadCounts(
+      newProductFiles.length,
+      variants.reduce((n, v) => n + v.newFiles.length, 0),
+    );
+    if (countError) {
+      toast.error(countError);
+      return;
+    }
 
     setSaving(true);
     try {
@@ -1717,10 +1799,10 @@ const EditManualProduct: React.FC = () => {
       });
 
       await UpdateManualProductFullAPI(formData);
-      message.success("Product updated successfully");
+      toast.success("Product updated successfully");
       navigate("/products");
     } catch (err: any) {
-      message.error(err?.response?.data?.message || "Failed to update product");
+      toast.error(err?.response?.data?.message || "Failed to update product");
     } finally {
       setSaving(false);
     }
@@ -1729,7 +1811,7 @@ const EditManualProduct: React.FC = () => {
   if (loading) {
     return (
       <div className={styles.loadingWrap}>
-        <Spin size="large" />
+        <Spinner size="large" />
       </div>
     );
   }
@@ -1745,7 +1827,7 @@ const EditManualProduct: React.FC = () => {
         <div className={styles.fieldGrid}>
           <div className={styles.fieldGroup}>
             <label>
-              Product name <span style={{ color: "#dc2626" }}>*</span>
+              Product name <span style={{ color: "var(--destructive)" }}>*</span>
             </label>
             <input
               value={productName}
@@ -1754,7 +1836,7 @@ const EditManualProduct: React.FC = () => {
           </div>
           <div className={styles.fieldGroup}>
             <label>Brand</label>
-            <Select
+            <Combobox
               placeholder="Select brand"
               style={{ width: "100%" }}
               allowClear
@@ -1959,10 +2041,29 @@ const EditManualProduct: React.FC = () => {
         <div className={styles.cardHeader}>
           <span className={styles.cardTitle}>Product images</span>
         </div>
+        {renderMissingBanner()}
+        <p className={styles.imageHint}>
+          JPG, PNG, WebP, AVIF or GIF, up to 20 MB each and 10 per save. After saving, the
+          oldest image you keep is the main image; if you remove them all, it's the first new one.
+        </p>
         <div className={styles.imageGrid}>
           {existingProductImages.map((att) => (
-            <div className={styles.imageTile} key={att.id}>
-              <img src={att.file_uri} alt="" />
+            <div
+              className={`${styles.imageTile} ${missingProductImageIds.has(att.id) ? styles.missingTile : ""}`}
+              key={att.id}
+            >
+              {missingProductImageIds.has(att.id) ? (
+                <span className={styles.missingBody} title="This image's file is missing">
+                  <ImageOff size={18} aria-hidden />
+                  Missing
+                </span>
+              ) : (
+                <img
+                  src={resolveImageUrl(att)}
+                  alt=""
+                  onError={() => markMissing(setMissingProductImageIds, att.id)}
+                />
+              )}
               <button
                 className={styles.removeImg}
                 onClick={() => removeExistingProductImage(att.id)}
@@ -1996,10 +2097,14 @@ const EditManualProduct: React.FC = () => {
             <span>Add</span>
             <input
               type="file"
-              accept="image/*"
+              accept={IMAGE_ACCEPT}
               multiple
               hidden
-              onChange={(e) => addProductImages(e.target.files)}
+              onChange={(e) => {
+                addProductImages(e.target.files);
+                // Reset so picking the same file again still works.
+                e.target.value = "";
+              }}
             />
           </label>
         </div>
@@ -2348,6 +2453,8 @@ const EditManualProduct: React.FC = () => {
         </button>
       </div>
 
+      {renderMissingBanner()}
+
       {variants.map((v, i) => {
         const autoColorName = getColorNameFromHex(v.color_code);
         const selectedLabels = options
@@ -2424,7 +2531,7 @@ const EditManualProduct: React.FC = () => {
                   <span
                     className={styles.colorPreviewLabel}
                     style={{
-                      color: isLightColor(v.color_code) ? "#333" : "#fff",
+                      color: isLightColor(v.color_code) ? "var(--foreground)" : "var(--background)",
                     }}
                   >
                     {v.color || autoColorName}
@@ -2526,8 +2633,8 @@ const EditManualProduct: React.FC = () => {
                                       size={12}
                                       color={
                                         isLightColor(val.color_code || "#fff")
-                                          ? "#333"
-                                          : "#fff"
+                                          ? "var(--foreground)"
+                                          : "var(--background)"
                                       }
                                     />
                                   )}
@@ -2577,10 +2684,20 @@ const EditManualProduct: React.FC = () => {
             <div className={styles.imageGrid}>
               {v.existingImages.map((img) => (
                 <div
-                  className={`${styles.imageTile} ${styles.smallTile}`}
+                  className={`${styles.imageTile} ${styles.smallTile} ${missingVariantImageIds.has(img.id) ? styles.missingTile : ""}`}
                   key={img.id}
                 >
-                  <img src={img.file_uri} alt="" />
+                  {missingVariantImageIds.has(img.id) ? (
+                    <span className={styles.missingBody} title="This image's file is missing">
+                      <ImageOff size={14} aria-hidden />
+                    </span>
+                  ) : (
+                    <img
+                      src={resolveImageUrl(img)}
+                      alt=""
+                      onError={() => markMissing(setMissingVariantImageIds, img.id)}
+                    />
+                  )}
                   <button
                     className={styles.removeImg}
                     onClick={() => removeExistingVariantImage(i, img.id)}
@@ -2611,10 +2728,13 @@ const EditManualProduct: React.FC = () => {
                 <Plus size={14} />
                 <input
                   type="file"
-                  accept="image/*"
+                  accept={IMAGE_ACCEPT}
                   multiple
                   hidden
-                  onChange={(e) => addVariantImages(i, e.target.files)}
+                  onChange={(e) => {
+                    addVariantImages(i, e.target.files);
+                    e.target.value = "";
+                  }}
                 />
               </label>
             </div>
@@ -2673,7 +2793,7 @@ const EditManualProduct: React.FC = () => {
                         aria-label={`Remove ${p.title}`}
                       >
                         {removingChipId === chipId ? (
-                          <Spin size="small" />
+                          <Spinner size="small" />
                         ) : (
                           <X size={11} />
                         )}
@@ -2718,7 +2838,7 @@ const EditManualProduct: React.FC = () => {
                           aria-label={`Remove ${g.title}`}
                         >
                           {removingChipId === chipId ? (
-                            <Spin size="small" />
+                            <Spinner size="small" />
                           ) : (
                             <X size={11} />
                           )}
@@ -2786,7 +2906,7 @@ const EditManualProduct: React.FC = () => {
                     aria-label={`Remove from ${uc.title}`}
                   >
                     {ucActionId === uc.id ? (
-                      <Spin size="small" />
+                      <Spinner size="small" />
                     ) : (
                       <X size={11} />
                     )}

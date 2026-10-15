@@ -1,10 +1,14 @@
 /** @format */
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { ArrowUpRight, Eye } from "lucide-react";
 import type { ReactNode } from "react";
-import { Table, Input, Empty, Select, Modal, Tabs } from "antd";
-import type { ColumnsType } from "antd/es/table";
-import { SearchOutlined, EyeOutlined } from "@ant-design/icons";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Combobox } from "@/components/common/Combobox";
+import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
+import { EmptyState } from "@/components/common/EmptyState";
+import { SearchInput } from "@/components/common/SearchInput";
 import "./Order.scss";
 import { GetAdminOrdersAPI } from "@/services/Api/OrderApi";
 
@@ -159,26 +163,44 @@ interface BadgeConfig {
 // ─────────────────────────────────────────────
 // Status / Payment configs
 // ─────────────────────────────────────────────
-const ORDER_STATUS: Record<string, BadgeConfig & { desc: string }> = {
-  PENDING: { color: "#92400e", bg: "#fef3c7", dot: "#f59e0b", label: "Pending", desc: "Received but not yet processed. Payment may still be confirming." },
-  SUCCESS: { color: "#065f46", bg: "#d1fae5", dot: "#10b981", label: "Success", desc: "Order completed successfully end-to-end." },
-  SHIPPED: { color: "#1e40af", bg: "#dbeafe", dot: "#3b82f6", label: "Shipped", desc: "Label created and package handed to carrier." },
-  FAILED: { color: "#991b1b", bg: "#fee2e2", dot: "#ef4444", label: "Failed", desc: "Could not be fulfilled. Check payment or supplier errors." },
-  CANCELLED: { color: "#4b5563", bg: "#f3f4f6", dot: "#9ca3af", label: "Cancelled", desc: "Cancelled by customer or admin before fulfilment." },
-  IN_TRANSIT: { color: "#1e40af", bg: "#dbeafe", dot: "#3b82f6", label: "In Transit", desc: "Moving through the carrier network toward destination." },
-  OUT_FOR_DELIVERY: { color: "#5b21b6", bg: "#ede9fe", dot: "#8b5cf6", label: "Out for Delivery", desc: "On the delivery vehicle — expected today." },
-  DELIVERED: { color: "#065f46", bg: "#d1fae5", dot: "#10b981", label: "Delivered", desc: "Confirmed delivered to the recipient." },
-  RETURNED: { color: "#92400e", bg: "#ffedd5", dot: "#f97316", label: "Returned", desc: "Package returning to origin. Refund or reship needed." },
-  EXCEPTION: { color: "#7f1d1d", bg: "#fee2e2", dot: "#dc2626", label: "Exception", desc: "Delivery issue — bad address, customs hold, or missed delivery." },
+// Values come from the backend schema (BACKEND_QUESTIONS.md, B9). An order has three
+// separate fields: its own status, its payment status and its shipment status.
+const ORDER_STATUS: Record<string, BadgeConfig> = {
+  PENDING: { color: "var(--warning-soft-foreground)", bg: "var(--warning-soft)", dot: "var(--warning)", label: "Pending" },
+  PENDING_PAYMENT: { color: "var(--warning-soft-foreground)", bg: "var(--warning-soft)", dot: "var(--warning)", label: "Awaiting payment" },
+  CONFIRMED: { color: "var(--info-soft-foreground)", bg: "var(--info-soft)", dot: "var(--info)", label: "Confirmed" },
+  SHIPPED: { color: "var(--primary-soft-foreground)", bg: "var(--primary-soft)", dot: "var(--primary)", label: "Shipped" },
+  DELIVERED: { color: "var(--success-soft-foreground)", bg: "var(--success-soft)", dot: "var(--success)", label: "Delivered" },
+  CANCELLED: { color: "var(--muted-foreground)", bg: "var(--muted)", dot: "var(--placeholder)", label: "Cancelled" },
+  FAILED: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Failed" },
+};
+
+const SHIPMENT_STATUS: Record<string, BadgeConfig & { desc: string }> = {
+  PENDING: { color: "var(--muted-foreground)", bg: "var(--muted)", dot: "var(--placeholder)", label: "Not shipped", desc: "No shipping label yet." },
+  LABEL_CREATED: { color: "var(--info-soft-foreground)", bg: "var(--info-soft)", dot: "var(--info)", label: "Label created", desc: "Label printed; waiting for the carrier's first scan." },
+  SUCCESS: { color: "var(--primary-soft-foreground)", bg: "var(--primary-soft)", dot: "var(--primary)", label: "Shipment created", desc: "Label and tracking number assigned." },
+  IN_TRANSIT: { color: "var(--primary-soft-foreground)", bg: "var(--primary-soft)", dot: "var(--primary)", label: "In transit", desc: "Moving through the carrier network." },
+  OUT_FOR_DELIVERY: { color: "var(--violet-soft-foreground)", bg: "var(--violet-soft)", dot: "var(--violet)", label: "Out for delivery", desc: "On the delivery vehicle, expected today." },
+  DELIVERED: { color: "var(--success-soft-foreground)", bg: "var(--success-soft)", dot: "var(--success)", label: "Delivered", desc: "The carrier confirmed delivery." },
+  RETURNED: { color: "var(--warning-soft-foreground)", bg: "var(--warning-soft)", dot: "var(--warning)", label: "Returned", desc: "Coming back to the sender. Refund or reship needed." },
+  EXCEPTION: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Exception", desc: "Delivery problem: bad address, customs hold or missed delivery." },
+  FAILED: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Failed", desc: "The carrier reported a failure." },
+  CANCELLED: { color: "var(--muted-foreground)", bg: "var(--muted)", dot: "var(--placeholder)", label: "Cancelled", desc: "The shipment was cancelled." },
 };
 
 const PAYMENT_STATUS: Record<string, BadgeConfig> = {
-  SUCCESS: { color: "#065f46", bg: "#d1fae5", dot: "#10b981", label: "Paid" },
-  PAID: { color: "#065f46", bg: "#d1fae5", dot: "#10b981", label: "Paid" },
-  UNPAID: { color: "#92400e", bg: "#fef3c7", dot: "#f59e0b", label: "Unpaid" },
-  PENDING: { color: "#1e40af", bg: "#dbeafe", dot: "#3b82f6", label: "Pending" },
-  FAILED: { color: "#991b1b", bg: "#fee2e2", dot: "#ef4444", label: "Failed" },
+  SUCCESS: { color: "var(--success-soft-foreground)", bg: "var(--success-soft)", dot: "var(--success)", label: "Paid" },
+  PENDING: { color: "var(--warning-soft-foreground)", bg: "var(--warning-soft)", dot: "var(--warning)", label: "Pending" },
+  REJECTED: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Rejected" },
 };
+
+// The backend lists only paid orders unless payment_status is sent, so the filter always
+// sends one; there is no "all" option yet.
+const PAYMENT_FILTERS = [
+  { value: "SUCCESS", label: "Paid", stat: "Paid orders" },
+  { value: "PENDING", label: "Payment pending", stat: "Awaiting payment" },
+  { value: "REJECTED", label: "Payment rejected", stat: "Payment rejected" },
+];
 
 const KIND_META: Record<ItemKind, { label: string; className: string; artworkCaption: string }> = {
   MANUAL: { label: "Manual", className: "kind-manual", artworkCaption: "Customized" },
@@ -712,9 +734,9 @@ const ImageThumb = ({ src, caption, size = "md", fit = "cover", lightboxLabel, o
 // ─────────────────────────────────────────────
 const StatusBadge = ({ value, map }: { value: string; map: Record<string, BadgeConfig> }) => {
   const cfg = map[value] ?? map[value?.toUpperCase()] ?? {
-    color: "#374151",
-    bg: "#f3f4f6",
-    dot: "#9ca3af",
+    color: "var(--foreground)",
+    bg: "var(--muted)",
+    dot: "var(--placeholder)",
     label: humanize(value),
   };
   return (
@@ -788,6 +810,26 @@ const PriceRow = ({
 // ─────────────────────────────────────────────
 // Order Detail Modal
 // ─────────────────────────────────────────────
+// Tab strip for the order modal; panels scroll inside the dialog.
+const OrderTabs: React.FC<{
+  items: { key: string; label: React.ReactNode; children: React.ReactNode }[];
+}> = ({ items }) => (
+  <Tabs defaultValue={items[0]?.key} className="om-tabs gap-0">
+    <TabsList variant="line" className="om-tabs-nav">
+      {items.map((item) => (
+        <TabsTrigger key={item.key} value={item.key} className="om-tab">
+          {item.label}
+        </TabsTrigger>
+      ))}
+    </TabsList>
+    {items.map((item) => (
+      <TabsContent key={item.key} value={item.key} className="om-tab-panel">
+        {item.children}
+      </TabsContent>
+    ))}
+  </Tabs>
+);
+
 const OrderDetailModal = ({ order, open, onClose }: { order: Order | null; open: boolean; onClose: () => void }) => {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [lightboxLabel, setLightboxLabel] = useState("");
@@ -809,16 +851,10 @@ const OrderDetailModal = ({ order, open, onClose }: { order: Order | null; open:
 
   return (
     <>
-      <Modal
-        open={open}
-        onCancel={onClose}
-        footer={null}
-        width={960}
-        className="order-modal"
-        title={null}
-        closable
-        destroyOnClose
-      >
+      <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+        <DialogContent className="order-modal gap-0 overflow-hidden p-0 sm:max-w-[960px]">
+        <DialogTitle className="sr-only">Order {order.order_number}</DialogTitle>
+        <DialogDescription className="sr-only">Order details, items, pricing and shipping</DialogDescription>
         {/* ── Hero ── */}
         <div className="om-hero">
           <div className="om-hero-left">
@@ -841,9 +877,7 @@ const OrderDetailModal = ({ order, open, onClose }: { order: Order | null; open:
 
         {/* ── Tabs ── */}
         <div className="om-body">
-          <Tabs
-            defaultActiveKey="overview"
-            className="om-tabs"
+          <OrderTabs
             items={[
               { key: "overview", label: "Overview", children: <TabOverview order={order} calc={calc} onImageClick={openLightbox} /> },
               { key: "items", label: `Items (${lineCount})`, children: <TabItems order={order} calc={calc} onImageClick={openLightbox} /> },
@@ -861,7 +895,8 @@ const OrderDetailModal = ({ order, open, onClose }: { order: Order | null; open:
             ]}
           />
         </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       {/* Rendered outside the modal so it covers everything */}
       <Lightbox src={lightboxSrc} label={lightboxLabel} onClose={closeLightbox} />
@@ -1258,14 +1293,15 @@ const TabShipping = ({ order: o }: { order: Order }) => (
         <KV label="Carrier" value={formatCarrier(o.carrier)} />
         <KV label="Tracking Number" value={o.tracking_number || "--"} mono />
         <KV label="Shipment Status">
-          <StatusBadge value={o.shipment_status || "--"} map={ORDER_STATUS} />
+          <StatusBadge value={o.shipment_status || "--"} map={SHIPMENT_STATUS} />
         </KV>
       </div>
       {(o.tracking_url || o.label_url) && (
         <div className="tracking-actions">
           {o.tracking_url && (
             <a href={o.tracking_url} target="_blank" rel="noopener noreferrer" className="track-btn">
-              Track Shipment →
+              Track Shipment
+              <ArrowUpRight size={14} aria-hidden />
             </a>
           )}
           {o.label_url && (
@@ -1278,11 +1314,11 @@ const TabShipping = ({ order: o }: { order: Order }) => (
     </section>
 
     <section className="section-card">
-      <div className="section-title">Status Reference Guide</div>
+      <div className="section-title">Shipment statuses</div>
       <div className="status-guide-grid">
-        {Object.entries(ORDER_STATUS).map(([key, cfg]) => (
+        {Object.entries(SHIPMENT_STATUS).map(([key, cfg]) => (
           <div className="status-guide-item" key={key}>
-            <StatusBadge value={key} map={ORDER_STATUS} />
+            <StatusBadge value={key} map={SHIPMENT_STATUS} />
             <div className="status-guide-desc">{cfg.desc}</div>
           </div>
         ))}
@@ -1300,6 +1336,7 @@ const OrdersPage = () => {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [paymentFilter, setPaymentFilter] = useState("SUCCESS");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [limit, setLimit] = useState(50);
@@ -1323,7 +1360,13 @@ const OrdersPage = () => {
     (async () => {
       try {
         setLoading(true);
-        const res = await GetAdminOrdersAPI({ page, limit, search, status: statusFilter });
+        const res = await GetAdminOrdersAPI({
+          page,
+          limit,
+          search,
+          status: statusFilter || undefined,
+          payment_status: paymentFilter,
+        });
         if (!active) return;
         const payload = res?.data?.data as OrdersPayload | undefined;
         setOrders(payload?.data ?? []);
@@ -1337,36 +1380,31 @@ const OrdersPage = () => {
     return () => {
       active = false;
     };
-  }, [page, limit, search, statusFilter]);
+  }, [page, limit, search, statusFilter, paymentFilter]);
 
   const openOrder = useCallback((row: Order) => {
     setSelectedOrder(row);
     setModalOpen(true);
   }, []);
 
-  const columns: ColumnsType<Order> = useMemo(
+  const columns: DataTableColumn<Order>[] = useMemo(
     () => [
       {
-        title: "#",
-        width: 52,
-        render: (_v, _row, index) => <span className="row-index">{(page - 1) * limit + index + 1}</span>,
-      },
-      {
         title: "Customer",
-        width: 220,
         render: (_v, row) => (
           <div className="cell-customer">
             <div className="cell-avatar">{initials(row.user?.name)}</div>
-            <div>
+            <div className="min-w-0">
               <div className="cell-name">{row.user?.name || "--"}</div>
-              <div className="cell-email">{row.user?.email || "--"}</div>
+              <div className="cell-email" title={row.user?.email}>
+                {row.user?.email || "--"}
+              </div>
             </div>
           </div>
         ),
       },
       {
         title: "Order",
-        width: 240,
         render: (_v, row) => {
           const first = row.items?.[0];
           const name = decodeEntities(first?.product_name ?? row.preview?.product_name);
@@ -1386,7 +1424,6 @@ const OrdersPage = () => {
       },
       {
         title: "Items",
-        width: 90,
         render: (_v, row) => {
           const units = (row.items ?? []).reduce((acc, i) => acc + toNum(i.quantity), 0) || row.preview?.total_items || 0;
           const lines = row.items?.length ?? 0;
@@ -1402,7 +1439,6 @@ const OrdersPage = () => {
       },
       {
         title: "Customization",
-        width: 150,
         render: (_v, row) => {
           const kinds = Array.from(new Set((row.items ?? []).map(getItemKind)));
           if (!kinds.length && row.preview?.customization_type) kinds.push(row.preview.customization_type);
@@ -1415,42 +1451,40 @@ const OrdersPage = () => {
       },
       {
         title: "Amount",
-        width: 120,
         render: (_v, row) => <span className="cell-amount">{fmt$(row.total_amount)}</span>,
       },
       {
         title: "Payment",
-        width: 110,
         render: (_v, row) => <StatusBadge value={row.payment_status} map={PAYMENT_STATUS} />,
       },
       {
         title: "Status",
-        width: 150,
         render: (_v, row) => <StatusBadge value={row.status} map={ORDER_STATUS} />,
       },
       {
         title: "Date",
-        width: 110,
         render: (_v, row) => <span className="cell-date">{fmtShortDate(row.created_at)}</span>,
       },
       {
-        title: "",
-        width: 84,
+        title: <span className="sr-only">Actions</span>,
+        align: "right",
         render: (_v, row) => (
           <button
             type="button"
             className="view-btn"
+            aria-label={`View order ${row.order_number}`}
+            title="View order"
             onClick={(e) => {
               e.stopPropagation();
               openOrder(row);
             }}
           >
-            <EyeOutlined style={{ fontSize: 12 }} /> View
+            <Eye size={15} aria-hidden />
           </button>
         ),
       },
     ],
-    [page, limit, openOrder],
+    [openOrder],
   );
 
   return (
@@ -1462,24 +1496,38 @@ const OrdersPage = () => {
         </div>
         <div className="header-stat">
           <span className="stat-num">{total.toLocaleString()}</span>
-          <span className="stat-label">Total Orders</span>
+          <span className="stat-label">
+            {PAYMENT_FILTERS.find((p) => p.value === paymentFilter)?.stat ?? "Orders"}
+          </span>
         </div>
       </div>
 
       <div className="filters-row">
-        <Input
+        <SearchInput
           allowClear
           size="large"
           placeholder="Search by order number, customer, tracking…"
-          prefix={<SearchOutlined style={{ color: "#9ca3af" }} />}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          className="search-input"
+          wrapperClassName="search-input"
           aria-label="Search orders"
         />
-        <Select
+        <Combobox
           size="large"
-          placeholder="Order Status"
+          searchable={false}
+          placeholder="Payment"
+          style={{ width: 190 }}
+          value={paymentFilter}
+          onChange={(v?: string) => {
+            setPaymentFilter(v || "SUCCESS");
+            setPage(1);
+          }}
+          options={PAYMENT_FILTERS.map(({ value, label }) => ({ value, label }))}
+        />
+        <Combobox
+          size="large"
+          searchable={false}
+          placeholder="Order status"
           style={{ width: 190 }}
           allowClear
           value={statusFilter || undefined}
@@ -1492,27 +1540,28 @@ const OrdersPage = () => {
       </div>
 
       <div className="orders-card">
-        <Table<Order>
+        <DataTable<Order>
           rowKey="id"
           loading={loading}
           columns={columns}
           dataSource={orders}
-          scroll={{ x: 1180 }}
+          scrollX={1000}
           rowClassName="order-row"
-          onRow={(row) => ({ onClick: () => openOrder(row) })}
+          onRowClick={openOrder}
+          className="orders-table"
           pagination={{
             current: page,
             pageSize: limit,
             total,
             showSizeChanger: true,
-            pageSizeOptions: ["10", "25", "50", "100"],
-            showTotal: (t) => `${t.toLocaleString()} orders`,
+            pageSizeOptions: [10, 25, 50, 100],
+            showTotal: (t) => `${t.toLocaleString()} ${t === 1 ? "order" : "orders"}`,
             onChange: (current, pageSize) => {
               setPage(pageSize !== limit ? 1 : current);
               setLimit(pageSize);
             },
           }}
-          locale={{ emptyText: <Empty description="No Orders Found" /> }}
+          emptyText={<EmptyState description="No orders match these filters." />}
         />
       </div>
 

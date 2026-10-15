@@ -17,7 +17,7 @@ import {
   ImageOff,
 } from "lucide-react";
 
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -93,7 +93,6 @@ const AttachmentThumb: React.FC<{
 };
 
 const SourcingRequests = () => {
-  const { toast } = useToast();
 
   const [allRequests, setAllRequests] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -118,15 +117,11 @@ const SourcingRequests = () => {
       setAllRequests(res.data.data?.data || []);
     } catch (err) {
       console.error(err);
-      toast({
-        title: "Failed to Load",
-        description: "Failed to load sourcing requests.",
-        variant: "destructive",
-      });
+      toast.error("Failed to Load", { description: "Failed to load sourcing requests." });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     loadRequests();
@@ -192,22 +187,13 @@ const SourcingRequests = () => {
         prev?.id === id ? { ...prev, status, admin_notes: note } : prev,
       );
 
-      toast({
-        title: "Status Updated",
-        description: "Status updated and the customer has been notified.",
-      });
+      toast.success("Status Updated", { description: "Status updated and the customer has been notified." });
 
       setStatusChange(null);
       setStatusNote("");
     } catch (err: any) {
       console.error(err);
-      toast({
-        title: "Update Failed",
-        description:
-          err.response?.data?.message ||
-          "Failed to update sourcing request status.",
-        variant: "destructive",
-      });
+      toast.error("Update Failed", { description: err.response?.data?.message || "Failed to update sourcing request status." });
     } finally {
       setUpdatingStatus(false);
     }

@@ -1,7 +1,8 @@
 /** @format */
 
 import { useEffect, useState } from "react";
-import { message, Pagination } from "antd";
+import { toast } from "sonner";
+import { Pagination } from "@/components/common/Pagination";
 import axios from "axios";
 import {
   Plus,
@@ -13,7 +14,7 @@ import {
   ImageOff,
   Package,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 import {
   GetAddOnProductsAPI,
@@ -21,6 +22,7 @@ import {
 } from "@/services/Api/AddOnApi";
 
 import "./AddOn.scss";
+import { Thumbnail } from "@/components/common/Thumbnail";
 
 import { IMAGE_BASE_URL } from "@/config/env";
 const PAGE_SIZE = 20;
@@ -131,14 +133,14 @@ const AddOnList = () => {
       setDeleteLoading(true);
       await DeleteAddOnProductAPI(deleteTarget.id);
 
-      message.success(`"${deleteTarget.name}" deleted`);
+      toast.success(`"${deleteTarget.name}" deleted`);
       setDeleteTarget(null);
 
       // If that was the last row on this page, go back one page.
       if (addOns.length === 1 && page > 1) setPage((p) => p - 1);
       else load();
     } catch (err) {
-      message.error(getErrorMessage(err, "Couldn't delete this add-on."));
+      toast.error(getErrorMessage(err, "Couldn't delete this add-on."));
     } finally {
       setDeleteLoading(false);
     }
@@ -276,7 +278,7 @@ const AddOnList = () => {
                                 onClick={() => setLightboxSrc(image)}
                                 aria-label={`View image of ${item.name}`}
                               >
-                                <img src={image} alt="" loading="lazy" />
+                                <Thumbnail src={image} />
                               </button>
                             ) : (
                               <span className="addon__thumb addon__thumb--empty">

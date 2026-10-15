@@ -1,23 +1,23 @@
 /** @format */
 
 /* Same palette as Create / Edit Product */
-$border: #e9e9e9;
-$input-border: #e5e7eb;
-$text: #18181b;
-$text-body: #3f3f46;
-$muted: #71717a;
-$faint: #a1a1aa;
-$primary: #111827;
-$blue: #2563eb;
-$blue-soft: #eff6ff;
-$red: #dc2626;
-$red-soft: #fff5f5;
-$focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
+$border: var(--border);
+$input-border: var(--border);
+$text: var(--foreground);
+$text-body: var(--foreground);
+$muted: var(--muted-foreground);
+$faint: var(--muted-foreground);
+$primary: var(--primary);
+$blue: var(--primary);
+$blue-soft: var(--primary-soft);
+$red: var(--destructive);
+$red-soft: var(--destructive-soft);
+$focus: var(--focus-ring);
 
 .pao {
-  background: #fff;
+  background: var(--background);
   border: 1px solid $border;
-  border-radius: 18px;
+  border-radius: var(--radius-2xl);
   padding: 24px;
   margin-bottom: 24px;
 
@@ -41,7 +41,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
   }
 
   &__badge {
-    background: #e8f0ff;
+    background: var(--primary-soft);
     color: $blue;
     border-radius: 999px;
     padding: 2px 9px;
@@ -59,8 +59,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     flex-shrink: 0;
     font-size: 12px;
     font-weight: 600;
-    color: #4d7c0f;
-    background: #e8f5df;
+    color: var(--success-soft-foreground);
+    background: var(--success-soft);
     border-radius: 999px;
     padding: 4px 10px;
 
@@ -79,16 +79,16 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     &--spaced {
       margin-top: 28px;
       padding-top: 22px;
-      border-top: 1px solid #f4f4f5;
+      border-top: 1px solid var(--border);
     }
   }
 
   // ── Empty / loading ──
   &__empty {
     padding: 20px;
-    border: 1.5px dashed #e4e4e7;
-    border-radius: 14px;
-    background: #fafaf9;
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius-xl);
+    background: var(--muted);
     text-align: center;
     font-size: 13px;
     color: $muted;
@@ -124,7 +124,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
   &__center-icon {
     width: 48px;
     height: 48px;
-    border-radius: 14px;
+    border-radius: var(--radius-xl);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -139,8 +139,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     height: 40px;
     padding: 0 16px;
     border: 1px solid $input-border;
-    border-radius: 12px;
-    background: #fff;
+    border-radius: var(--radius-xl);
+    background: var(--background);
     color: $text;
     font-size: 14px;
     font-weight: 600;
@@ -150,7 +150,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     cursor: pointer;
 
     &:hover {
-      background: #fafafa;
+      background: var(--muted);
     }
   }
 
@@ -167,8 +167,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     gap: 14px;
     padding: 12px 14px;
     border: 1px solid $border;
-    border-radius: 14px;
-    background: #fff;
+    border-radius: var(--radius-xl);
+    background: var(--background);
   }
 
   &__order {
@@ -181,8 +181,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
       width: 26px;
       height: 22px;
       border: 1px solid $input-border;
-      border-radius: 7px;
-      background: #fff;
+      border-radius: var(--radius-lg);
+      background: var(--background);
       color: $muted;
       display: flex;
       align-items: center;
@@ -191,7 +191,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
 
       &:hover:not(:disabled) {
         color: $blue;
-        border-color: #bfdbfe;
+        border-color: var(--primary-border);
         background: $blue-soft;
       }
 
@@ -207,9 +207,9 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     aspect-ratio: 16 / 9;
     flex-shrink: 0;
     border: 1px solid $border;
-    border-radius: 9px;
-    background: #f4f4f5;
-    color: #d4d4d8;
+    border-radius: var(--radius-lg);
+    background: var(--muted);
+    color: var(--placeholder);
     overflow: hidden;
     display: flex;
     align-items: center;
@@ -264,7 +264,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     display: flex;
     align-items: center;
     border: 1px solid $input-border;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
     transition: 0.18s ease;
 
@@ -274,8 +274,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 
     &--custom {
-      border-color: #fcd34d;
-      background: #fffbeb;
+      border-color: var(--primary-border);
+      background: var(--warning-soft);
     }
 
     span {
@@ -294,7 +294,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
       background: transparent;
       font-size: 14px;
       font-weight: 600;
-      color: #111827;
+      color: var(--foreground);
       font-variant-numeric: tabular-nums;
     }
   }
@@ -321,8 +321,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     width: 38px;
     height: 38px;
     flex-shrink: 0;
-    border: 1px solid #fecaca;
-    border-radius: 10px;
+    border: 1px solid var(--destructive-border);
+    border-radius: var(--radius-lg);
     background: $red-soft;
     color: $red;
     display: flex;
@@ -331,7 +331,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     cursor: pointer;
 
     &:hover:not(:disabled) {
-      background: #fee2e2;
+      background: var(--destructive-soft);
     }
 
     &:disabled {
@@ -347,7 +347,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     margin-bottom: 14px;
     padding: 0 10px 0 14px;
     border: 1px solid $input-border;
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -368,7 +368,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
       color: $text;
 
       &::placeholder {
-        color: #c4c4c4;
+        color: var(--muted-foreground);
       }
     }
 
@@ -377,7 +377,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
       height: 22px;
       border: none;
       border-radius: 999px;
-      background: #f4f4f5;
+      background: var(--muted);
       color: $muted;
       display: flex;
       align-items: center;
@@ -395,8 +395,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
   &__card {
     padding: 0;
     border: 1px solid $border;
-    border-radius: 14px;
-    background: #fff;
+    border-radius: var(--radius-xl);
+    background: var(--background);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -405,8 +405,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     transition: 0.18s ease;
 
     &:hover:not(:disabled) {
-      border-color: #bfdbfe;
-      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.08);
+      border-color: var(--primary-border);
+      box-shadow: var(--shadow-md);
 
       .pao__card-add {
         background: $primary;
@@ -427,8 +427,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
 
   &__card-media {
     aspect-ratio: 16 / 9;
-    background: #f4f4f5;
-    color: #d4d4d8;
+    background: var(--muted);
+    color: var(--placeholder);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -465,8 +465,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
   &__card-add {
     margin: 8px 12px 12px;
     height: 32px;
-    border-radius: 9px;
-    background: #f4f4f5;
+    border-radius: var(--radius-lg);
+    background: var(--muted);
     color: $text;
     font-size: 13px;
     font-weight: 600;

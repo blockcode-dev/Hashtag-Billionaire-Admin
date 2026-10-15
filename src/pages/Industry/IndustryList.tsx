@@ -1,7 +1,7 @@
 /** @format */
 
 import { useEffect, useRef, useState } from "react";
-import { Upload } from "antd";
+import { FilePicker } from "@/components/common/Upload";
 import ReactCrop, {
   centerCrop,
   makeAspectCrop,
@@ -9,7 +9,6 @@ import ReactCrop, {
   PixelCrop,
 } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
-import { UploadOutlined } from "@ant-design/icons";
 
 import {
   Plus,
@@ -23,6 +22,7 @@ import {
   ImageOff,
   GripVertical,
   Eye,
+  Upload as UploadIcon,
 } from "lucide-react";
 import {
   CreateIndustryAPI,
@@ -184,10 +184,7 @@ const IndustryList = () => {
     setPendingFileName(file.name);
     setRawImageSrc(URL.createObjectURL(file));
     setCropModalOpen(true);
-
-    // Prevent antd from uploading or auto-adding this raw file — the
-    // cropped result is what eventually becomes the real fileList entry.
-    return false;
+    // The cropped result, not this raw file, becomes the fileList entry.
   };
   const ASPECT_RATIO = 4 / 3;
 
@@ -752,11 +749,8 @@ const IndustryList = () => {
               </label>
 
               <div className="ind__upload">
-                <Upload
-                  beforeUpload={handleBeforeUpload}
-                  maxCount={1}
-                  fileList={fileList}
-                  showUploadList={false}
+                <FilePicker
+                  onFiles={([file]) => handleBeforeUpload(file)}
                   accept=".png,.jpg,.jpeg"
                 >
                   {previewUrl ? (
@@ -777,11 +771,11 @@ const IndustryList = () => {
                     </div>
                   ) : (
                     <div className="ind__upload-placeholder">
-                      <UploadOutlined style={{ fontSize: 18 }} />
+                      <UploadIcon size="1em" style={{ fontSize: 18 }} />
                       <span>Upload Image</span>
                     </div>
                   )}
-                </Upload>
+                </FilePicker>
 
                 <div className="ind__upload-meta">
                   <div className="ind__upload-name">

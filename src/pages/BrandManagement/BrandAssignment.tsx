@@ -1,26 +1,26 @@
 /** @format */
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
+import { Tags, ChevronLeft, ChevronRight, Filter as FilterIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
-  Table,
-  Input,
-  Button,
-  Modal,
-  Select,
-  message,
-  Tag,
-  Image,
-  Space,
-  Empty,
-  Tooltip,
-} from "antd";
-import {
-  SearchOutlined,
-  TagsOutlined,
-  LeftOutlined,
-  RightOutlined,
-  FilterOutlined,
-} from "@ant-design/icons";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Combobox } from "@/components/common/Combobox";
+import { DataTable } from "@/components/common/DataTable";
+import { ImagePreview } from "@/components/common/ImagePreview";
+import { SearchInput } from "@/components/common/SearchInput";
+import { Spinner } from "@/components/common/Spinner";
+import { StatusTag } from "@/components/common/StatusTag";
+import { toast } from "sonner";
+import { EmptyState } from "@/components/common/EmptyState";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Tip } from "@/components/common/Tip";
 
 import {
   GetPublishedBrandsAPI,
@@ -103,15 +103,15 @@ const TagListCell: React.FC<{ items: { id: number; title: string }[]; color?: st
   items,
   color,
 }) => {
-  if (!items.length) return <span style={{ color: "#d1d5db" }}>—</span>;
+  if (!items.length) return <span style={{ color: "var(--placeholder)" }}>—</span>;
   const label = items.map((i) => i.title).join(", ");
   return (
-    <Tooltip title={items.length > 1 ? label : undefined}>
-      <Tag color={color} style={{ maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+    <Tip content={items.length > 1 ? label : undefined}>
+      <StatusTag color={color} className="block max-w-[150px] truncate">
         {items[0].title}
         {items.length > 1 ? ` +${items.length - 1}` : ""}
-      </Tag>
-    </Tooltip>
+      </StatusTag>
+    </Tip>
   );
 };
 
@@ -129,9 +129,9 @@ const ProductImageCell: React.FC<{ attachments: Attachment[] }> = ({
         style={{
           width: 48,
           height: 48,
-          border: "1px solid #eee",
-          background: "#fafafa",
-          borderRadius: 6,
+          border: "1px solid var(--border)",
+          background: "var(--muted)",
+          borderRadius: "var(--radius-md)",
           flexShrink: 0,
         }}
       />
@@ -155,23 +155,22 @@ const ProductImageCell: React.FC<{ attachments: Attachment[] }> = ({
         width: 48,
         height: 48,
         flexShrink: 0,
-        borderRadius: 6,
+        borderRadius: "var(--radius-md)",
         overflow: "hidden",
-        border: "1px solid #eee",
-        background: "#fafafa",
+        border: "1px solid var(--border)",
+        background: "var(--muted)",
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <Image.PreviewGroup items={uris}>
-        <Image
-          src={uris[index]}
-          width={48}
-          height={48}
-          style={{ objectFit: "contain" }}
-          fallback="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2Y1ZjVmNSIvPjwvc3ZnPg=="
-        />
-      </Image.PreviewGroup>
+      <ImagePreview
+        src={uris[index]}
+        gallery={uris}
+        width={48}
+        height={48}
+        style={{ objectFit: "contain", width: 48, height: 48 }}
+        fallback="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2Y1ZjVmNSIvPjwvc3ZnPg=="
+      />
 
       {uris.length > 1 && hovered && (
         <>
@@ -187,11 +186,11 @@ const ProductImageCell: React.FC<{ attachments: Attachment[] }> = ({
               alignItems: "center",
               justifyContent: "center",
               background:
-                "linear-gradient(to right, rgba(0,0,0,0.35), rgba(0,0,0,0))",
+                "linear-gradient(to right, color-mix(in srgb, var(--foreground) 35%, transparent), transparent)",
               cursor: "pointer",
             }}
           >
-            <LeftOutlined style={{ fontSize: 8, color: "#fff" }} />
+            <ChevronLeft size="1em" style={{ fontSize: 8, color: "#fff" }} />
           </div>
           <div
             onClick={goNext}
@@ -205,11 +204,11 @@ const ProductImageCell: React.FC<{ attachments: Attachment[] }> = ({
               alignItems: "center",
               justifyContent: "center",
               background:
-                "linear-gradient(to left, rgba(0,0,0,0.35), rgba(0,0,0,0))",
+                "linear-gradient(to left, color-mix(in srgb, var(--foreground) 35%, transparent), transparent)",
               cursor: "pointer",
             }}
           >
-            <RightOutlined style={{ fontSize: 8, color: "#fff" }} />
+            <ChevronRight size="1em" style={{ fontSize: 8, color: "#fff" }} />
           </div>
         </>
       )}
@@ -268,7 +267,7 @@ const BrandAssignment: React.FC = () => {
       setTotal(data?.pagination?.total || 0);
     } catch (err) {
       console.error(err);
-      message.error("Failed to load products");
+      toast.error("Failed to load products");
     } finally {
       setLoading(false);
     }
@@ -313,7 +312,7 @@ const BrandAssignment: React.FC = () => {
         product_ids: selectedRowKeys as number[],
         brand_id: selectedBrandId,
       });
-      message.success(
+      toast.success(
         `Brand assigned to ${selectedRowKeys.length} product${
           selectedRowKeys.length > 1 ? "s" : ""
         }`,
@@ -323,7 +322,7 @@ const BrandAssignment: React.FC = () => {
       fetchProducts();
     } catch (err) {
       console.error(err);
-      message.error("Failed to assign brand");
+      toast.error("Failed to assign brand");
     } finally {
       setAssigning(false);
     }
@@ -346,12 +345,12 @@ const BrandAssignment: React.FC = () => {
         <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
           <ProductImageCell attachments={record.attachments} />
           <div style={{ minWidth: 0 }}>
-            <Tooltip title={record.name}>
+            <Tip content={record.name}>
               <div
                 style={{
                   fontWeight: 600,
                   fontSize: 13,
-                  color: "#111827",
+                  color: "var(--foreground)",
                   lineHeight: 1.35,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -362,8 +361,8 @@ const BrandAssignment: React.FC = () => {
               >
                 {record.name}
               </div>
-            </Tooltip>
-            <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
+            </Tip>
+            <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 2 }}>
               ID: {record.id}
               {record.supplier_id ? ` · SID: ${record.supplier_id}` : ""}
             </div>
@@ -376,9 +375,9 @@ const BrandAssignment: React.FC = () => {
       key: "supplier",
       width: 90,
       render: (_: any, record: Product) => (
-        <Tooltip title={record.supplier_name}>
-          <Tag color="blue">{record.supplier}</Tag>
-        </Tooltip>
+        <Tip content={record.supplier_name}>
+          <StatusTag color="blue">{record.supplier}</StatusTag>
+        </Tip>
       ),
     },
     {
@@ -387,14 +386,14 @@ const BrandAssignment: React.FC = () => {
       width: 150,
       render: (_: any, record: Product) =>
         record.brand ? (
-          <Space direction="vertical" size={2}>
-            <Tag color="green">{record.brand.name}</Tag>
+          <div className="flex flex-col items-start gap-0.5">
+            <StatusTag color="green">{record.brand.name}</StatusTag>
             {record.is_brand_manually_assigned && (
-              <span style={{ fontSize: 10, color: "#9ca3af" }}>Manually set</span>
+              <span style={{ fontSize: 10, color: "var(--muted-foreground)" }}>Manually set</span>
             )}
-          </Space>
+          </div>
         ) : (
-          <Tag color="default">Unassigned</Tag>
+          <StatusTag>Unassigned</StatusTag>
         ),
     },
     {
@@ -427,11 +426,8 @@ const BrandAssignment: React.FC = () => {
       width: 100,
       fixed: "right" as const,
       render: (_: any, record: Product) => (
-        <Button
-          size="small"
-          icon={<TagsOutlined />}
-          onClick={() => openAssignModal([record.id])}
-        >
+        <Button size="sm" variant="outline" onClick={() => openAssignModal([record.id])}>
+          <Tags size={13} />
           Assign
         </Button>
       ),
@@ -439,24 +435,11 @@ const BrandAssignment: React.FC = () => {
   ];
 
   return (
-    <div style={{ padding: "20px 0 4px", overflowX: "hidden" }}>
-      {/* Heading */}
-      <div style={{ marginBottom: 24 }}>
-        <h1
-          style={{
-            fontSize: 20,
-            fontWeight: 700,
-            color: "#111827",
-            margin: 0,
-          }}
-        >
-          Brand Assignment
-        </h1>
-        <p style={{ fontSize: 13, color: "#9ca3af", marginTop: 4 }}>
-          Review unbranded products pulled from suppliers and assign the
-          correct brand.
-        </p>
-      </div>
+    <div style={{ paddingBottom: 4, overflowX: "hidden" }}>
+      <PageHeader
+        title="Brand Assignment"
+        description="Review unbranded products pulled from suppliers and assign the correct brand."
+      />
 
       {/* Search + filter + assign bar */}
       <div
@@ -470,22 +453,22 @@ const BrandAssignment: React.FC = () => {
         }}
       >
         <div style={{ display: "flex", gap: 10, flex: "1 1 400px", flexWrap: "wrap" }}>
-          <Input
+          <SearchInput
             size="large"
             placeholder="Search products by name…"
-            prefix={<SearchOutlined style={{ color: "#9ca3af" }} />}
             allowClear
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             style={{ maxWidth: 360, flex: "1 1 240px" }}
           />
 
-          <Select<AssignedFilter>
+          <Combobox<AssignedFilter>
             size="large"
+            searchable={false}
             value={assignedFilter}
-            onChange={handleFilterChange}
+            onChange={(v) => v && handleFilterChange(v)}
             style={{ width: 200 }}
-            suffixIcon={<FilterOutlined style={{ color: "#9ca3af" }} />}
+            triggerIcon={<FilterIcon size={14} className="text-muted-foreground" />}
             options={[
               { label: "All Products", value: "all" },
               { label: "Brand Assigned", value: "true" },
@@ -495,7 +478,6 @@ const BrandAssignment: React.FC = () => {
         </div>
 
         <Button
-          type="primary"
           disabled={selectedRowKeys.length === 0}
           onClick={() => openAssignModal()}
           style={{ flexShrink: 0 }}
@@ -504,7 +486,7 @@ const BrandAssignment: React.FC = () => {
         </Button>
       </div>
 
-      <Table
+      <DataTable
         rowKey="id"
         loading={loading}
         columns={columns}
@@ -515,41 +497,42 @@ const BrandAssignment: React.FC = () => {
           current: page,
           total,
           pageSize: PAGE_SIZE,
-          showSizeChanger: false,
           onChange: setPage,
-          showTotal: (t) => (
-            <span style={{ color: "#9ca3af", fontSize: 13 }}>
-              {t} products total
-            </span>
-          ),
+          showTotal: (t) => `${t} products total`,
         }}
-        locale={{
-          emptyText: <Empty description="No products found matching filters" />,
-        }}
+        emptyText={<EmptyState description="No products found matching filters" />}
       />
 
-      <Modal
-        open={brandModalOpen}
-        title={`Assign Brand to ${selectedRowKeys.length} product${
-          selectedRowKeys.length > 1 ? "s" : ""
-        }`}
-        onCancel={() => setBrandModalOpen(false)}
-        onOk={handleAssign}
-        okButtonProps={{ disabled: !selectedBrandId, loading: assigning }}
-        okText="Assign"
-      >
-        <Select
-          showSearch
-          style={{ width: "100%" }}
-          placeholder="Search brand…"
-          filterOption={false}
-          loading={brandSearchLoading}
-          onSearch={searchBrands}
-          value={selectedBrandId ?? undefined}
-          onChange={(val) => setSelectedBrandId(val)}
-          options={brandOptions.map((b) => ({ label: b.name, value: b.id }))}
-        />
-      </Modal>
+      <Dialog open={brandModalOpen} onOpenChange={setBrandModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {`Assign Brand to ${selectedRowKeys.length} product${
+                selectedRowKeys.length > 1 ? "s" : ""
+              }`}
+            </DialogTitle>
+            <DialogDescription>Search for the brand to assign.</DialogDescription>
+          </DialogHeader>
+          <Combobox
+            placeholder="Search brand…"
+            searchPlaceholder="Type a brand name…"
+            loading={brandSearchLoading}
+            onSearch={searchBrands}
+            value={selectedBrandId ?? undefined}
+            onChange={(val) => setSelectedBrandId(val ?? null)}
+            options={brandOptions.map((b) => ({ label: b.name, value: b.id }))}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBrandModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button disabled={!selectedBrandId || assigning} onClick={handleAssign}>
+              {assigning && <Spinner size="small" className="text-current" />}
+              Assign
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

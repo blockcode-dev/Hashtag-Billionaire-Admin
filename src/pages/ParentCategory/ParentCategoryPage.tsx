@@ -6,7 +6,7 @@ import {
   DeleteParentCategoryAPI,
 } from "@/services/Api/ParentCategoryApi";
 import { Plus, Pencil, Trash2, Search, AlertTriangle, X, ChevronDown, ChevronUp } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import "./ParentCategoryPage.scss";
 
 const TAGS_PREVIEW = 6;

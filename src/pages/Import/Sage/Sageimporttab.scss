@@ -7,24 +7,24 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── Variables ─────────────────────────────────────────────────────────────────
-$primary:        #2563eb;
-$primary-light:  #eff6ff;
-$primary-border: #bfdbfe;
-$success:        #16a34a;
-$success-light:  #f0fdf4;
-$error:          #dc2626;
-$error-light:    #fef2f2;
-$border:         #e5e7eb;
-$border-light:   #f3f4f6;
-$text-main:      #111827;
-$text-sub:       #6b7280;
-$text-muted:     #9ca3af;
-$white:          #ffffff;
-$bg:             #f8fafc;
+$primary:        var(--primary);
+$primary-light:  var(--primary-soft);
+$primary-border: var(--primary-border);
+$success:        var(--success-soft-foreground);
+$success-light:  var(--success-soft);
+$error:          var(--destructive);
+$error-light:    var(--destructive-soft);
+$border:         var(--border);
+$border-light:   var(--border);
+$text-main:      var(--foreground);
+$text-sub:       var(--muted-foreground);
+$text-muted:     var(--muted-foreground);
+$white:          var(--background);
+$bg:             var(--app-bg);
 $radius:         10px;
 $radius-sm:      6px;
-$shadow-card:    0 1px 3px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.04);
-$shadow-hover:   0 4px 12px rgba(0, 0, 0, 0.1);
+$shadow-card: var(--shadow-xs);
+$shadow-hover: var(--shadow-md);
 $transition:     0.18s ease;
 
 // ── Sub-tab switcher (SageTabWrapper) ─────────────────────────────────────────
@@ -64,663 +64,8 @@ $transition:     0.18s ease;
   width: 100%;
 }
 
-// ── Wrapper card (both tab pages) ─────────────────────────────────────────────
-.sage-import-tab {
-  background: $white;
-  border: 1px solid $border;
-  border-radius: $radius;
-  box-shadow: $shadow-card;
-  overflow: hidden;
-  max-width: 960px;
-  display: flex;
-  flex-direction: column;
-  position: relative; // needed for overlay
-}
-
-// ── Wizard Steps Bar (category tab) ──────────────────────────────────────────
-.sage-steps {
-  display: flex;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid $border;
-  background: $white;
-
-  &__item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex: 1;
-
-    &:not(:last-child)::after {
-      content: "→";
-      color: $text-muted;
-      font-size: 14px;
-      margin: 0 8px;
-      flex-shrink: 0;
-    }
-  }
-
-  &__circle {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    font-weight: 600;
-    flex-shrink: 0;
-    background: $border-light;
-    color: $text-muted;
-    transition: background $transition, color $transition;
-
-    &--active { background: $primary; color: $white; }
-    &--done   { background: $primary-light; color: $primary; }
-  }
-
-  &__label {
-    font-size: 13.5px;
-    font-weight: 500;
-    color: $text-muted;
-    white-space: nowrap;
-    transition: color $transition;
-
-    &--active { color: $text-main; font-weight: 600; }
-    &--done   { color: $primary; }
-  }
-}
-
-// ── Stepper (supplier tab, inside left panel) ─────────────────────────────────
-.sage-stepper {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: nowrap;
-  overflow: hidden;
-  padding-bottom: 4px;
-}
-
-.sage-step {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  opacity: 0.35;
-  transition: opacity 0.2s;
-
-  &--active { opacity: 1; }
-
-  &__num {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: $primary;
-    color: $white;
-    font-size: 11px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  &__label {
-    font-size: 11px;
-    font-weight: 600;
-    color: $text-main;
-    white-space: nowrap;
-  }
-
-  &__arrow {
-    color: $border;
-    font-size: 12px;
-    flex-shrink: 0;
-  }
-}
-
-// ── Main Body Layout ──────────────────────────────────────────────────────────
-.sage-body {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  min-height: 420px;
-  flex: 1;
-}
-
-// ── Left Panel ────────────────────────────────────────────────────────────────
-.sage-panel {
-  padding: 20px 24px;
-  border-right: 1px solid $border;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  overflow-y: auto;
-
-  &__label {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: $text-muted;
-  }
-
-  &__section {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  &__search {
-    position: relative;
-
-    input {
-      width: 100%;
-      padding: 9px 12px 9px 34px;
-      border: 1px solid $border;
-      border-radius: $radius-sm;
-      font-size: 13.5px;
-      color: $text-main;
-      background: $white;
-      outline: none;
-      transition: border $transition, box-shadow $transition;
-      box-sizing: border-box;
-
-      &::placeholder { color: $text-muted; }
-
-      &:focus {
-        border-color: $primary;
-        box-shadow: 0 0 0 3px rgba($primary, 0.1);
-      }
-
-      &:disabled {
-        background: $border-light;
-        color: $text-muted;
-        cursor: not-allowed;
-      }
-    }
-
-    &-icon {
-      position: absolute;
-      left: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: $text-muted;
-      pointer-events: none;
-      font-size: 13px;
-    }
-  }
-
-  &__list {
-    border: 1px solid $border;
-    border-radius: $radius-sm;
-    max-height: 200px;
-    overflow-y: auto;
-    background: $white;
-
-    &::-webkit-scrollbar       { width: 4px; }
-    &::-webkit-scrollbar-track { background: $border-light; }
-    &::-webkit-scrollbar-thumb { background: $border; border-radius: 99px; }
-  }
-
-  &__list-item {
-    padding: 9px 14px;
-    font-size: 13px;
-    color: $text-main;
-    cursor: pointer;
-    transition: background $transition;
-    border-bottom: 1px solid $border-light;
-
-    &:last-child { border-bottom: none; }
-    &:hover      { background: $primary-light; }
-
-    &--selected {
-      background: $primary-light;
-      color: $primary;
-      font-weight: 600;
-      border-left: 3px solid $primary;
-      padding-left: 11px;
-    }
-  }
-
-  &__empty {
-    padding: 20px;
-    text-align: center;
-    color: $text-muted;
-    font-size: 13px;
-  }
-}
-
-// ── Supplier ID input ─────────────────────────────────────────────────────────
-.sage-input {
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px solid $border;
-  border-radius: $radius-sm;
-  font-size: 13.5px;
-  color: $text-main;
-  outline: none;
-  transition: border-color $transition, box-shadow $transition;
-  box-sizing: border-box;
-
-  &:focus {
-    border-color: $primary;
-    box-shadow: 0 0 0 3px rgba($primary, 0.1);
-  }
-
-  &::placeholder { color: $text-muted; }
-}
-
-// ── Supplier badge ────────────────────────────────────────────────────────────
-.sage-supplier-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: $primary;
-  background: $primary-light;
-  border: 1px solid $primary-border;
-  border-radius: $radius-sm;
-  padding: 7px 10px;
-
-  &__dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: $primary;
-    flex-shrink: 0;
-  }
-
-  &__id {
-    color: $text-muted;
-    font-size: 12px;
-    margin-left: auto;
-  }
-}
-
-// ── Right Preview Panel ───────────────────────────────────────────────────────
-.sage-preview {
-  padding: 20px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  background: $bg;
-  overflow-y: auto;
-
-  &__placeholder {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    color: $text-muted;
-    font-size: 13.5px;
-    min-height: 300px;
-    text-align: center;
-
-    &-icon { font-size: 48px; opacity: 0.6; }
-  }
-
-  &__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 14px;
-  }
-
-  &__card {
-    background: $white;
-    border: 1px solid $border;
-    border-radius: $radius;
-    overflow: hidden;
-    cursor: pointer;
-    transition: box-shadow $transition, transform $transition, border-color $transition;
-    box-shadow: $shadow-card;
-
-    &:hover {
-      box-shadow: $shadow-hover;
-      transform: translateY(-2px);
-      border-color: $primary-border;
-    }
-
-    img {
-      width: 100%;
-      height: 120px;
-      object-fit: contain;
-      display: block;
-      background: $border-light;
-    }
-
-    &-info { padding: 10px; }
-
-    &-name {
-      font-size: 12.5px;
-      font-weight: 600;
-      color: $text-main;
-      line-height: 1.3;
-      margin-bottom: 4px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    &-price { font-size: 12px; color: $success; font-weight: 600; }
-  }
-
-  &__detail {
-    display: grid;
-    grid-template-columns: 240px 1fr;
-    gap: 24px;
-    background: $white;
-    border: 1px solid $border;
-    border-radius: $radius;
-    padding: 24px;
-    box-shadow: $shadow-card;
-
-    img {
-      width: 100%;
-      height: 220px;
-      object-fit: contain;
-      border-radius: $radius-sm;
-      border: 1px solid $border;
-      background: $border-light;
-    }
-
-    &-meta  { display: flex; flex-direction: column; gap: 10px; }
-    &-name  { font-size: 18px; font-weight: 700; color: $text-main; }
-    &-price { font-size: 16px; font-weight: 600; color: $success; }
-
-    &-row {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      font-size: 13px;
-      color: $text-sub;
-
-      strong {
-        color: $text-main;
-        font-weight: 600;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-      }
-    }
-
-    &-back {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      color: $primary;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0;
-      margin-bottom: 8px;
-
-      &:hover { text-decoration: underline; }
-    }
-  }
-}
-
-// ── Empty state (supplier tab) ────────────────────────────────────────────────
-.sage-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  min-height: 300px;
-  gap: 10px;
-  color: $text-muted;
-
-  &__icon { font-size: 40px; opacity: 0.55; }
-
-  p {
-    font-size: 14px;
-    text-align: center;
-    max-width: 220px;
-    line-height: 1.5;
-  }
-}
-
-// ── Count badge ───────────────────────────────────────────────────────────────
-.sage-count-badge {
-  font-size: 12px;
-  color: $text-muted;
-  margin-bottom: 4px;
-}
-
-// ── Pagination ────────────────────────────────────────────────────────────────
-.sage-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 16px;
-
-  &__info {
-    font-size: 13px;
-    color: $text-muted;
-    min-width: 60px;
-    text-align: center;
-  }
-}
-
-// ── Detail view (supplier tab standalone) ─────────────────────────────────────
-.sage-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-
-  &__back { align-self: flex-start; }
-
-  &__body { display: flex; flex-direction: column; gap: 8px; }
-
-  &__name {
-    font-size: 18px;
-    font-weight: 700;
-    color: $text-main;
-    margin: 0;
-  }
-
-  &__desc {
-    font-size: 14px;
-    color: $text-muted;
-    line-height: 1.6;
-    margin: 0;
-  }
-}
-
-// ── Inline loading (supplier tab) ─────────────────────────────────────────────
-.sage-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  height: 200px;
-  color: $text-muted;
-  font-size: 14px;
-
-  &__spinner {
-    width: 20px;
-    height: 20px;
-    border: 2px solid $border;
-    border-top-color: $primary;
-    border-radius: 50%;
-    animation: sage-spin 0.7s linear infinite;
-  }
-}
-
-// ── Spinner (category tab) ────────────────────────────────────────────────────
-.sage-spinner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-
-  &__ring {
-    width: 32px;
-    height: 32px;
-    border: 3px solid $border;
-    border-top-color: $primary;
-    border-radius: 50%;
-    animation: sage-spin 0.7s linear infinite;
-  }
-}
-
 @keyframes sage-spin {
   to { transform: rotate(360deg); }
-}
-
-// ── Buttons ───────────────────────────────────────────────────────────────────
-.sage-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  padding: 9px 20px;
-  border-radius: $radius-sm;
-  font-size: 13.5px;
-  font-weight: 600;
-  cursor: pointer;
-  border: none;
-  transition: background $transition, box-shadow $transition, transform $transition;
-
-  &--primary {
-    background: $primary;
-    color: $white;
-
-    &:hover:not(:disabled) {
-      background: color.adjust($primary, $lightness: -6%);
-      box-shadow: 0 4px 12px rgba($primary, 0.35);
-      transform: translateY(-1px);
-    }
-    &:disabled { background: #93c5fd; cursor: not-allowed; }
-  }
-
-  &--ghost {
-    background: transparent;
-    color: $text-sub;
-    border: 1px solid $border;
-
-    &:hover:not(:disabled) { background: $border-light; }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
-  }
-
-  // full-width inside left panel
-  &--block { width: 100%; }
-}
-
-// ── Banners ───────────────────────────────────────────────────────────────────
-.sage-success-banner {
-  background: $success-light;
-  border: 1px solid #bbf7d0;
-  border-radius: $radius-sm;
-  padding: 12px 16px;
-  color: $success;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.sage-error-banner {
-  background: $error-light;
-  border: 1px solid #fecaca;
-  border-radius: $radius-sm;
-  padding: 12px 16px;
-  color: $error;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-// ── Footer ────────────────────────────────────────────────────────────────────
-.sage-footer {
-  padding: 14px 24px;
-  border-top: 1px solid $border;
-  background: $white;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-
-  &__info {
-    font-size: 13px;
-    color: $text-sub;
-    strong { color: $text-main; }
-  }
-
-  &__actions { display: flex; gap: 10px; }
-
-  &__hint { color: #f59e0b; font-size: 12px; }
-}
-
-// ── Import Overlay (both tabs) ────────────────────────────────────────────────
-.sage-import-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(4px);
-
-  &__card {
-    background: $white;
-    border-radius: 16px;
-    padding: 40px 44px;
-    max-width: 440px;
-    width: 90%;
-    text-align: center;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
-  }
-
-  &__spinner {
-    width: 52px;
-    height: 52px;
-    border: 4px solid $primary-light;
-    border-top-color: $primary;
-    border-radius: 50%;
-    animation: sage-spin 0.8s linear infinite;
-  }
-
-  &__title {
-    font-size: 20px;
-    font-weight: 700;
-    color: $text-main;
-    margin: 0;
-  }
-
-  &__msg {
-    font-size: 14px;
-    color: $text-sub;
-    line-height: 1.65;
-    margin: 0;
-    max-width: 340px;
-  }
-
-  &__bar {
-    width: 100%;
-    height: 6px;
-    background: $primary-light;
-    border-radius: 99px;
-    overflow: hidden;
-  }
-
-  &__bar-fill {
-    height: 100%;
-    background: $primary;
-    border-radius: 99px;
-    animation: sage-progress 2.2s ease-in-out infinite alternate;
-  }
-
-  &__hint {
-    font-size: 12px;
-    color: #f59e0b;
-    font-weight: 600;
-    margin: 0;
-  }
 }
 
 @keyframes sage-progress {
@@ -728,378 +73,1037 @@ $transition:     0.18s ease;
   100% { width: 65%; margin-left: 15%; }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ADDITIONS — SageImportBySupplierTab improvements
-// Append these rules at the bottom of Sageimporttab.scss.
-// No existing rules are changed.
-// ─────────────────────────────────────────────────────────────────────────────
+/* Scoped to this page so its class names can't leak into other pages. */
+.sage-by-supplier {
+  // ── Wrapper card (both tab pages) ─────────────────────────────────────────────
+  & {
+    background: $white;
+    border: 1px solid $border;
+    border-radius: $radius;
+    box-shadow: $shadow-card;
+    overflow: hidden;
+    max-width: 960px;
+    display: flex;
+    flex-direction: column;
+    position: relative; // needed for overlay
+  }
 
-// ── Improved "Imported" badge on product cards ────────────────────────────────
-.sage-imported-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  color: #15803d;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 7px;
-  border-radius: 99px;
-  margin-bottom: 5px;
+  // ── Wizard Steps Bar (category tab) ──────────────────────────────────────────
+  .sage-steps {
+    display: flex;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid $border;
+    background: $white;
 
-  &__dot {
+    &__item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+
+      &:not(:last-child)::after {
+        content: "→";
+        color: $text-muted;
+        font-size: 14px;
+        margin: 0 8px;
+        flex-shrink: 0;
+      }
+    }
+
+    &__circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      flex-shrink: 0;
+      background: $border-light;
+      color: $text-muted;
+      transition: background $transition, color $transition;
+
+      &--active { background: $primary; color: $white; }
+      &--done   { background: $primary-light; color: $primary; }
+    }
+
+    &__label {
+      font-size: 13.5px;
+      font-weight: 500;
+      color: $text-muted;
+      white-space: nowrap;
+      transition: color $transition;
+
+      &--active { color: $text-main; font-weight: 600; }
+      &--done   { color: $primary; }
+    }
+  }
+
+  // ── Stepper (supplier tab, inside left panel) ─────────────────────────────────
+  .sage-stepper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    padding-bottom: 4px;
+  }
+
+  .sage-step {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    opacity: 0.35;
+    transition: opacity 0.2s;
+
+    &--active { opacity: 1; }
+
+    &__num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: $primary;
+      color: $white;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    &__label {
+      font-size: 11px;
+      font-weight: 600;
+      color: $text-main;
+      white-space: nowrap;
+    }
+
+    &__arrow {
+      color: $border;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+  }
+
+  // ── Main Body Layout ──────────────────────────────────────────────────────────
+  .sage-body {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    min-height: 420px;
+    flex: 1;
+  }
+
+  // ── Left Panel ────────────────────────────────────────────────────────────────
+  .sage-panel {
+    padding: 20px 24px;
+    border-right: 1px solid $border;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+
+    &__label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: $text-muted;
+    }
+
+    &__section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    &__search {
+      position: relative;
+
+      input {
+        width: 100%;
+        padding: 9px 12px 9px 34px;
+        border: 1px solid $border;
+        border-radius: $radius-sm;
+        font-size: 13.5px;
+        color: $text-main;
+        background: $white;
+        outline: none;
+        transition: border $transition, box-shadow $transition;
+        box-sizing: border-box;
+
+        &::placeholder { color: $text-muted; }
+
+        &:focus {
+          border-color: $primary;
+          box-shadow: 0 0 0 3px color-mix(in srgb, $primary 10%, transparent);
+        }
+
+        &:disabled {
+          background: $border-light;
+          color: $text-muted;
+          cursor: not-allowed;
+        }
+      }
+
+      &-icon {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: $text-muted;
+        pointer-events: none;
+        font-size: 13px;
+      }
+    }
+
+    &__list {
+      border: 1px solid $border;
+      border-radius: $radius-sm;
+      max-height: 200px;
+      overflow-y: auto;
+      background: $white;
+
+      &::-webkit-scrollbar       { width: 4px; }
+      &::-webkit-scrollbar-track { background: $border-light; }
+      &::-webkit-scrollbar-thumb { background: $border; border-radius: 99px; }
+    }
+
+    &__list-item {
+      padding: 9px 14px;
+      font-size: 13px;
+      color: $text-main;
+      cursor: pointer;
+      transition: background $transition;
+      border-bottom: 1px solid $border-light;
+
+      &:last-child { border-bottom: none; }
+      &:hover      { background: $primary-light; }
+
+      &--selected {
+        background: $primary-light;
+        color: $primary;
+        font-weight: 600;
+        border-left: 3px solid $primary;
+        padding-left: 11px;
+      }
+    }
+
+    &__empty {
+      padding: 20px;
+      text-align: center;
+      color: $text-muted;
+      font-size: 13px;
+    }
+  }
+
+  // ── Supplier ID input ─────────────────────────────────────────────────────────
+  .sage-input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid $border;
+    border-radius: $radius-sm;
+    font-size: 13.5px;
+    color: $text-main;
+    outline: none;
+    transition: border-color $transition, box-shadow $transition;
+    box-sizing: border-box;
+
+    &:focus {
+      border-color: $primary;
+      box-shadow: 0 0 0 3px color-mix(in srgb, $primary 10%, transparent);
+    }
+
+    &::placeholder { color: $text-muted; }
+  }
+
+  // ── Supplier badge ────────────────────────────────────────────────────────────
+  .sage-supplier-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: $primary;
+    background: $primary-light;
+    border: 1px solid $primary-border;
+    border-radius: $radius-sm;
+    padding: 7px 10px;
+
+    &__dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: $primary;
+      flex-shrink: 0;
+    }
+
+    &__id {
+      color: $text-muted;
+      font-size: 12px;
+      margin-left: auto;
+    }
+  }
+
+  // ── Right Preview Panel ───────────────────────────────────────────────────────
+  .sage-preview {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    background: $bg;
+    overflow-y: auto;
+
+    &__placeholder {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: $text-muted;
+      font-size: 13.5px;
+      min-height: 300px;
+      text-align: center;
+
+      &-icon { font-size: 48px; opacity: 0.6; }
+    }
+
+    &__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 14px;
+    }
+
+    &__card {
+      background: $white;
+      border: 1px solid $border;
+      border-radius: $radius;
+      overflow: hidden;
+      cursor: pointer;
+      transition: box-shadow $transition, transform $transition, border-color $transition;
+      box-shadow: $shadow-card;
+
+      &:hover {
+        box-shadow: $shadow-hover;
+        transform: translateY(-2px);
+        border-color: $primary-border;
+      }
+
+      img {
+        width: 100%;
+        height: 120px;
+        object-fit: contain;
+        display: block;
+        background: $border-light;
+      }
+
+      &-info { padding: 10px; }
+
+      &-name {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: $text-main;
+        line-height: 1.3;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      &-price { font-size: 12px; color: $success; font-weight: 600; }
+    }
+
+    &__detail {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 24px;
+      background: $white;
+      border: 1px solid $border;
+      border-radius: $radius;
+      padding: 24px;
+      box-shadow: $shadow-card;
+
+      img {
+        width: 100%;
+        height: 220px;
+        object-fit: contain;
+        border-radius: $radius-sm;
+        border: 1px solid $border;
+        background: $border-light;
+      }
+
+      &-meta  { display: flex; flex-direction: column; gap: 10px; }
+      &-name  { font-size: 18px; font-weight: 700; color: $text-main; }
+      &-price { font-size: 16px; font-weight: 600; color: $success; }
+
+      &-row {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        font-size: 13px;
+        color: $text-sub;
+
+        strong {
+          color: $text-main;
+          font-weight: 600;
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+      }
+
+      &-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: $primary;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        margin-bottom: 8px;
+
+        &:hover { text-decoration: underline; }
+      }
+    }
+  }
+
+  // ── Empty state (supplier tab) ────────────────────────────────────────────────
+  .sage-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 300px;
+    gap: 10px;
+    color: $text-muted;
+
+    &__icon { font-size: 40px; opacity: 0.55; }
+
+    p {
+      font-size: 14px;
+      text-align: center;
+      max-width: 220px;
+      line-height: 1.5;
+    }
+  }
+
+  // ── Count badge ───────────────────────────────────────────────────────────────
+  .sage-count-badge {
+    font-size: 12px;
+    color: $text-muted;
+    margin-bottom: 4px;
+  }
+
+  // ── Pagination ────────────────────────────────────────────────────────────────
+  .sage-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 16px;
+
+    &__info {
+      font-size: 13px;
+      color: $text-muted;
+      min-width: 60px;
+      text-align: center;
+    }
+  }
+
+  // ── Detail view (supplier tab standalone) ─────────────────────────────────────
+  .sage-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+
+    &__back { align-self: flex-start; }
+
+    &__body { display: flex; flex-direction: column; gap: 8px; }
+
+    &__name {
+      font-size: 18px;
+      font-weight: 700;
+      color: $text-main;
+      margin: 0;
+    }
+
+    &__desc {
+      font-size: 14px;
+      color: $text-muted;
+      line-height: 1.6;
+      margin: 0;
+    }
+  }
+
+  // ── Inline loading (supplier tab) ─────────────────────────────────────────────
+  .sage-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 200px;
+    color: $text-muted;
+    font-size: 14px;
+
+    &__spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid $border;
+      border-top-color: $primary;
+      border-radius: 50%;
+      animation: sage-spin 0.7s linear infinite;
+    }
+  }
+
+  // ── Spinner (category tab) ────────────────────────────────────────────────────
+  .sage-spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+
+    &__ring {
+      width: 32px;
+      height: 32px;
+      border: 3px solid $border;
+      border-top-color: $primary;
+      border-radius: 50%;
+      animation: sage-spin 0.7s linear infinite;
+    }
+  }
+
+  // ── Buttons ───────────────────────────────────────────────────────────────────
+  .sage-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 9px 20px;
+    border-radius: $radius-sm;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background $transition, box-shadow $transition, transform $transition;
+
+    &--primary {
+      background: $primary;
+      color: $white;
+
+      &:hover:not(:disabled) {
+        background: var(--primary-hover);
+        box-shadow: 0 4px 12px color-mix(in srgb, $primary 35%, transparent);
+        transform: translateY(-1px);
+      }
+      &:disabled { background: var(--primary-soft); cursor: not-allowed; }
+    }
+
+    &--ghost {
+      background: transparent;
+      color: $text-sub;
+      border: 1px solid $border;
+
+      &:hover:not(:disabled) { background: $border-light; }
+      &:disabled { opacity: 0.5; cursor: not-allowed; }
+    }
+
+    // full-width inside left panel
+    &--block { width: 100%; }
+  }
+
+  // ── Banners ───────────────────────────────────────────────────────────────────
+  .sage-success-banner {
+    background: $success-light;
+    border: 1px solid var(--success-border);
+    border-radius: $radius-sm;
+    padding: 12px 16px;
+    color: $success;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .sage-error-banner {
+    background: $error-light;
+    border: 1px solid var(--destructive-border);
+    border-radius: $radius-sm;
+    padding: 12px 16px;
+    color: $error;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  // ── Footer ────────────────────────────────────────────────────────────────────
+  .sage-footer {
+    padding: 14px 24px;
+    border-top: 1px solid $border;
+    background: $white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    &__info {
+      font-size: 13px;
+      color: $text-sub;
+      strong { color: $text-main; }
+    }
+
+    &__actions { display: flex; gap: 10px; }
+
+    &__hint { color: var(--warning); font-size: 12px; }
+  }
+
+  // ── Import Overlay (both tabs) ────────────────────────────────────────────────
+  .sage-import-overlay {
+    position: fixed;
+    inset: 0;
+    background: color-mix(in srgb, var(--foreground) 55%, transparent);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+
+    &__card {
+      background: $white;
+      border-radius: var(--radius-2xl);
+      padding: 40px 44px;
+      max-width: 440px;
+      width: 90%;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    &__spinner {
+      width: 52px;
+      height: 52px;
+      border: 4px solid $primary-light;
+      border-top-color: $primary;
+      border-radius: 50%;
+      animation: sage-spin 0.8s linear infinite;
+    }
+
+    &__title {
+      font-size: 20px;
+      font-weight: 700;
+      color: $text-main;
+      margin: 0;
+    }
+
+    &__msg {
+      font-size: 14px;
+      color: $text-sub;
+      line-height: 1.65;
+      margin: 0;
+      max-width: 340px;
+    }
+
+    &__bar {
+      width: 100%;
+      height: 6px;
+      background: $primary-light;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    &__bar-fill {
+      height: 100%;
+      background: $primary;
+      border-radius: 99px;
+      animation: sage-progress 2.2s ease-in-out infinite alternate;
+    }
+
+    &__hint {
+      font-size: 12px;
+      color: var(--warning);
+      font-weight: 600;
+      margin: 0;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // ADDITIONS — SageImportBySupplierTab improvements
+  // Append these rules at the bottom of Sageimporttab.scss.
+  // No existing rules are changed.
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // ── Improved "Imported" badge on product cards ────────────────────────────────
+  .sage-imported-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--success-soft);
+    border: 1px solid var(--success-border);
+    color: var(--success-soft-foreground);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 7px;
+    border-radius: 99px;
+    margin-bottom: 5px;
+
+    &__dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      flex-shrink: 0;
+      box-shadow: var(--focus-ring);
+    }
+  }
+
+  // ── Product detail: hero two-column layout ────────────────────────────────────
+  .sage-detail__hero {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 24px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-xs);
+  }
+
+  // ── Gallery ───────────────────────────────────────────────────────────────────
+  .sage-detail__gallery {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .sage-detail__gallery-main {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--muted);
+
+    img {
+      width: 100%;
+      height: 200px;
+      object-fit: contain;
+      display: block;
+    }
+  }
+
+  .sage-detail__gallery-logo-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 99px;
+  }
+
+  .sage-detail__gallery-thumbs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .sage-detail__gallery-thumb {
+    width: 48px;
+    height: 38px;
+    object-fit: contain;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    background: var(--muted);
+    transition: border-color 0.15s, box-shadow 0.15s;
+
+    &:hover {
+      border-color: var(--primary-border);
+    }
+
+    &--active {
+      border-color: var(--primary);
+      box-shadow: var(--focus-ring);
+    }
+  }
+
+  // ── Core info column ──────────────────────────────────────────────────────────
+  .sage-detail__info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .sage-detail__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .sage-detail__status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 99px;
+    border: 1px solid transparent;
+
+    &--imported {
+      background: var(--success-soft);
+      border-color: var(--success-border);
+      color: var(--success-soft-foreground);
+    }
+
+    &--not-imported {
+      background: var(--muted);
+      border-color: var(--border);
+      color: var(--muted-foreground);
+    }
+
+    &--new {
+      background: var(--primary-soft);
+      border-color: var(--primary-border);
+      color: var(--primary);
+    }
+
+    &--discontinued {
+      background: var(--destructive-soft);
+      border-color: var(--destructive-border);
+      color: var(--destructive);
+    }
+  }
+
+  .sage-detail__status-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #22c55e;
     flex-shrink: 0;
-    box-shadow: 0 0 0 2px rgba(#22c55e, 0.25);
-  }
-}
 
-// ── Product detail: hero two-column layout ────────────────────────────────────
-.sage-detail__hero {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 24px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
-}
+    &--green {
+      background: var(--success);
+      box-shadow: var(--focus-ring);
+    }
 
-// ── Gallery ───────────────────────────────────────────────────────────────────
-.sage-detail__gallery {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.sage-detail__gallery-main {
-  position: relative;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #f3f4f6;
-
-  img {
-    width: 100%;
-    height: 200px;
-    object-fit: contain;
-    display: block;
-  }
-}
-
-.sage-detail__gallery-logo-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: #2563eb;
-  color: #ffffff;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 7px;
-  border-radius: 99px;
-}
-
-.sage-detail__gallery-thumbs {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.sage-detail__gallery-thumb {
-  width: 48px;
-  height: 38px;
-  object-fit: contain;
-  border: 1px solid #e5e7eb;
-  border-radius: 5px;
-  cursor: pointer;
-  background: #f9fafb;
-  transition: border-color 0.15s, box-shadow 0.15s;
-
-  &:hover {
-    border-color: #93c5fd;
+    &--grey {
+      background: var(--muted-foreground);
+    }
   }
 
-  &--active {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
-  }
-}
-
-// ── Core info column ──────────────────────────────────────────────────────────
-.sage-detail__info {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.sage-detail__badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.sage-detail__status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 9px;
-  border-radius: 99px;
-  border: 1px solid transparent;
-
-  &--imported {
-    background: #f0fdf4;
-    border-color: #bbf7d0;
-    color: #15803d;
+  .sage-detail__meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
-  &--not-imported {
-    background: #f9fafb;
-    border-color: #e5e7eb;
-    color: #6b7280;
+  .sage-detail__meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 4px 8px;
+    font-size: 11.5px;
+    color: var(--muted-foreground);
+
+    strong {
+      color: var(--foreground);
+      font-weight: 600;
+    }
   }
 
-  &--new {
-    background: #eff6ff;
-    border-color: #bfdbfe;
-    color: #2563eb;
+  .sage-detail__import-info {
+    display: flex;
+    gap: 16px;
+    background: var(--primary-soft);
+    border: 1px solid var(--primary-border);
+    border-radius: var(--radius-lg);
+    padding: 8px 12px;
+    font-size: 12.5px;
+
+    div {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
   }
 
-  &--discontinued {
-    background: #fef2f2;
-    border-color: #fecaca;
-    color: #dc2626;
-  }
-}
-
-.sage-detail__status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-
-  &--green {
-    background: #22c55e;
-    box-shadow: 0 0 0 2px rgba(#22c55e, 0.2);
+  .sage-detail__import-info-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
   }
 
-  &--grey {
-    background: #9ca3af;
+  .sage-detail__import-info-val {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
   }
-}
 
-.sage-detail__meta-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
+  // ── Sections (pricing, variants, deco, packaging) ─────────────────────────────
+  .sage-detail__section {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    box-shadow: var(--shadow-xs);
+  }
 
-.sage-detail__meta-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 11.5px;
-  color: #6b7280;
+  .sage-detail__section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    margin-bottom: 12px;
+  }
 
-  strong {
-    color: #111827;
+  // ── Pricing table ─────────────────────────────────────────────────────────────
+  .sage-detail__pricing-table {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    font-size: 13px;
+  }
+
+  .sage-detail__pricing-head {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    background: var(--muted);
+    padding: 7px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
+  }
+
+  .sage-detail__pricing-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    padding: 7px 12px;
+    border-top: 1px solid var(--border);
+    color: var(--foreground);
+
+    &:nth-child(even) {
+      background: var(--muted);
+    }
+  }
+
+  .sage-detail__pricing-price {
+    color: var(--foreground);
     font-weight: 600;
   }
-}
 
-.sage-detail__import-info {
-  display: flex;
-  gap: 16px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 7px;
-  padding: 8px 12px;
-  font-size: 12.5px;
+  .sage-detail__pricing-net {
+    color: var(--success-soft-foreground);
+    font-weight: 600;
+  }
 
-  div {
+  .sage-detail__pricing-note {
+    font-size: 11.5px;
+    color: var(--muted-foreground);
+    margin-top: 8px;
+  }
+
+  // ── Variant cards ─────────────────────────────────────────────────────────────
+  .sage-detail__variants-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+  }
+
+  .sage-detail__variant-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 10px 12px;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 5px;
+    background: var(--muted);
+    font-size: 12.5px;
+    transition: box-shadow 0.15s, border-color 0.15s;
+
+    &:hover {
+      border-color: var(--primary-border);
+      box-shadow: var(--shadow-sm);
+    }
+  }
+
+  .sage-detail__variant-color-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .sage-detail__variant-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid color-mix(in srgb, var(--foreground) 12%, transparent);
+    flex-shrink: 0;
+    display: inline-block;
+  }
+
+  .sage-detail__variant-color {
+    font-weight: 600;
+    color: var(--foreground);
+    font-size: 12.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sage-detail__variant-sku {
+    font-size: 11px;
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+  }
+
+  .sage-detail__variant-stats {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted-foreground);
+    margin-top: 2px;
+  }
+
+  .sage-detail__variant-price {
+    font-weight: 700;
+    color: var(--success-soft-foreground);
+  }
+
+  // ── Decoration & packaging grid ───────────────────────────────────────────────
+  .sage-detail__deco-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+  }
+
+  .sage-detail__deco-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 13px;
+    color: var(--foreground);
+  }
+
+  .sage-detail__deco-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-foreground);
   }
 }
 
-.sage-detail__import-info-label {
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #6b7280;
-}
-
-.sage-detail__import-info-val {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1d4ed8;
-}
-
-// ── Sections (pricing, variants, deco, packaging) ─────────────────────────────
-.sage-detail__section {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 16px 18px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.sage-detail__section-title {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #6b7280;
-  margin-bottom: 12px;
-}
-
-// ── Pricing table ─────────────────────────────────────────────────────────────
-.sage-detail__pricing-table {
-  border: 1px solid #e5e7eb;
-  border-radius: 7px;
-  overflow: hidden;
-  font-size: 13px;
-}
-
-.sage-detail__pricing-head {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  background: #f3f4f6;
-  padding: 7px 12px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #6b7280;
-}
-
-.sage-detail__pricing-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  padding: 7px 12px;
-  border-top: 1px solid #f3f4f6;
-  color: #374151;
-
-  &:nth-child(even) {
-    background: #fafafa;
-  }
-}
-
-.sage-detail__pricing-price {
-  color: #111827;
-  font-weight: 600;
-}
-
-.sage-detail__pricing-net {
-  color: #16a34a;
-  font-weight: 600;
-}
-
-.sage-detail__pricing-note {
-  font-size: 11.5px;
-  color: #9ca3af;
-  margin-top: 8px;
-}
-
-// ── Variant cards ─────────────────────────────────────────────────────────────
-.sage-detail__variants-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 10px;
-}
-
-.sage-detail__variant-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  background: #fafafa;
-  font-size: 12.5px;
-  transition: box-shadow 0.15s, border-color 0.15s;
-
-  &:hover {
-    border-color: #bfdbfe;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
-  }
-}
-
-.sage-detail__variant-color-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.sage-detail__variant-swatch {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  flex-shrink: 0;
-  display: inline-block;
-}
-
-.sage-detail__variant-color {
-  font-weight: 600;
-  color: #111827;
-  font-size: 12.5px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sage-detail__variant-sku {
-  font-size: 11px;
-  color: #9ca3af;
-  font-family: monospace;
-}
-
-.sage-detail__variant-stats {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12px;
-  color: #6b7280;
-  margin-top: 2px;
-}
-
-.sage-detail__variant-price {
-  font-weight: 700;
-  color: #16a34a;
-}
-
-// ── Decoration & packaging grid ───────────────────────────────────────────────
-.sage-detail__deco-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 10px;
-}
-
-.sage-detail__deco-item {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  font-size: 13px;
-  color: #374151;
-}
-
-.sage-detail__deco-label {
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #9ca3af;
-}

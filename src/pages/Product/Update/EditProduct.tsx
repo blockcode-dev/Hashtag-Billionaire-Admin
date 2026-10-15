@@ -1,7 +1,7 @@
 /** @format */
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router";
 import {
   ArrowLeft,
   Save,
@@ -25,15 +25,14 @@ import {
   Layers,
   Link2,
 } from "lucide-react";
-import {
-  AutoComplete,
-  message,
-  Modal,
-  Pagination,
-  Select,
-  Spin,
-  Tooltip,
-} from "antd";
+import { AutoComplete } from "@/components/common/AutoComplete";
+import { Combobox } from "@/components/common/Combobox";
+import { toast } from "sonner";
+import { IMAGE_ACCEPT, checkImageFiles, checkUploadCounts } from "@/lib/uploads";
+import { confirm } from "@/components/common/ConfirmDialog";
+import { Pagination } from "@/components/common/Pagination";
+import { Spinner } from "@/components/common/Spinner";
+import { Tip } from "@/components/common/Tip";
 import { GetProductByIdAPI, UpdateProductAPI } from "@/services/Api/ProductApi";
 import {
   GetAllCategoriesAPI,
@@ -51,6 +50,7 @@ import {
 } from "@/services/Api/GrandCategoryApi";
 import { GetPublishedBrandsAPI } from "@/services/Api/BrandsApi";
 import "./EditProduct.scss";
+import { sanitizeHtml } from "@/lib/sanitize";
 import {
   ClearUseCaseProductOverrideAPI,
   ExcludeProductsFromUseCaseAPI,
@@ -333,7 +333,7 @@ const ColorNameAutocomplete: React.FC<{
             height: 12,
             borderRadius: "50%",
             background: c.hex,
-            border: "1px solid #d9d9d9",
+            border: "1px solid var(--input)",
             display: "inline-block",
             flexShrink: 0,
           }}
@@ -348,12 +348,6 @@ const ColorNameAutocomplete: React.FC<{
       value={value}
       options={options}
       style={{ width: "100%" }}
-      filterOption={(inputValue, option) =>
-        !!option?.value &&
-        (option.value as string)
-          .toLowerCase()
-          .includes(inputValue.toLowerCase())
-      }
       onSelect={(val) =>
         onSelectColor(val as string, getHexFromColorName(val as string))
       }
@@ -424,7 +418,7 @@ const RichTextEditor: React.FC<{
         className="rich-text-body"
         contentEditable
         suppressContentEditableWarning
-        dangerouslySetInnerHTML={{ __html: initialHtml }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(initialHtml) }}
       />
     </div>
   );
@@ -486,23 +480,21 @@ const CategoryAddSelect: React.FC<{
   };
 
   return (
-    <Select
-      showSearch
+    <Combobox
       value={undefined}
       placeholder={placeholder}
       className="cat-hierarchy-add-select"
-      optionFilterProp="label"
-      onDropdownVisibleChange={(open) => {
+      onOpenChange={(open) => {
         if (open) ensureLoaded();
       }}
-      onChange={handleChange}
+      onChange={(v) => v !== undefined && handleChange(v)}
       loading={loading || adding}
       disabled={adding}
-      notFoundContent={
-        loading ? <Spin size="small" /> : "Nothing left to add"
+      emptyText={
+        loading ? <Spinner size="small" /> : "Nothing left to add"
       }
       options={options}
-      suffixIcon={<Plus size={13} />}
+      triggerIcon={<Plus size={13} />}
     />
   );
 };
@@ -592,7 +584,7 @@ const EditProduct: React.FC = () => {
       const res = await GetPublishedBrandsAPI({ page: 1, limit: 500 });
       setBrands(res?.data?.data?.data || []);
     } catch {
-      message.error("Failed to fetch brands");
+      toast.error("Failed to fetch brands");
     }
   };
 
@@ -611,7 +603,7 @@ const EditProduct: React.FC = () => {
       setCatTotal(total);
       setCatPage(page);
     } catch {
-      message.error("Failed to fetch categories");
+      toast.error("Failed to fetch categories");
     } finally {
       setCatLoading(false);
     }
@@ -644,7 +636,7 @@ const EditProduct: React.FC = () => {
     try {
       const res = await CreateCategoryAPI({ title, supplier: "MANUAL" });
       const created: CategoryRef | undefined = res?.data?.data;
-      message.success("Category created");
+      toast.success("Category created");
       setNewCategoryName("");
       await fetchCategories(1, catSearch);
       if (created?.id) {
@@ -658,7 +650,7 @@ const EditProduct: React.FC = () => {
         });
       }
     } catch (err: any) {
-      message.error(
+      toast.error(
         err?.response?.data?.message || "Failed to create category",
       );
     } finally {
@@ -682,7 +674,7 @@ const EditProduct: React.FC = () => {
     setSavingCategoryEdit(true);
     try {
       await UpdateCategoryAPI(catId, { title });
-      message.success("Category updated");
+      toast.success("Category updated");
       setCategories((prev) =>
         prev.map((c) => (c.id === catId ? { ...c, title } : c)),
       );
@@ -691,7 +683,7 @@ const EditProduct: React.FC = () => {
       );
       cancelEditCategory();
     } catch (err: any) {
-      message.error(
+      toast.error(
         err?.response?.data?.message || "Failed to update category",
       );
     } finally {
@@ -700,7 +692,7 @@ const EditProduct: React.FC = () => {
   };
 
   const handleDeleteCategory = (cat: CategoryRef) => {
-    Modal.confirm({
+    confirm({
       title: "Delete category",
       content: (
         <span>
@@ -713,12 +705,12 @@ const EditProduct: React.FC = () => {
         setDeletingCategoryId(cat.id);
         try {
           await DeleteCategoryAPI(cat.id);
-          message.success("Category deleted");
+          toast.success("Category deleted");
           setCategories((prev) => prev.filter((c) => c.id !== cat.id));
           setAllLoadedCategories((prev) => prev.filter((c) => c.id !== cat.id));
           setSelectedCatIds((prev) => prev.filter((cid) => cid !== cat.id));
         } catch (err: any) {
-          message.error(
+          toast.error(
             err?.response?.data?.message || "Failed to delete category",
           );
         } finally {
@@ -790,7 +782,7 @@ const EditProduct: React.FC = () => {
       );
     } catch (err) {
       console.error(err);
-      message.error("Failed to load product");
+      toast.error("Failed to load product");
     } finally {
       setLoading(false);
     }
@@ -804,7 +796,7 @@ const EditProduct: React.FC = () => {
   // (not on every keystroke — that would fight the user's cursor).
   useEffect(() => {
     if (descriptionRef.current) {
-      descriptionRef.current.innerHTML = descriptionHtml;
+      descriptionRef.current.innerHTML = sanitizeHtml(descriptionHtml);
     }
   }, [product?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -818,7 +810,7 @@ const EditProduct: React.FC = () => {
       const res = await GetUseCasesForProductAPI(Number(id));
       setProductUseCases(res?.data?.data || []);
     } catch {
-      message.error("Failed to load use cases");
+      toast.error("Failed to load use cases");
     } finally {
       setUcLoading(false);
     }
@@ -855,13 +847,13 @@ const EditProduct: React.FC = () => {
     try {
       setUcAdding(true);
       await AddProductsToUseCaseAPI(useCaseId, [product.id]);
-      message.success(`Added to "${title}"`);
+      toast.success(`Added to "${title}"`);
       setUcPickerOpen(false);
       setUcSearch("");
       setUcOptions([]);
       await loadProductUseCases();
     } catch {
-      message.error("Failed to add to use case");
+      toast.error("Failed to add to use case");
     } finally {
       setUcAdding(false);
     }
@@ -877,9 +869,9 @@ const EditProduct: React.FC = () => {
         await ExcludeProductsFromUseCaseAPI(uc.id, [product.id]);
       }
       setProductUseCases((prev) => prev.filter((x) => x.id !== uc.id));
-      message.success(`Removed from "${uc.title}"`);
+      toast.success(`Removed from "${uc.title}"`);
     } catch {
-      message.error("Failed to remove from use case");
+      toast.error("Failed to remove from use case");
     } finally {
       setUcActionId(null);
     }
@@ -931,7 +923,7 @@ const EditProduct: React.FC = () => {
         parent_category_id: parentId,
         product_category_id: categoryId,
       });
-      message.success(`Added to "${parentTitle}"`);
+      toast.success(`Added to "${parentTitle}"`);
       // Use whatever the backend actually knows about this parent's
       // existing Grand Category mappings — this Sub-Category may have
       // already belonged to a Category before it was ever linked to
@@ -957,7 +949,7 @@ const EditProduct: React.FC = () => {
         ),
       );
     } catch (err: any) {
-      message.error(
+      toast.error(
         err?.response?.data?.message || "Failed to add sub-category",
       );
     }
@@ -987,7 +979,7 @@ const EditProduct: React.FC = () => {
         ),
       );
     } catch (err: any) {
-      message.error(
+      toast.error(
         err?.response?.data?.message || "Failed to remove sub-category",
       );
     } finally {
@@ -1005,7 +997,7 @@ const EditProduct: React.FC = () => {
         grand_category_id: grandId,
         parent_category_id: parentId,
       });
-      message.success(`Added to "${grandTitle}"`);
+      toast.success(`Added to "${grandTitle}"`);
       // A sub-category could appear under more than one product category
       // row — update every occurrence, not just the one that triggered this.
       setProductCategoryHierarchy((prev) =>
@@ -1025,7 +1017,7 @@ const EditProduct: React.FC = () => {
         })),
       );
     } catch (err: any) {
-      message.error(err?.response?.data?.message || "Failed to add category");
+      toast.error(err?.response?.data?.message || "Failed to add category");
     }
   };
 
@@ -1056,7 +1048,7 @@ const EditProduct: React.FC = () => {
         })),
       );
     } catch (err: any) {
-      message.error(
+      toast.error(
         err?.response?.data?.message || "Failed to remove category",
       );
     } finally {
@@ -1072,7 +1064,9 @@ const EditProduct: React.FC = () => {
 
   const addProductImages = (files: FileList | null) => {
     if (!files) return;
-    const arr = Array.from(files);
+    const { accepted: arr, error } = checkImageFiles(Array.from(files));
+    if (error) toast.error(error);
+    if (!arr.length) return;
     setNewProductFiles((prev) => [...prev, ...arr]);
     setNewProductPreviews((prev) => [
       ...prev,
@@ -1112,7 +1106,9 @@ const EditProduct: React.FC = () => {
 
   const addVariantImages = (variantId: number, files: FileList | null) => {
     if (!files) return;
-    const arr = Array.from(files);
+    const { accepted: arr, error } = checkImageFiles(Array.from(files));
+    if (error) toast.error(error);
+    if (!arr.length) return;
     setVariantDrafts((prev) =>
       prev.map((v) =>
         v.id === variantId
@@ -1199,23 +1195,23 @@ const EditProduct: React.FC = () => {
       if (!v.hasTieredPricing) continue;
       const label = v.sku ? `Variant ${v.sku}` : "This variant";
       if (v.tierRows.length === 0) {
-        message.error(`${label}: add at least one quantity tier, or the pricing will show as unavailable`);
+        toast.error(`${label}: add at least one quantity tier, or the pricing will show as unavailable`);
         return false;
       }
       const qtySeen = new Set<string>();
       for (let i = 0; i < v.tierRows.length; i++) {
         const t = v.tierRows[i];
         if (!t.qty.trim()) {
-          message.error(`${label}, tier ${i + 1}: quantity is required`);
+          toast.error(`${label}, tier ${i + 1}: quantity is required`);
           return false;
         }
         if (qtySeen.has(t.qty.trim())) {
-          message.error(`${label}: duplicate quantity break "${t.qty}"`);
+          toast.error(`${label}: duplicate quantity break "${t.qty}"`);
           return false;
         }
         qtySeen.add(t.qty.trim());
         if (!t.price.trim() || Number(t.price) <= 0) {
-          message.error(`${label}, tier ${i + 1}: list price must be more than 0`);
+          toast.error(`${label}, tier ${i + 1}: list price must be more than 0`);
           return false;
         }
       }
@@ -1227,6 +1223,14 @@ const EditProduct: React.FC = () => {
   const handleSave = async () => {
     if (!product) return;
     if (!validateTierRows()) return;
+    const countError = checkUploadCounts(
+      newProductFiles.length,
+      variantDrafts.reduce((n, v) => n + v.newFiles.length, 0),
+    );
+    if (countError) {
+      toast.error(countError);
+      return;
+    }
     try {
       setSaving(true);
 
@@ -1308,13 +1312,13 @@ const EditProduct: React.FC = () => {
 
       await UpdateProductAPI(formData);
 
-      message.success(
+      toast.success(
         "Product updated. Supplier sync is now paused for this product.",
       );
       navigate("/products");
     } catch (err) {
       console.error(err);
-      message.error("Failed to update product");
+      toast.error("Failed to update product");
     } finally {
       setSaving(false);
     }
@@ -1327,7 +1331,7 @@ const EditProduct: React.FC = () => {
   if (loading) {
     return (
       <div className="edit-product-loading">
-        <Spin size="large" />
+        <Spinner size="large" />
       </div>
     );
   }
@@ -1416,7 +1420,7 @@ const EditProduct: React.FC = () => {
 
           <div className="field" style={{ maxWidth: 320 }}>
             <label>Brand</label>
-            <Select
+            <Combobox
               placeholder="Select brand"
               style={{ width: "100%" }}
               allowClear
@@ -1727,7 +1731,7 @@ const EditProduct: React.FC = () => {
                             }
                           >
                             {removingChipId === chipId ? (
-                              <Spin size="small" />
+                              <Spinner size="small" />
                             ) : (
                               <X size={11} />
                             )}
@@ -1781,7 +1785,7 @@ const EditProduct: React.FC = () => {
                               }
                             >
                               {removingChipId === chipId ? (
-                                <Spin size="small" />
+                                <Spinner size="small" />
                               ) : (
                                 <X size={11} />
                               )}
@@ -1850,10 +1854,14 @@ const EditProduct: React.FC = () => {
             <span>Add</span>
             <input
               type="file"
-              accept="image/*"
+              accept={IMAGE_ACCEPT}
               multiple
               hidden
-              onChange={(e) => addProductImages(e.target.files)}
+              onChange={(e) => {
+                addProductImages(e.target.files);
+                // Reset so picking the same file again still works.
+                e.target.value = "";
+              }}
             />
           </label>
         </div>
@@ -1902,7 +1910,7 @@ const EditProduct: React.FC = () => {
                       }
                     >
                       {ucActionId === uc.id ? (
-                        <Spin size="small" />
+                        <Spinner size="small" />
                       ) : (
                         <X size={11} />
                       )}
@@ -1999,7 +2007,7 @@ const EditProduct: React.FC = () => {
                 <div className="variant-title-row">
                   <span
                     className="variant-swatch"
-                    style={{ background: v.color_code || "#e5e7eb" }}
+                    style={{ background: v.color_code || "var(--muted-strong)" }}
                   />
                   <span className="variant-title">{title}</span>
                   <SupplierPill supplier={v.supplier} />
@@ -2046,10 +2054,10 @@ const EditProduct: React.FC = () => {
                     <span
                       className="swatch"
                       style={{
-                        background: v.color_code || "#eee",
+                        background: v.color_code || "var(--muted)",
                         color: isLightColor(v.color_code || "#fff")
-                          ? "#333"
-                          : "#fff",
+                          ? "var(--foreground)"
+                          : "var(--background)",
                       }}
                     />
                     <input
@@ -2075,9 +2083,9 @@ const EditProduct: React.FC = () => {
                   <label>
                     Price
                     {v.hasTieredPricing && (
-                      <Tooltip title="This variant uses the quantity-based pricing below instead — this flat price is only a fallback for places that can't show tiers.">
+                      <Tip content="This variant uses the quantity-based pricing below instead — this flat price is only a fallback for places that can't show tiers.">
                         <span className="field-hint-icon">i</span>
-                      </Tooltip>
+                      </Tip>
                     )}
                   </label>
                   <input
@@ -2105,9 +2113,9 @@ const EditProduct: React.FC = () => {
                 <div className="field small">
                   <label>
                     Case Price
-                    <Tooltip title="Per-unit price when ordered by the case — used for bulk/wholesale pricing.">
+                    <Tip content="Per-unit price when ordered by the case — used for bulk/wholesale pricing.">
                       <span className="field-hint-icon">i</span>
-                    </Tooltip>
+                    </Tip>
                   </label>
                   <input
                     type="number"
@@ -2156,9 +2164,9 @@ const EditProduct: React.FC = () => {
                 <div className="variant-tier-section">
                   <div className="variant-tier-header">
                     <span>Quantity Pricing</span>
-                    <Tooltip title="List Price and Net Price are the supplier's numbers at each quantity break. Your configured markup is applied automatically on top of List Price to produce what the customer actually pays — that happens live wherever pricing is shown, so there's nothing extra to save for it.">
+                    <Tip content="List Price and Net Price are the supplier's numbers at each quantity break. Your configured markup is applied automatically on top of List Price to produce what the customer actually pays — that happens live wherever pricing is shown, so there's nothing extra to save for it.">
                       <span className="field-hint-icon">i</span>
-                    </Tooltip>
+                    </Tip>
                   </div>
 
                   <div className="variant-tier-table">
@@ -2249,10 +2257,14 @@ const EditProduct: React.FC = () => {
                   <Plus size={14} />
                   <input
                     type="file"
-                    accept="image/*"
+                    accept={IMAGE_ACCEPT}
                     multiple
                     hidden
-                    onChange={(e) => addVariantImages(v.id, e.target.files)}
+                    onChange={(e) => {
+                      addVariantImages(v.id, e.target.files);
+                      // Reset so picking the same file again still works.
+                      e.target.value = "";
+                    }}
                   />
                 </label>
               </div>

@@ -1,7 +1,8 @@
 /** @format */
 
 import { useEffect, useMemo, useState } from "react";
-import { message, Spin } from "antd";
+import { toast } from "sonner";
+import { Spinner } from "@/components/common/Spinner";
 import axios from "axios";
 import {
   AlertTriangle,
@@ -15,7 +16,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 import {
   AssignProductAddOnsAPI,
@@ -24,6 +25,7 @@ import {
 } from "@/services/Api/AddOnApi";
 
 import "./ProductAddOnsStep.scss";
+import { Thumbnail } from "@/components/common/Thumbnail";
 
 import { IMAGE_BASE_URL } from "@/config/env";
 
@@ -170,11 +172,11 @@ const ProductAddOnsStep = ({ productId }: { productId: number }) => {
         setPriceDrafts(toDrafts(saved));
       }
 
-      if (successMsg) message.success(successMsg);
+      if (successMsg) toast.success(successMsg);
     } catch (err) {
       setAttached(previous);
       setPriceDrafts(toDrafts(previous));
-      message.error(
+      toast.error(
         getErrorMessage(err, "Couldn't save add-ons. Your last change was undone."),
       );
     } finally {
@@ -225,7 +227,7 @@ const ProductAddOnsStep = ({ productId }: { productId: number }) => {
     const value = Number(draft);
 
     if (draft === "" || !Number.isFinite(value) || value < 0) {
-      message.error(`Enter a price of 0 or more for "${item.name}".`);
+      toast.error(`Enter a price of 0 or more for "${item.name}".`);
       setPriceDrafts((p) => ({
         ...p,
         [item.addon_product_id]: String(item.price),
@@ -275,7 +277,7 @@ const ProductAddOnsStep = ({ productId }: { productId: number }) => {
     return (
       <div className="pao">
         <div className="pao__center">
-          <Spin />
+          <Spinner />
           <span>Loading add-ons…</span>
         </div>
       </div>
@@ -357,7 +359,7 @@ const ProductAddOnsStep = ({ productId }: { productId: number }) => {
 
                 <span className="pao__thumb">
                   {image ? (
-                    <img src={image} alt="" loading="lazy" />
+                    <Thumbnail src={image} />
                   ) : (
                     <ImageOff size={15} />
                   )}
@@ -505,7 +507,7 @@ const ProductAddOnsStep = ({ productId }: { productId: number }) => {
                   >
                     <span className="pao__card-media">
                       {image ? (
-                        <img src={image} alt="" loading="lazy" />
+                        <Thumbnail src={image} />
                       ) : (
                         <ImageOff size={18} />
                       )}

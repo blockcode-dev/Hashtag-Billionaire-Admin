@@ -15,7 +15,7 @@ import {
   Inbox,
 } from "lucide-react";
 import { ChevronDown } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 import {
   GetAllContactUsAPI,
@@ -42,7 +42,6 @@ const getInitials = (name?: string) => {
 };
 
 const ContactUsPage = () => {
-  const { toast } = useToast();
 
   const [allContacts, setAllContacts] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -112,19 +111,11 @@ const ContactUsPage = () => {
         prev.map((c) => (c.id === id ? { ...c, status } : c)),
       );
 
-      toast({
-        title: "Status Updated",
-        description: "Inquiry status updated successfully.",
-      });
+      toast.success("Status Updated", { description: "Inquiry status updated successfully." });
     } catch (err: any) {
       console.error(err);
 
-      toast({
-        title: "Update Failed",
-        description:
-          err.response?.data?.message || "Failed to update inquiry status.",
-        variant: "destructive",
-      });
+      toast.error("Update Failed", { description: err.response?.data?.message || "Failed to update inquiry status." });
     }
   };
 
@@ -137,23 +128,16 @@ const ContactUsPage = () => {
       setAllContacts((prev) => prev.filter((c) => c.id !== selectedId));
       setDeleteModal(false);
 
-      toast({
-        title: "Inquiry Deleted",
-        description: "The contact inquiry has been deleted successfully.",
-      });
+      toast.success("Inquiry Deleted", { description: "The contact inquiry has been deleted successfully." });
     } catch (err: any) {
       console.error(err);
 
-      toast({
-        title: "Delete Failed",
-        description: err.response?.data?.message || "Unable to delete inquiry.",
-        variant: "destructive",
-      });
+      toast.error("Delete Failed", { description: err.response?.data?.message || "Unable to delete inquiry." });
     }
   };
 
   return (
-    <div className="users-page">
+    <div className="contact-page">
       <div className="users-header">
         <div>
           <h1>Contact Us</h1>

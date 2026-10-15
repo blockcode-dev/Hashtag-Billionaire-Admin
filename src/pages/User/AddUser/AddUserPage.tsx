@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 import {
   ArrowLeft,
@@ -13,7 +13,7 @@ import {
   X,
 } from "lucide-react";
 
-import { message } from "antd";
+import { toast } from "sonner";
 
 import { AddUserAPI } from "@/services/Api/UserApi";
 
@@ -37,14 +37,14 @@ const AddUserPage = () => {
     e.preventDefault();
 
     if (!name.trim()) {
-      message.error(
+      toast.error(
         "Full name is required",
       );
       return;
     }
 
     if (!email.trim()) {
-      message.error(
+      toast.error(
         "Email is required",
       );
       return;
@@ -54,7 +54,7 @@ const AddUserPage = () => {
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(email)) {
-      message.error(
+      toast.error(
         "Please enter a valid email address",
       );
       return;
@@ -69,7 +69,7 @@ const AddUserPage = () => {
           email,
         });
 
-      message.success(
+      toast.success(
         res?.data?.message ||
           "User created successfully",
       );
@@ -78,7 +78,7 @@ const AddUserPage = () => {
         navigate("/users");
       }, 1000);
     } catch (err: any) {
-      message.error(
+      toast.error(
         err?.response?.data
           ?.message ||
           "Failed to create user",

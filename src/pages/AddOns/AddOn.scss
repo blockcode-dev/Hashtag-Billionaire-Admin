@@ -1,26 +1,21 @@
 /** @format */
 
 /* Same palette as Create / Edit Product */
-$bg: #f8f8f7;
-$border: #e9e9e9;
-$input-border: #e5e7eb;
-$text: #18181b;
-$text-body: #3f3f46;
-$muted: #71717a;
-$faint: #a1a1aa;
-$primary: #111827;
-$blue: #2563eb;
-$blue-soft: #eff6ff;
-$red: #dc2626;
-$red-soft: #fff5f5;
-$focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
+$bg: var(--app-bg);
+$border: var(--border);
+$input-border: var(--border);
+$text: var(--foreground);
+$text-body: var(--foreground);
+$muted: var(--muted-foreground);
+$faint: var(--muted-foreground);
+$primary: var(--primary);
+$blue: var(--primary);
+$blue-soft: var(--primary-soft);
+$red: var(--destructive);
+$red-soft: var(--destructive-soft);
+$focus: var(--focus-ring);
 
 .addon {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 28px;
-  background: $bg;
-  min-height: 100vh;
 
   // =========================================
   // BUTTONS
@@ -31,7 +26,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
   &__btn-danger {
     height: 44px;
     padding: 0 20px;
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
     font-size: 14px;
     font-weight: 600;
     display: inline-flex;
@@ -59,17 +54,17 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     color: #fff;
 
     &:hover:not(:disabled) {
-      background: #000;
+      background: var(--primary-hover);
     }
   }
 
   &__btn-outline {
     border: 1px solid $input-border;
-    background: #fff;
+    background: var(--background);
     color: $text;
 
     &:hover:not(:disabled) {
-      background: #fafafa;
+      background: var(--muted);
     }
   }
 
@@ -79,7 +74,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     color: #fff;
 
     &:hover:not(:disabled) {
-      background: #b91c1c;
+      background: var(--destructive);
     }
   }
 
@@ -94,8 +89,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     height: 36px;
     flex-shrink: 0;
     border: 1px solid $input-border;
-    border-radius: 10px;
-    background: #fff;
+    border-radius: var(--radius-lg);
+    background: var(--background);
     color: $muted;
     display: inline-flex;
     align-items: center;
@@ -105,13 +100,13 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
 
     &:hover {
       color: $blue;
-      border-color: #bfdbfe;
+      border-color: var(--primary-border);
       background: $blue-soft;
     }
 
     &--danger:hover {
       color: $red;
-      border-color: #fecaca;
+      border-color: var(--destructive-border);
       background: $red-soft;
     }
 
@@ -135,12 +130,6 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
 
   &__header,
   &__form-header {
-    h1 {
-      margin: 0;
-      font-size: 26px;
-      font-weight: 700;
-      color: $text;
-    }
 
     p {
       margin: 6px 0 0;
@@ -158,9 +147,9 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     gap: 14px;
     padding: 12px;
     margin-bottom: 16px;
-    background: #fff;
+    background: var(--background);
     border: 1px solid $border;
-    border-radius: 16px;
+    border-radius: var(--radius-2xl);
   }
 
   &__search {
@@ -169,7 +158,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     height: 44px;
     padding: 0 12px 0 14px;
     border: 1px solid $input-border;
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -191,7 +180,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
       color: $text;
 
       &::placeholder {
-        color: #c4c4c4;
+        color: var(--muted-foreground);
       }
     }
   }
@@ -201,7 +190,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     height: 22px;
     border: none;
     border-radius: 999px;
-    background: #f4f4f5;
+    background: var(--muted);
     color: $muted;
     display: flex;
     align-items: center;
@@ -209,14 +198,14 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     cursor: pointer;
 
     &:hover {
-      background: #e4e4e7;
+      background: var(--muted-strong);
     }
   }
 
   &__count {
     padding: 6px 12px;
     border-radius: 999px;
-    background: #f4f4f5;
+    background: var(--muted);
     font-size: 13px;
     font-weight: 600;
     color: $muted;
@@ -228,9 +217,9 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
   // =========================================
 
   &__card {
-    background: #fff;
+    background: var(--background);
     border: 1px solid $border;
-    border-radius: 18px;
+    border-radius: var(--radius-2xl);
     overflow: hidden;
   }
 
@@ -245,17 +234,14 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
 
     th {
       padding: 13px 20px;
-      background: #fafaf9;
+      background: var(--muted);
       border-bottom: 1px solid $border;
       text-align: left;
-      font-size: 12px;
-      font-weight: 600;
-      color: $muted;
       white-space: nowrap;
     }
 
     tbody tr {
-      border-bottom: 1px solid #f4f4f5;
+      border-bottom: 1px solid var(--border);
       transition: background 0.12s;
 
       &:last-child {
@@ -263,7 +249,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
       }
 
       &:hover {
-        background: #fcfcfb;
+        background: var(--muted);
       }
     }
 
@@ -288,9 +274,9 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     flex-shrink: 0;
     padding: 0;
     border: 1px solid $border;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
-    background: #f4f4f5;
+    background: var(--muted);
     cursor: zoom-in;
 
     img {
@@ -309,7 +295,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #d4d4d8;
+      color: var(--placeholder);
       cursor: default;
     }
   }
@@ -354,7 +340,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
 
   &__none {
     font-size: 13px;
-    color: #d4d4d8;
+    color: var(--placeholder);
   }
 
   &__chips {
@@ -367,7 +353,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     max-width: 180px;
     padding: 4px 10px;
     border-radius: 999px;
-    background: #f4f4f5;
+    background: var(--muted);
     font-size: 12px;
     font-weight: 500;
     color: $text-body;
@@ -424,7 +410,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     width: 18px;
     height: 18px;
     border-radius: 999px;
-    border: 2px solid #e4e4e7;
+    border: 2px solid var(--border);
     border-top-color: $blue;
     animation: addon-spin 0.8s linear infinite;
   }
@@ -456,8 +442,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     width: 56px;
     height: 56px;
     margin-bottom: 6px;
-    border-radius: 16px;
-    background: #f4f4f5;
+    border-radius: var(--radius-2xl);
+    background: var(--muted);
     color: $faint;
     display: flex;
     align-items: center;
@@ -502,9 +488,9 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
   &__section {
     margin-bottom: 20px;
     padding: 24px;
-    background: #fff;
+    background: var(--background);
     border: 1px solid $border;
-    border-radius: 18px;
+    border-radius: var(--radius-2xl);
   }
 
   &__section-title {
@@ -546,11 +532,11 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
       box-sizing: border-box;
       padding: 12px 14px;
       border: 1px solid $input-border;
-      border-radius: 12px;
-      background: #fff;
+      border-radius: var(--radius-xl);
+      background: var(--background);
       font-family: inherit;
       font-size: 14px;
-      color: #111827;
+      color: var(--foreground);
       outline: none;
       transition: 0.18s ease;
 
@@ -560,7 +546,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
       }
 
       &::placeholder {
-        color: #c4c4c4;
+        color: var(--muted-foreground);
       }
     }
 
@@ -572,17 +558,17 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
   }
 
   &__req {
-    color: #ef4444;
+    color: var(--destructive);
   }
 
   &__optional {
     font-size: 12px;
     font-weight: 500;
-    color: #8a8a92;
+    color: var(--muted-foreground);
   }
 
   &__input--error {
-    border-color: #f87171 !important;
+    border-color: var(--destructive-border) !important;
   }
 
   &__error {
@@ -601,7 +587,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     display: flex;
     align-items: center;
     border: 1px solid $input-border;
-    border-radius: 12px;
+    border-radius: var(--radius-xl);
     overflow: hidden;
     transition: 0.18s ease;
 
@@ -626,10 +612,10 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
       background: transparent;
       font-size: 15px;
       font-weight: 600;
-      color: #111827;
+      color: var(--foreground);
 
       &::placeholder {
-        color: #c4c4c4;
+        color: var(--muted-foreground);
         font-weight: 500;
       }
     }
@@ -642,11 +628,11 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     margin-top: 16px;
     padding: 12px 14px;
     background: $blue-soft;
-    border: 1px solid #dbeafe;
-    border-radius: 14px;
+    border: 1px solid var(--primary-border);
+    border-radius: var(--radius-xl);
     font-size: 13px;
     line-height: 1.5;
-    color: #3b5a99;
+    color: var(--primary);
 
     svg {
       flex-shrink: 0;
@@ -674,7 +660,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
       height: 44px;
       padding: 0 14px;
       border: 1px solid $input-border;
-      border-radius: 12px;
+      border-radius: var(--radius-xl);
       font-size: 14px;
       outline: none;
       transition: 0.18s ease;
@@ -685,7 +671,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
       }
 
       &::placeholder {
-        color: #c4c4c4;
+        color: var(--muted-foreground);
       }
     }
   }
@@ -695,8 +681,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     height: 22px;
     flex-shrink: 0;
     border-radius: 999px;
-    background: #e8f5df;
-    color: #4d7c0f;
+    background: var(--success-soft);
+    color: var(--success-soft-foreground);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -708,9 +694,9 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     aspect-ratio: 16 / 9;
     max-height: 340px;
     padding: 20px;
-    border: 1.5px dashed #d4d4d8;
-    border-radius: 16px;
-    background: #fafaf9;
+    border: 1.5px dashed var(--input);
+    border-radius: var(--radius-2xl);
+    background: var(--muted);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -743,8 +729,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     height: 48px;
     margin-bottom: 4px;
     border: 1px solid $border;
-    border-radius: 14px;
-    background: #fff;
+    border-radius: var(--radius-xl);
+    background: var(--background);
     color: $blue;
     display: flex;
     align-items: center;
@@ -756,9 +742,9 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     width: 100%;
     aspect-ratio: 16 / 9;
     border: 1px solid $border;
-    border-radius: 16px;
+    border-radius: var(--radius-2xl);
     overflow: hidden;
-    background: #f4f4f5;
+    background: var(--muted);
 
     img {
       width: 100%;
@@ -766,6 +752,24 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
       object-fit: cover;
       display: block;
     }
+  }
+
+  // Saved image whose file is gone on the server.
+  &__image-missing {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding-bottom: 40px;
+    background: var(--destructive-soft);
+    color: var(--destructive-soft-foreground);
+    font-size: 13px;
+    text-align: center;
+
+    strong { font-size: 14px; }
   }
 
   &__image-actions {
@@ -781,9 +785,9 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
       height: 34px;
       padding: 0 12px;
       border: none;
-      border-radius: 10px;
+      border-radius: var(--radius-lg);
       background: rgba(255, 255, 255, 0.95);
-      box-shadow: 0 2px 8px rgba(17, 24, 39, 0.12);
+      box-shadow: var(--shadow-sm);
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -793,7 +797,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
       cursor: pointer;
 
       &:hover {
-        background: #fff;
+        background: var(--background);
       }
     }
   }
@@ -813,8 +817,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     padding: 14px 18px;
     background: rgba(255, 255, 255, 0.96);
     border: 1px solid $border;
-    border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(17, 24, 39, 0.06);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-lg);
   }
 
   // =========================================
@@ -826,7 +830,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     inset: 0;
     z-index: 1000;
     padding: 20px;
-    background: rgba(17, 24, 39, 0.45);
+    background: color-mix(in srgb, var(--foreground) 45%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -837,9 +841,9 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     width: 100%;
     max-width: 420px;
     padding: 28px;
-    background: #fff;
-    border-radius: 20px;
-    box-shadow: 0 24px 64px rgba(17, 24, 39, 0.18);
+    background: var(--background);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-lg);
     text-align: center;
 
     h2 {
@@ -874,7 +878,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     width: 52px;
     height: 52px;
     margin: 0 auto 16px;
-    border-radius: 16px;
+    border-radius: var(--radius-2xl);
     background: $red-soft;
     color: $red;
     display: flex;
@@ -889,8 +893,8 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     width: 32px;
     height: 32px;
     border: none;
-    border-radius: 10px;
-    background: #f4f4f5;
+    border-radius: var(--radius-lg);
+    background: var(--muted);
     color: $muted;
     display: flex;
     align-items: center;
@@ -898,7 +902,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     cursor: pointer;
 
     &:hover {
-      background: #e4e4e7;
+      background: var(--muted-strong);
       color: $text;
     }
   }
@@ -925,9 +929,9 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     padding: 12px;
     max-height: 60vh;
     overflow: auto;
-    background: #f4f4f5;
+    background: var(--muted);
     border: 1px solid $border;
-    border-radius: 14px;
+    border-radius: var(--radius-xl);
     display: flex;
     justify-content: center;
 
@@ -944,7 +948,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 
     .ReactCrop__crop-selection {
-      border: 2px solid #fff;
+      border: 2px solid var(--background);
       cursor: move;
     }
   }
@@ -958,7 +962,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     inset: 0;
     z-index: 1100;
     padding: 40px;
-    background: rgba(0, 0, 0, 0.82);
+    background: color-mix(in srgb, var(--foreground) 82%, transparent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -967,7 +971,7 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     img {
       max-width: 100%;
       max-height: 88vh;
-      border-radius: 14px;
+      border-radius: var(--radius-xl);
       cursor: default;
     }
   }
@@ -1006,9 +1010,6 @@ $focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 
     &__header h1,
-    &__form-header h1 {
-      font-size: 22px;
-    }
 
     &__toolbar {
       flex-direction: column;
