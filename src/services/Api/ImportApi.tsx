@@ -30,5 +30,5 @@ export const ImportSSProductAPI = async (styleId: string) => {
 };
 
 export const GetAllBrandsAPI = async (params) => {
-  return axios.get(`${API_BASE_URL}brand`, { params });
+  return axios.get(`${API_BASE_URL}brand/ss`, { params });
 };

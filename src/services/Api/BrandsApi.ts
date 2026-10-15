@@ -59,3 +59,22 @@ export const CreateManualBrandAPI = async (
     },
   );
 };
+
+export const GetBrandAssignmentAPI = async (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+}) => {
+  return axios.get(`${API_BASE_URL}product/get-brand-assignment`, {
+    params,
+  });
+};
+
+// ⚠️ ASSUMPTION — you didn't share the assign endpoint, please confirm/adjust
+// path + payload shape to match your actual backend route.
+export const AssignBrandToProductsAPI = async (payload: {
+  product_ids: number[];
+  brand_id: number;
+}) => {
+  return axios.post(`${API_BASE_URL}product/brand-assignment`, payload);
+};

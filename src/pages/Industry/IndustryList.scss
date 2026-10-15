@@ -39,7 +39,10 @@
     gap: 8px;
     background: #fff;
 
-    svg { color: #9ca3af; flex-shrink: 0; }
+    svg {
+      color: #9ca3af;
+      flex-shrink: 0;
+    }
 
     input {
       flex: 1;
@@ -49,7 +52,10 @@
       font-size: 14px;
       color: #111827;
       min-width: 0;
-      &::placeholder { color: #d1d5db; }
+
+      &::placeholder {
+        color: #d1d5db;
+      }
     }
   }
 
@@ -66,7 +72,10 @@
     justify-content: center;
     flex-shrink: 0;
     transition: 0.12s;
-    &:hover { background: #d1d5db; }
+
+    &:hover {
+      background: #d1d5db;
+    }
   }
 
   &__btn-add {
@@ -84,7 +93,10 @@
     cursor: pointer;
     transition: 0.15s;
     flex-shrink: 0;
-    &:hover { background: #1f2937; }
+
+    &:hover {
+      background: #1f2937;
+    }
   }
 
   // ── TABLE CARD ──────────────────────────────────────
@@ -119,8 +131,13 @@
       border-bottom: 1px solid #f3f4f6;
       transition: background 0.12s;
 
-      &:last-child { border-bottom: none; }
-      &:hover { background: #fafafa; }
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &:hover {
+        background: #fafafa;
+      }
 
       td {
         padding: 16px 20px;
@@ -276,7 +293,9 @@
     cursor: pointer;
     transition: 0.12s;
 
-    &:hover { background: #374151; }
+    &:hover {
+      background: #374151;
+    }
   }
 
   &__tag-collapse {
@@ -293,7 +312,9 @@
     transition: 0.12s;
     width: fit-content;
 
-    &:hover { color: #111827; }
+    &:hover {
+      color: #111827;
+    }
   }
 
   &__none {
@@ -327,13 +348,19 @@
   &__btn-edit {
     background: #eff6ff;
     color: #2563eb;
-    &:hover { background: #dbeafe; }
+
+    &:hover {
+      background: #dbeafe;
+    }
   }
 
   &__btn-delete {
     background: #fef2f2;
     color: #dc2626;
-    &:hover { background: #fee2e2; }
+
+    &:hover {
+      background: #fee2e2;
+    }
   }
 
   // ── EMPTY ───────────────────────────────────────────
@@ -378,7 +405,10 @@
       color: #4b5563;
       margin: 0 0 16px;
       line-height: 1.6;
-      strong { color: #111827; }
+
+      strong {
+        color: #111827;
+      }
     }
 
     // Add/Edit variant: left-aligned form, no icon
@@ -389,6 +419,47 @@
         text-align: center;
       }
     }
+
+    // Crop variant: wider, left-aligned, holds the crop canvas
+    &--crop {
+      max-width: 560px;
+      text-align: left;
+
+      h2 {
+        text-align: center;
+      }
+    }
+  }
+
+  // ── CROP AREA (react-image-crop) ─────────────────────
+  &__crop-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-height: 60vh;
+    overflow: auto;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 16px;
+
+    img {
+      max-width: 100%;
+      max-height: 55vh;
+      display: block;
+    }
+
+    .ReactCrop__crop-selection {
+      border-radius: 4px;
+    }
+
+    .ReactCrop__drag-handle {
+      display: none !important;
+    }
+
+
+
   }
 
   &__modal-subtitle {
@@ -414,8 +485,15 @@
     cursor: pointer;
     transition: 0.12s;
 
-    &:hover:not(:disabled) { background: #e5e7eb; color: #111827; }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
+    &:hover:not(:disabled) {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   }
 
   &__modal-icon {
@@ -440,7 +518,10 @@
     line-height: 1.6;
     text-align: left;
     margin-bottom: 24px;
-    strong { color: #78350f; }
+
+    strong {
+      color: #78350f;
+    }
   }
 
   // ── FORM FIELDS (add/edit modal) ─────────────────────
@@ -469,7 +550,9 @@
       font-family: inherit;
       box-sizing: border-box;
 
-      &::placeholder { color: #d1d5db; }
+      &::placeholder {
+        color: #d1d5db;
+      }
 
       &:focus {
         border-color: #111827;
@@ -627,8 +710,14 @@
     cursor: pointer;
     transition: 0.12s;
 
-    &:hover:not(:disabled) { background: #f9fafb; }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
+    &:hover:not(:disabled) {
+      background: #f9fafb;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   }
 
   &__modal-confirm {
@@ -643,14 +732,22 @@
     cursor: pointer;
     transition: 0.12s;
 
-    &:hover:not(:disabled) { background: #b91c1c; }
-    &:disabled { opacity: 0.55; cursor: not-allowed; }
+    &:hover:not(:disabled) {
+      background: #b91c1c;
+    }
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
 
     // Add/Edit variant: neutral dark instead of destructive red
     &--primary {
       background: #111827;
 
-      &:hover:not(:disabled) { background: #1f2937; }
+      &:hover:not(:disabled) {
+        background: #1f2937;
+      }
     }
   }
 

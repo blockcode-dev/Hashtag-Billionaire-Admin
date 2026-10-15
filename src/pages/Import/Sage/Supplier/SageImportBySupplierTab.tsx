@@ -1,3 +1,5 @@
+/** @format */
+
 import React, { useState } from "react";
 import {
   GetSageProductDetailsAPI,
@@ -10,6 +12,7 @@ type ImportStatus = "idle" | "importing" | "done" | "error";
 
 const SageImportBySupplierTab: React.FC = () => {
   const [supplierId, setSupplierId] = useState<number | "">("");
+  const [searchKeyword, setSearchKeyword] = useState("");
   const [products, setProducts] = useState<any[]>([]);
   const [productsLoading, setProductsLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -59,6 +62,7 @@ const SageImportBySupplierTab: React.FC = () => {
 
   const resetAll = () => {
     setSupplierId("");
+    setSearchKeyword("");
     setProducts([]);
     setSelectedProduct(null);
     setProductDetail(null);
@@ -70,15 +74,22 @@ const SageImportBySupplierTab: React.FC = () => {
     setPagination({ total: 0, page: 1, limit: 100, totalPages: 1 });
   };
 
-  const fetchProducts = async (page = 1) => {
+  const fetchProducts = async (page = 1, keywordOverride?: string) => {
     if (!supplierId) return;
     setProductsLoading(true);
     try {
+      // Use the override if passed (e.g. from the search/clear button), otherwise
+      // fall back to current state — this is what keeps the same keyword active
+      // when clicking Next/Prev instead of silently resetting the search.
+      const keyword =
+        keywordOverride !== undefined ? keywordOverride : searchKeyword;
+
       const res = await SearchSageProductsAPI(
         "",
         Number(supplierId),
         page,
         100,
+        keyword.trim(),
       );
       const data = res?.data?.data;
       const fetched = data?.products || [];
@@ -185,6 +196,9 @@ const SageImportBySupplierTab: React.FC = () => {
               type="number"
               value={supplierId}
               onChange={(e) => setSupplierId(Number(e.target.value))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && supplierId) fetchProducts(1, "");
+              }}
               placeholder="Enter supplier ID..."
             />
 
@@ -198,7 +212,7 @@ const SageImportBySupplierTab: React.FC = () => {
 
             <button
               className="sage-btn sage-btn--primary sage-btn--block"
-              onClick={() => fetchProducts(1)}
+              onClick={() => fetchProducts(1, searchKeyword)}
               disabled={!supplierId || productsLoading}
             >
               {productsLoading ? "Fetching…" : "Fetch Products"}
@@ -234,18 +248,59 @@ const SageImportBySupplierTab: React.FC = () => {
             products.length > 0 &&
             importStatus !== "done" && (
               <>
+                {/* ── Search bar (searches this supplier's full catalogue, not just current page) ── */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: "12px",
+                    gap: "8px",
+                  }}
+                >
+                  <input
+                    className="sage-input"
+                    type="text"
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") fetchProducts(1, searchKeyword);
+                    }}
+                    placeholder="Search this supplier's products (e.g. wristband, bottle)..."
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    className="sage-btn sage-btn--ghost"
+                    onClick={() => fetchProducts(1, searchKeyword)}
+                    disabled={productsLoading}
+                  >
+                    Search
+                  </button>
+                  {searchKeyword && (
+                    <button
+                      className="sage-btn sage-btn--ghost"
+                      onClick={() => fetchProducts(1, "")}
+                      disabled={productsLoading}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
                     marginBottom: "16px",
+                    gap: "12px",
+                    flexWrap: "wrap",
                   }}
                 >
                   <div>
                     <div className="sage-panel__label">Products</div>
                     <div className="sage-count-badge">
-                      {pagination.total} products found
+                      {pagination.total} product{pagination.total === 1 ? "" : "s"}
+                      {searchKeyword ? ` matching "${searchKeyword}"` : ""}
                     </div>
                   </div>
 
@@ -294,6 +349,23 @@ const SageImportBySupplierTab: React.FC = () => {
                   </div>
                 )}
 
+                {products.length === 0 && (
+                  <div className="sage-preview__placeholder">
+                    <div className="sage-preview__placeholder-icon">🔍</div>
+                    <span>
+                      No products found{searchKeyword ? ` for "${searchKeyword}"` : ""}.
+                    </span>
+                    {searchKeyword && (
+                      <button
+                        className="sage-btn sage-btn--ghost"
+                        onClick={() => fetchProducts(1, "")}
+                      >
+                        Clear search
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 <div className="sage-preview__grid">
                   {products.map((p) => (
                     <div
@@ -337,7 +409,7 @@ const SageImportBySupplierTab: React.FC = () => {
                   <div className="sage-pagination">
                     <button
                       className="sage-btn sage-btn--ghost"
-                      disabled={pagination.page === 1}
+                      disabled={pagination.page === 1 || productsLoading}
                       onClick={() => fetchProducts(pagination.page - 1)}
                     >
                       ← Prev
@@ -347,7 +419,9 @@ const SageImportBySupplierTab: React.FC = () => {
                     </span>
                     <button
                       className="sage-btn sage-btn--ghost"
-                      disabled={pagination.page === pagination.totalPages}
+                      disabled={
+                        pagination.page === pagination.totalPages || productsLoading
+                      }
                       onClick={() => fetchProducts(pagination.page + 1)}
                     >
                       Next →

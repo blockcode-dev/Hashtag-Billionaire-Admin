@@ -1,0 +1,501 @@
+/** @format */
+
+/* Same palette as Create / Edit Product */
+$border: #e9e9e9;
+$input-border: #e5e7eb;
+$text: #18181b;
+$text-body: #3f3f46;
+$muted: #71717a;
+$faint: #a1a1aa;
+$primary: #111827;
+$blue: #2563eb;
+$blue-soft: #eff6ff;
+$red: #dc2626;
+$red-soft: #fff5f5;
+$focus: 0 0 0 3px rgba(37, 99, 235, 0.12);
+
+.pao {
+  background: #fff;
+  border: 1px solid $border;
+  border-radius: 18px;
+  padding: 24px;
+  margin-bottom: 24px;
+
+  // ── Header ──
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: $text;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__badge {
+    background: #e8f0ff;
+    color: $blue;
+    border-radius: 999px;
+    padding: 2px 9px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  &__hint {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: $faint;
+  }
+
+  &__status {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4d7c0f;
+    background: #e8f5df;
+    border-radius: 999px;
+    padding: 4px 10px;
+
+    &--saving {
+      color: $blue;
+      background: $blue-soft;
+    }
+  }
+
+  &__section-label {
+    margin-bottom: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: $muted;
+
+    &--spaced {
+      margin-top: 28px;
+      padding-top: 22px;
+      border-top: 1px solid #f4f4f5;
+    }
+  }
+
+  // ── Empty / loading ──
+  &__empty {
+    padding: 20px;
+    border: 1.5px dashed #e4e4e7;
+    border-radius: 14px;
+    background: #fafaf9;
+    text-align: center;
+    font-size: 13px;
+    color: $muted;
+
+    &--action {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      color: $faint;
+
+      span {
+        color: $muted;
+      }
+    }
+  }
+
+  &__center {
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 14px;
+    color: $muted;
+
+    strong {
+      color: $text;
+    }
+  }
+
+  &__center-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &--error {
+      background: $red-soft;
+      color: $red;
+    }
+  }
+
+  &__btn-outline {
+    height: 40px;
+    padding: 0 16px;
+    border: 1px solid $input-border;
+    border-radius: 12px;
+    background: #fff;
+    color: $text;
+    font-size: 14px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+
+    &:hover {
+      background: #fafafa;
+    }
+  }
+
+  // ── Attached list ──
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    border: 1px solid $border;
+    border-radius: 14px;
+    background: #fff;
+  }
+
+  &__order {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex-shrink: 0;
+
+    button {
+      width: 26px;
+      height: 22px;
+      border: 1px solid $input-border;
+      border-radius: 7px;
+      background: #fff;
+      color: $muted;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+
+      &:hover:not(:disabled) {
+        color: $blue;
+        border-color: #bfdbfe;
+        background: $blue-soft;
+      }
+
+      &:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  &__thumb {
+    width: 88px;
+    aspect-ratio: 16 / 9;
+    flex-shrink: 0;
+    border: 1px solid $border;
+    border-radius: 9px;
+    background: #f4f4f5;
+    color: #d4d4d8;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  &__name {
+    font-size: 14px;
+    font-weight: 600;
+    color: $text;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__meta {
+    font-size: 12px;
+    color: $faint;
+  }
+
+  &__price-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 130px;
+    flex-shrink: 0;
+  }
+
+  &__price-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: $muted;
+  }
+
+  &__price {
+    height: 38px;
+    display: flex;
+    align-items: center;
+    border: 1px solid $input-border;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: 0.18s ease;
+
+    &:focus-within {
+      border-color: $blue;
+      box-shadow: $focus;
+    }
+
+    &--custom {
+      border-color: #fcd34d;
+      background: #fffbeb;
+    }
+
+    span {
+      padding: 0 2px 0 10px;
+      font-weight: 600;
+      color: $muted;
+    }
+
+    input {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      padding-right: 10px;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  &__reset {
+    align-self: flex-start;
+    padding: 0;
+    border: none;
+    background: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: $blue;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__remove {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    background: $red-soft;
+    color: $red;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: #fee2e2;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  // ── Available ──
+  &__search {
+    max-width: 360px;
+    height: 42px;
+    margin-bottom: 14px;
+    padding: 0 10px 0 14px;
+    border: 1px solid $input-border;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: $faint;
+
+    &:focus-within {
+      border-color: $blue;
+      box-shadow: $focus;
+    }
+
+    input {
+      flex: 1;
+      min-width: 0;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 14px;
+      color: $text;
+
+      &::placeholder {
+        color: #c4c4c4;
+      }
+    }
+
+    button {
+      width: 22px;
+      height: 22px;
+      border: none;
+      border-radius: 999px;
+      background: #f4f4f5;
+      color: $muted;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+
+  &__card {
+    padding: 0;
+    border: 1px solid $border;
+    border-radius: 14px;
+    background: #fff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    cursor: pointer;
+    transition: 0.18s ease;
+
+    &:hover:not(:disabled) {
+      border-color: #bfdbfe;
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.08);
+
+      .pao__card-add {
+        background: $primary;
+        color: #fff;
+      }
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: $focus;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  &__card-media {
+    aspect-ratio: 16 / 9;
+    background: #f4f4f5;
+    color: #d4d4d8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+
+  &__card-body {
+    padding: 10px 12px 4px;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  &__card-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: $text;
+    line-height: 1.35;
+  }
+
+  &__card-price {
+    font-size: 13px;
+    font-weight: 700;
+    color: $text-body;
+    white-space: nowrap;
+  }
+
+  &__card-add {
+    margin: 8px 12px 12px;
+    height: 32px;
+    border-radius: 9px;
+    background: #f4f4f5;
+    color: $text;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: 0.18s ease;
+  }
+
+  // ── Responsive ──
+  @media (max-width: 720px) {
+    padding: 18px;
+
+    &__row {
+      flex-wrap: wrap;
+    }
+
+    &__info {
+      flex-basis: calc(100% - 150px);
+    }
+
+    &__price-wrap {
+      flex: 1;
+      width: auto;
+    }
+
+    &__search {
+      max-width: none;
+    }
+  }
+}

@@ -23,9 +23,82 @@ $text-3:    #9ca3af;
 $accent:    #5a5ee8;
 $accent-lt: #eeeffe;
 
+$warn-bg:   #fffbeb;
+$warn-bd:   #fde68a;
+$warn-tx:   #92400e;
+$info-bg:   #eff6ff;
+$info-bd:   #bfdbfe;
+$info-tx:   #1e40af;
+
+// ─────────────────────────────────
+// Shared atoms (used in table + modal)
+// ─────────────────────────────────
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+}
+
+.kind-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  white-space: nowrap;
+
+  &.kind-manual    { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+  &.kind-auto      { background: #dcfce7; color: #166534; border-color: #86efac; }
+  &.kind-decorated { background: #ede9fe; color: #5b21b6; border-color: #c4b5fd; }
+  &.kind-standard  { background: #f3f4f6; color: #4b5563; border-color: #d1d5db; }
+}
+
+.check-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &.ok   { background: #d1fae5; color: #065f46; }
+  &.warn { background: #fef3c7; color: #92400e; }
+}
+
+.muted { color: $text-3; }
+
 // ─────────────────────────────────
 // Lightbox
 // ─────────────────────────────────
+@keyframes lb-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes lb-zoom-in {
+  from { transform: scale(0.88); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
 .lightbox-overlay {
   position: fixed;
   inset: 0;
@@ -36,11 +109,6 @@ $accent-lt: #eeeffe;
   justify-content: center;
   cursor: pointer;
   animation: lb-fade-in 0.18s ease;
-
-  @keyframes lb-fade-in {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-  }
 
   .lightbox-close {
     position: fixed;
@@ -72,11 +140,6 @@ $accent-lt: #eeeffe;
     gap: 14px;
     cursor: default;
     animation: lb-zoom-in 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-
-    @keyframes lb-zoom-in {
-      from { transform: scale(0.88); opacity: 0; }
-      to   { transform: scale(1);    opacity: 1; }
-    }
   }
 
   .lightbox-img {
@@ -86,60 +149,131 @@ $accent-lt: #eeeffe;
     border-radius: $radius-md;
     box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
     display: block;
+    // checkerboard so transparent logos / SVGs stay visible
+    background-color: #fff;
+    background-image:
+      linear-gradient(45deg, #eef0f3 25%, transparent 25%),
+      linear-gradient(-45deg, #eef0f3 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #eef0f3 75%),
+      linear-gradient(-45deg, transparent 75%, #eef0f3 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
   }
 
   .lightbox-label {
     font-family: $ff;
     font-size: 12px;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.7);
     background: rgba(255, 255, 255, 0.07);
-    padding: 4px 14px;
+    padding: 5px 14px;
     border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    max-width: 80vw;
+    text-align: center;
   }
 }
 
 // ─────────────────────────────────
-// Clickable image block
+// Image thumbnails
 // ─────────────────────────────────
-.img-block-wrap {
+.thumb-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 5px;
+  margin: 0;
 }
 
-.clickable-img {
+.thumb {
   position: relative;
+  display: block;
+  padding: 0;
+  border: 1px solid $border2;
+  border-radius: $radius-md;
+  background: $surface;
+  overflow: hidden;
   cursor: zoom-in;
+  flex-shrink: 0;
+
+  &.thumb-md { width: 84px; height: 84px; }
+  &.thumb-sm { width: 68px; height: 68px; }
+  &.thumb-xs { width: 44px; height: 44px; border-radius: $radius-sm; }
 
   img {
+    width: 100%;
+    height: 100%;
+    display: block;
     transition: filter 0.15s, transform 0.15s;
   }
 
-  .img-zoom-hint {
+  &.thumb-cover img { object-fit: cover; }
+
+  &.thumb-contain {
+    background-color: #fff;
+    background-image:
+      linear-gradient(45deg, #f1f3f6 25%, transparent 25%),
+      linear-gradient(-45deg, #f1f3f6 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #f1f3f6 75%),
+      linear-gradient(-45deg, transparent 75%, #f1f3f6 75%);
+    background-size: 10px 10px;
+    background-position: 0 0, 0 5px, 5px -5px, -5px 0;
+
+    img { object-fit: contain; padding: 6px; }
+  }
+
+  .thumb-zoom {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0);
-    border-radius: inherit;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: rgba(0, 0, 0, 0);
     transition: background 0.15s;
 
     svg { opacity: 0; transition: opacity 0.15s; }
   }
 
-  &:hover {
-    img { filter: brightness(0.78); transform: scale(1.02); }
-    .img-zoom-hint {
+  &:hover,
+  &:focus-visible {
+    img { filter: brightness(0.8); transform: scale(1.03); }
+    .thumb-zoom {
       background: rgba(0, 0, 0, 0.28);
       svg { opacity: 1; }
     }
   }
+
+  &:focus-visible { outline: 2px solid $accent; outline-offset: 2px; }
+
+  &.thumb-empty {
+    cursor: default;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    color: $text-3;
+    background: $surface2;
+    border-style: dashed;
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+.thumb-caption {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: $text-3;
+  max-width: 84px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 // ─────────────────────────────────
@@ -152,7 +286,6 @@ $accent-lt: #eeeffe;
   min-height: 100vh;
   color: $text-1;
 
-  // ── Header ───────────────────
   .orders-header {
     display: flex;
     align-items: flex-start;
@@ -170,11 +303,7 @@ $accent-lt: #eeeffe;
       line-height: 1.15;
     }
 
-    .page-subtitle {
-      font-size: 14px;
-      color: $text-3;
-      margin: 0;
-    }
+    .page-subtitle { font-size: 14px; color: $text-3; margin: 0; }
 
     .header-stat {
       display: flex;
@@ -200,17 +329,13 @@ $accent-lt: #eeeffe;
     }
   }
 
-  // ── Filters ──────────────────
   .filters-row {
     display: flex;
     gap: 10px;
     margin-bottom: 18px;
     flex-wrap: wrap;
 
-    .search-input {
-      flex: 1;
-      min-width: 240px;
-    }
+    .search-input { flex: 1; min-width: 240px; }
 
     .ant-input-affix-wrapper {
       border-radius: $radius-md !important;
@@ -239,7 +364,6 @@ $accent-lt: #eeeffe;
     }
   }
 
-  // ── Table card ───────────────
   .orders-card {
     background: $surface;
     border-radius: $radius-xl;
@@ -248,11 +372,7 @@ $accent-lt: #eeeffe;
     overflow: hidden;
 
     .ant-table-wrapper { overflow-x: auto; }
-
-    .ant-table {
-      font-family: $ff;
-      min-width: 1120px;
-    }
+    .ant-table { font-family: $ff; min-width: 1180px; }
 
     .ant-table-thead > tr > th {
       background: #fafbfd;
@@ -274,7 +394,6 @@ $accent-lt: #eeeffe;
     .order-row {
       cursor: pointer;
       transition: background 0.12s;
-
       &:hover > td { background: #f9fafe !important; }
     }
 
@@ -286,7 +405,6 @@ $accent-lt: #eeeffe;
     }
   }
 
-  // ── Table cell styles ─────────
   .row-index { font-size: 13px; font-weight: 500; color: $text-3; }
 
   .cell-customer {
@@ -321,14 +439,38 @@ $accent-lt: #eeeffe;
     letter-spacing: 0.03em;
   }
 
+  .cell-product-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 3px;
+    min-width: 0;
+  }
+
   .cell-product-name {
     font-size: 12px;
     color: $text-3;
-    margin-top: 3px;
-    max-width: 170px;
+    max-width: 150px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .cell-more {
+    flex-shrink: 0;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: $accent;
+    background: $accent-lt;
+    border-radius: 999px;
+    padding: 1px 7px;
+  }
+
+  .cell-items-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
   }
 
   .cell-items {
@@ -340,6 +482,10 @@ $accent-lt: #eeeffe;
     font-weight: 600;
   }
 
+  .cell-lines { font-size: 11px; color: $text-3; }
+
+  .cell-kinds { display: flex; flex-wrap: wrap; gap: 4px; }
+
   .cell-amount {
     font-size: 15px;
     font-weight: 700;
@@ -349,7 +495,6 @@ $accent-lt: #eeeffe;
 
   .cell-date { font-size: 13px; color: $text-3; }
 
-  // ── View button ───────────────
   .view-btn {
     display: inline-flex;
     align-items: center;
@@ -385,21 +530,20 @@ $accent-lt: #eeeffe;
   .ant-modal-close {
     top: 16px;
     right: 16px;
-    color: rgba(255,255,255,0.55);
+    color: rgba(255, 255, 255, 0.55);
 
-    &:hover { background: rgba(255,255,255,0.12); border-radius: 50%; }
-
-    .ant-modal-close-x { color: rgba(255,255,255,0.8); }
+    &:hover { background: rgba(255, 255, 255, 0.12); border-radius: 50%; }
+    .ant-modal-close-x { color: rgba(255, 255, 255, 0.8); }
   }
 
-  // ── Hero banner ───────────────
+  // ── Hero ──────────────────────
   .om-hero {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    background: #0d1117;
-    padding: 28px 28px 24px;
+    background: linear-gradient(135deg, #0d1117 0%, #1a1f3a 100%);
+    padding: 28px 56px 24px 28px;
     flex-wrap: wrap;
 
     .om-order-num {
@@ -413,7 +557,7 @@ $accent-lt: #eeeffe;
 
     .om-date {
       font-size: 12px;
-      color: rgba(255,255,255,0.45);
+      color: rgba(255, 255, 255, 0.45);
       margin-bottom: 12px;
     }
 
@@ -422,14 +566,6 @@ $accent-lt: #eeeffe;
       gap: 8px;
       flex-wrap: wrap;
       align-items: center;
-    }
-
-    .om-extra-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 11px;
-      color: rgba(255,255,255,0.4);
     }
 
     .om-hero-right {
@@ -446,10 +582,16 @@ $accent-lt: #eeeffe;
       .om-total-label {
         font-size: 11px;
         font-weight: 600;
-        color: rgba(255,255,255,0.4);
+        color: rgba(255, 255, 255, 0.4);
         text-transform: uppercase;
         letter-spacing: 0.07em;
         margin-top: 4px;
+      }
+
+      .om-hero-meta {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.6);
+        margin-top: 10px;
       }
     }
   }
@@ -461,7 +603,7 @@ $accent-lt: #eeeffe;
     .ant-tabs-nav {
       margin: 0;
       padding: 0 24px;
-      border-bottom: 1px solid #edf0f4;
+      border-bottom: 1px solid $border;
       font-family: $ff;
     }
 
@@ -473,16 +615,17 @@ $accent-lt: #eeeffe;
     }
 
     .ant-tabs-tab-active .ant-tabs-tab-btn { color: $accent; }
-
     .ant-tabs-ink-bar { background: $accent; }
 
     .ant-tabs-content-holder {
-      max-height: 60vh;
+      max-height: 64vh;
       overflow-y: auto;
     }
   }
 
-  // ── Tab content ───────────────
+  .tab-label { display: inline-flex; align-items: center; gap: 6px; }
+  .tab-dot { width: 7px; height: 7px; border-radius: 50%; background: #f59e0b; }
+
   .tab-content {
     padding: 20px 24px 24px;
     display: flex;
@@ -490,12 +633,19 @@ $accent-lt: #eeeffe;
     gap: 14px;
   }
 
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
   // ── Section card ──────────────
   .section-card {
-    background: #f8f9fb;
+    background: $bg;
     border-radius: $radius-lg;
     padding: 18px 20px;
-    border: 1px solid #edf0f4;
+    border: 1px solid $border;
+    min-width: 0;
 
     .section-title {
       font-size: 10.5px;
@@ -507,82 +657,111 @@ $accent-lt: #eeeffe;
     }
   }
 
-  // ── Product preview ───────────
-  .product-preview-row {
+  .section-head {
     display: flex;
     align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+
+    .section-title {
+      margin-bottom: 0;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 
   .img-pair {
     display: flex;
     gap: 10px;
     flex-shrink: 0;
+    flex-wrap: wrap;
   }
 
-  // img-block-wrap is defined at root level (above), handles the wrapper
-  .img-block {
+  // ── Chips ────────────────────
+  .product-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: $text-1;
+    line-height: 1.45;
+    margin-bottom: 8px;
+  }
+
+  .product-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .chip {
+    font-size: 11px;
+    font-weight: 500;
+    background: $surface;
+    border: 1px solid $border2;
+    color: $text-2;
+    border-radius: 6px;
+    padding: 3px 8px;
+    white-space: nowrap;
+  }
+
+  .item-index {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: $accent-lt;
+    color: $accent;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  // ── Glance list (overview) ────
+  .glance-list {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 5px;
-
-    img {
-      width: 80px;
-      height: 80px;
-      object-fit: cover;
-      border-radius: $radius-md;
-      border: 1px solid $border2;
-      background: $surface;
-      display: block;
-    }
-
-    &.sm img { width: 64px; height: 64px; }
-
-    .img-caption {
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: $text-3;
-    }
+    gap: 8px;
   }
 
-  .product-text {
-    flex: 1;
-    min-width: 0;
+  .glance-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: $surface;
+    border: 1px solid $border;
+    border-radius: $radius-md;
+    padding: 10px 14px;
 
-    .product-name {
-      font-size: 14px;
+    .img-pair { gap: 6px; }
+
+    .glance-meta { flex: 1; min-width: 0; }
+
+    .glance-name {
+      font-size: 13.5px;
       font-weight: 600;
       color: $text-1;
-      line-height: 1.45;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    .product-chips {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .chip {
-      font-size: 11px;
-      font-weight: 500;
-      background: $surface;
-      border: 1px solid $border2;
-      color: $text-2;
-      border-radius: 6px;
-      padding: 3px 8px;
-    }
+    .glance-price { text-align: right; flex-shrink: 0; }
+    .glance-total { font-size: 15px; font-weight: 700; color: $text-1; }
+    .glance-qty   { font-size: 11.5px; color: $text-3; margin-top: 2px; }
   }
 
-  // ── Customer row ──────────────
+  // ── Customer ──────────────────
   .customer-row {
     display: flex;
     align-items: center;
     gap: 12px;
+    min-width: 0;
 
     .avatar {
       width: 42px;
@@ -598,9 +777,15 @@ $accent-lt: #eeeffe;
       flex-shrink: 0;
     }
 
+    .customer-text { min-width: 0; }
     .cust-name  { font-size: 15px; font-weight: 600; color: $text-1; }
-    .cust-email { font-size: 13px; color: $text-2; margin-top: 2px; }
-    .cust-id    { font-size: 11px; color: $text-3; margin-top: 3px; font-family: $mono; }
+    .cust-email {
+      font-size: 13px;
+      color: $text-2;
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   }
 
   // ── KV grid ───────────────────
@@ -608,9 +793,13 @@ $accent-lt: #eeeffe;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px 24px;
+
+    &.kv-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
 
   .kv-item {
+    min-width: 0;
+
     .kv-label {
       font-size: 11px;
       font-weight: 600;
@@ -624,6 +813,7 @@ $accent-lt: #eeeffe;
       font-size: 14px;
       font-weight: 600;
       color: $text-1;
+      overflow-wrap: anywhere;
 
       &.mono {
         font-family: $mono;
@@ -635,33 +825,40 @@ $accent-lt: #eeeffe;
   }
 
   // ── Item card ────────────────
-  .item-card { gap: 0; }
+  .item-card { background: $surface; }
 
   .item-header {
     display: flex;
     align-items: flex-start;
-    gap: 14px;
+    gap: 16px;
     margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid $border;
     flex-wrap: wrap;
 
-    .item-meta { flex: 1; min-width: 0; }
+    .item-meta { flex: 1; min-width: 200px; }
+
+    .item-eyebrow {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: $accent;
+      margin-bottom: 4px;
+    }
 
     .item-price-block {
       text-align: right;
       flex-shrink: 0;
 
       .item-total {
-        font-size: 18px;
+        font-size: 20px;
         font-weight: 700;
         color: $text-1;
         letter-spacing: -0.01em;
       }
 
-      .item-qty {
-        font-size: 12px;
-        color: $text-3;
-        margin-top: 2px;
-      }
+      .item-qty { font-size: 12px; color: $text-3; margin-top: 2px; }
     }
   }
 
@@ -671,65 +868,115 @@ $accent-lt: #eeeffe;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: $text-3;
-    margin-bottom: 10px;
-    margin-top: 6px;
-    border-top: 1px solid $border;
-    padding-top: 12px;
+    margin: 18px 0 8px;
   }
 
-  // ── Pricing table ─────────────
-  .pricing-table-wrap { overflow-x: auto; }
+  .empty-note {
+    font-size: 12.5px;
+    color: $text-3;
+    background: $bg;
+    border: 1px dashed $border2;
+    border-radius: $radius-sm;
+    padding: 10px 12px;
+  }
 
-  .pricing-table {
+  // ── Data tables ───────────────
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid $border;
+    border-radius: $radius-md;
+    background: $surface;
+  }
+
+  .data-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
 
     th {
       text-align: left;
-      padding: 7px 10px;
+      padding: 9px 12px;
       font-size: 10.5px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.07em;
       color: $text-3;
+      background: #fafbfd;
       border-bottom: 1px solid $border2;
-
-      &:not(:first-child) { text-align: right; }
+      white-space: nowrap;
     }
 
     td {
-      padding: 8px 10px;
+      padding: 9px 12px;
       border-bottom: 1px solid $border;
       color: $text-2;
-
-      &:not(:first-child) { text-align: right; }
-
-      &.td-bold { font-weight: 700; color: $text-1; }
+      vertical-align: middle;
     }
 
-    tr:last-child td { border-bottom: none; }
+    .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .td-bold   { font-weight: 700; color: $text-1; }
+    .td-strong { font-weight: 600; color: $text-1; }
+    .td-muted  { color: $text-3; font-size: 12px; }
+
+    tbody tr:last-child td { border-bottom: none; }
+
+    tr.row-zero td { background: #fffdf5; }
+
+    tfoot td {
+      border-top: 1px solid $border2;
+      border-bottom: none;
+      background: #fafbfd;
+      font-size: 12px;
+      font-weight: 600;
+      color: $text-2;
+    }
+
+    .thumb-wrap { align-items: flex-start; }
   }
 
   // ── Price breakdown list ──────
   .price-breakdown-list {
     display: flex;
     flex-direction: column;
-    gap: 0;
   }
 
   .price-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
+    gap: 16px;
+    padding: 9px 0;
     border-bottom: 1px solid $border;
     font-size: 13.5px;
 
     &:last-child { border-bottom: none; }
 
+    .price-label-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .price-label { color: $text-2; font-weight: 500; }
+
+    .price-detail {
+      font-size: 11.5px;
+      color: $text-3;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .price-val {
+      font-weight: 600;
+      color: $text-1;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    &.price-row-muted .price-label { color: $text-2; font-size: 13px; }
+
     &.price-row-bold {
-      .price-label { color: $text-1; font-weight: 600; }
+      .price-label { color: $text-1; font-weight: 700; }
       .price-val   { font-weight: 700; }
     }
 
@@ -740,19 +987,68 @@ $accent-lt: #eeeffe;
       border-bottom: none;
 
       .price-label { font-size: 15px; font-weight: 700; color: $text-1; }
-      .price-val   { font-size: 17px; font-weight: 700; color: $text-1; letter-spacing: -0.01em; }
+      .price-val   { font-size: 18px; font-weight: 700; color: $text-1; letter-spacing: -0.01em; }
     }
-
-    .price-label {
-      color: $text-2;
-
-      &.muted { color: $text-3; font-size: 13px; }
-    }
-
-    .price-val { font-weight: 600; color: $text-1; }
   }
 
   .price-divider { height: 1px; background: $border2; margin: 4px 0; }
+
+  .unit-note {
+    margin-top: 10px;
+    font-size: 12px;
+    color: $text-3;
+
+    strong { color: $text-1; font-weight: 700; }
+  }
+
+  // ── Cautions ──────────────────
+  .caution-list {
+    list-style: none;
+    margin: 14px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .caution {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    border-radius: $radius-sm;
+    padding: 8px 12px;
+    border: 1px solid;
+
+    .caution-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      font-size: 10px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+      color: #fff;
+    }
+
+    &.caution-warning {
+      background: $warn-bg;
+      border-color: $warn-bd;
+      color: $warn-tx;
+      .caution-icon { background: #f59e0b; }
+    }
+
+    &.caution-info {
+      background: $info-bg;
+      border-color: $info-bd;
+      color: $info-tx;
+      .caution-icon { background: #3b82f6; font-style: italic; font-family: Georgia, serif; }
+    }
+  }
 
   // ── Tracking ─────────────────
   .tracking-actions {
@@ -776,7 +1072,7 @@ $accent-lt: #eeeffe;
     font-family: $ff;
     transition: background 0.15s;
 
-    &:hover { background: $accent; }
+    &:hover { background: $accent; color: #fff; }
 
     &.secondary {
       background: $surface;
@@ -797,17 +1093,14 @@ $accent-lt: #eeeffe;
   .status-guide-item {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: 5px;
     background: $surface;
     border: 1px solid $border;
     border-radius: $radius-md;
     padding: 10px 12px;
 
-    .status-guide-desc {
-      font-size: 12px;
-      color: $text-2;
-      line-height: 1.5;
-    }
+    .status-guide-desc { font-size: 12px; color: $text-2; line-height: 1.5; }
   }
 }
 
@@ -826,8 +1119,32 @@ $accent-lt: #eeeffe;
   }
 
   .order-modal {
-    .om-hero { flex-direction: column; gap: 12px; .om-hero-right { text-align: left; } }
-    .kv-grid { grid-template-columns: 1fr; }
+    .om-hero {
+      flex-direction: column;
+      gap: 12px;
+      padding: 24px 52px 20px 20px;
+      .om-hero-right { text-align: left; }
+    }
+
+    .tab-content { padding: 16px; }
+    .two-col { grid-template-columns: 1fr; }
+    .kv-grid,
+    .kv-grid.kv-grid-3 { grid-template-columns: 1fr 1fr; }
     .status-guide-grid { grid-template-columns: 1fr; }
+
+    .glance-row {
+      flex-wrap: wrap;
+      .glance-meta { flex-basis: calc(100% - 140px); }
+      .glance-price { width: 100%; text-align: left; display: flex; gap: 8px; align-items: baseline; }
+    }
+
+    .item-header .item-price-block { width: 100%; text-align: left; }
+  }
+}
+
+@media (max-width: 480px) {
+  .order-modal {
+    .kv-grid,
+    .kv-grid.kv-grid-3 { grid-template-columns: 1fr; }
   }
 }

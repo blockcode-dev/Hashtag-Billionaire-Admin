@@ -131,3 +131,68 @@ export const UpdateUseCaseParentCategoriesAPI = async (
     body
   );
 };
+
+/* ===========================
+   USE CASE ↔ PRODUCTS
+=========================== */
+
+export const GetUseCaseProductsAPI = async (
+  useCaseId: number,
+  page = 1,
+  limit = 20,
+  search = ""
+) => {
+  return axios.get(
+    `${API_BASE_URL}industry/use-case/${useCaseId}/products?page=${page}&limit=${limit}&search=${search}`
+  );
+};
+
+export const AddProductsToUseCaseAPI = async (
+  useCaseId: number,
+  productIds: number[]
+) => {
+  return axios.post(
+    `${API_BASE_URL}industry/use-case/${useCaseId}/products/add`,
+    { product_ids: productIds }
+  );
+};
+
+export const ExcludeProductsFromUseCaseAPI = async (
+  useCaseId: number,
+  productIds: number[]
+) => {
+  return axios.post(
+    `${API_BASE_URL}industry/use-case/${useCaseId}/products/exclude`,
+    { product_ids: productIds }
+  );
+};
+
+export const ClearUseCaseProductOverrideAPI = async (
+  useCaseId: number,
+  productId: number
+) => {
+  return axios.delete(
+    `${API_BASE_URL}industry/use-case/${useCaseId}/products/${productId}/override`
+  );
+};
+
+export const MoveProductsBetweenUseCasesAPI = async (
+  productIds: number[],
+  fromUseCaseId: number,
+  toUseCaseId: number
+) => {
+  return axios.post(
+    `${API_BASE_URL}industry/use-case/products/move`,
+    {
+      product_ids: productIds,
+      from_use_case_id: fromUseCaseId,
+      to_use_case_id: toUseCaseId,
+    }
+  );
+};
+
+export const GetUseCasesForProductAPI = async (productId: number) => {
+  return axios.get(
+    `${API_BASE_URL}industry/products/${productId}/use-cases`
+  );
+};

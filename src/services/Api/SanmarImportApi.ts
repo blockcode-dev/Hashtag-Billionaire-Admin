@@ -19,20 +19,31 @@ export const GetSanmarBrandsAPI = async () => {
 export const GetSanmarStylesAPI = async (brand: string) => {
   const token = localStorage.getItem("token");
 
-  return axios.get(`${API_BASE_URL}sanmar/styles/${brand}`, {
-    headers: { "x-access-token": token },
+  return axios.get(`${API_BASE_URL}sanmar/styles`, {
+    params: {
+      brand,
+    },
+    headers: {
+      "x-access-token": token,
+    },
   });
 };
 
 // 🔥 GET PRODUCT PREVIEW
 export const GetSanmarProductAPI = async (
   brand: string,
-  style: string
+  style: string,
 ) => {
   const token = localStorage.getItem("token");
 
-  return axios.get(`${API_BASE_URL}sanmar/products/${brand}/${style}`, {
-    headers: { "x-access-token": token },
+  return axios.get(`${API_BASE_URL}sanmar/products`, {
+    params: {
+      brand,
+      style,
+    },
+    headers: {
+      "x-access-token": token,
+    },
   });
 };
 

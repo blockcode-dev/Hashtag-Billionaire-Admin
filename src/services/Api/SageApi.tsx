@@ -33,7 +33,8 @@ export const SearchSageProductsAPI = async (
   category: string,
   supplierId: number,
   page: number = 1,
-  maxItems: number = 20
+  maxItems: number = 20,
+  keywords: string = ""
 ) => {
   const token = localStorage.getItem("token");
 
@@ -42,12 +43,41 @@ export const SearchSageProductsAPI = async (
     {
       category,
       supplierId,
-      page,        // ✅ ADD THIS
+      page,
       maxItems,
+      keywords,
     },
     {
       headers: { "x-access-token": token },
     }
+  );
+};
+
+// NEW: simple keyword/category search for the SAGE Live Catalog page.
+// Same backend route as SearchSageProductsAPI above, but that one
+// requires a supplierId — this page has no supplier selected, it's just
+// browsing the whole live feed, so a lighter object-based signature
+// without that requirement is a better fit than forcing every caller of
+// the existing function to pass an unused param.
+export const SearchSageCatalogProductsAPI = async (params: {
+  keywords?: string;
+  category?: string;
+  page?: number;
+  maxItems?: number;
+}) => {
+  const token = localStorage.getItem("token");
+
+  return axios.post(
+    `${API_BASE_URL}sage/search`,
+    {
+      keywords: params.keywords || "",
+      category: params.category || "",
+      page: params.page || 1,
+      maxItems: params.maxItems || 20,
+    },
+    {
+      headers: { "x-access-token": token },
+    },
   );
 };
 

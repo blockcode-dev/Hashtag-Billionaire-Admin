@@ -98,3 +98,40 @@ export const GetAllCategoriesAPI = async (params?: {
     params,
   });
 };
+
+export const CreateCategoryAPI = async (data: {
+  title: string;
+  supplier?: string;
+}) => {
+  return axios.post(`${API_BASE_URL}product-category`, data);
+};
+
+export const UpdateCategoryAPI = async (
+  id: number,
+  data: { title: string },
+) => {
+  return axios.put(`${API_BASE_URL}product-category/${id}`, data);
+};
+export const DeleteCategoryAPI = async (id: number) => {
+  return axios.post(`${API_BASE_URL}product-category/delete`, {
+    category_id: [id],
+  });
+};
+
+
+
+export const AddCategoryToParentAPI = async (body: {
+  parent_category_id: number;
+  product_category_id: number;
+}) => {
+  return axios.post(
+    `${API_BASE_URL}product-category/add-category-to-parent`,
+    body,
+  );
+};
+
+// ParentCategoryApi.ts
+export const RemoveCategoryFromParentAPI = async (body: {
+  parent_category_id: number;
+  product_category_id: number;
+}) => axios.post(`${API_BASE_URL}product-category/remove-category-from-parent`, body);

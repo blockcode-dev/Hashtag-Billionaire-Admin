@@ -40,6 +40,18 @@ import EditGrandCategoryPage from "./pages/GrandCategory/EditGrandCategoryPage";
 import ContactUsPage from "./pages/ContactUs/ContactUs";
 import IndustryList from "./pages/Industry/IndustryList";
 import UseCaseList from "./pages/UseCase/Usecaselist";
+import SourcingRequests from "./pages/SourcingRequest/SourcingRequest";
+import BrandAssignment from "./pages/BrandManagement/BrandAssignment";
+import EditProduct from "./pages/Product/Update/EditProduct";
+import UseCaseProducts from "./pages/UseCase/UseCaseProducts";
+import SageCatalogPage from "./pages/SageCatalog/Sagecatalog";
+import SageProductView from "./pages/SageCatalog/Sageproductview";
+import EditManualProduct from "./pages/Product/EditManualProduct/EditManualProduct";
+import DuplicateManualProduct from "./pages/Product/DuplicateManualProduct/DuplicateManualProduct";
+import AddOnList from "./pages/AddOns/AddOnList";
+import AddOnForm from "./pages/AddOns/AddOnForm";
+import CustomizationList from "./pages/Customization/CustomizationList";
+import CustomizationForm from "./pages/Customization/CustomizationForm";
 
 const queryClient = new QueryClient();
 
@@ -205,6 +217,15 @@ const App = () => (
           />
 
           <Route
+            path="/brand-assignment"
+            element={
+              <AdminLayout>
+                <BrandAssignment />
+              </AdminLayout>
+            }
+          />
+
+          <Route
             path="/import"
             element={
               <AdminLayout>
@@ -227,6 +248,24 @@ const App = () => (
             element={
               <AdminLayout>
                 <ProductsPage />
+              </AdminLayout>
+            }
+          />
+
+          <Route
+            path="/products/:id/edit"
+            element={
+              <AdminLayout>
+                <EditProduct />
+              </AdminLayout>
+            }
+          />
+
+          <Route
+            path="/products/:id/edit-manual"
+            element={
+              <AdminLayout>
+                <EditManualProduct />
               </AdminLayout>
             }
           />
@@ -285,7 +324,7 @@ const App = () => (
             }
           />
 
-           <Route
+          <Route
             path="/contact-us"
             element={
               <AdminLayout>
@@ -294,7 +333,7 @@ const App = () => (
             }
           />
 
-            <Route
+          <Route
             path="/industries"
             element={
               <AdminLayout>
@@ -303,8 +342,7 @@ const App = () => (
             }
           />
 
-
-            <Route
+          <Route
             path="/use-cases"
             element={
               <AdminLayout>
@@ -313,6 +351,94 @@ const App = () => (
             }
           />
 
+          <Route
+            path="/use-cases/:id/products"
+            element={
+              <AdminLayout>
+                <UseCaseProducts />
+              </AdminLayout>
+            }
+          />
+
+          <Route
+            path="/sourcing-requests"
+            element={
+              <AdminLayout>
+                <SourcingRequests />
+              </AdminLayout>
+            }
+          />
+          <Route
+            path="/sage-live-catalog"
+            element={
+              <AdminLayout>
+                <SageCatalogPage />
+              </AdminLayout>
+            }
+          />
+
+          <Route
+            path="/sage-live-catalog/:prodEId"
+            element={
+              <AdminLayout>
+                <SageProductView />
+              </AdminLayout>
+            }
+          />
+
+          <Route
+            path="/products/:id/duplicate"
+            element={
+              <AdminLayout>
+                <DuplicateManualProduct />
+              </AdminLayout>
+            }
+          />
+
+          <Route
+            path="/add-ons"
+            element={
+              <AdminLayout>
+                <AddOnList />
+              </AdminLayout>
+            }
+          />
+
+          <Route
+            path="/add-ons/new"
+            element={
+              <AdminLayout>
+                <AddOnForm />
+              </AdminLayout>
+            }
+          />
+
+           <Route
+            path="/customizations"
+            element={
+              <AdminLayout>
+                <CustomizationList />
+              </AdminLayout>
+            }
+          />
+
+          <Route
+            path="/customizations/new"
+            element={
+              <AdminLayout>
+                <CustomizationForm />
+              </AdminLayout>
+            }
+          />
+
+          <Route
+            path="/customizations/:id/edit"
+            element={
+              <AdminLayout>
+                <CustomizationForm />
+              </AdminLayout>
+            }
+          />
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

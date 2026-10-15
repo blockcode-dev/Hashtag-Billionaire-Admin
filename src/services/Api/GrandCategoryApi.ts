@@ -62,3 +62,24 @@ export const MapGrandCategoryAPI = async (
     body
   );
 };
+
+// Adds a Parent Category into an existing Grand Category.
+// Does not remove/replace existing mappings — safe to call repeatedly,
+// backend uses findOrCreate.
+export const AddParentToGrandAPI = async (body: {
+  grand_category_id: number;
+  parent_category_id: number;
+}) => {
+  return axios.post(
+    `${API_BASE_URL}product-category/add-parent-to-grand`,
+    body,
+  );
+};
+
+
+
+// GrandCategoryApi.ts
+export const RemoveParentFromGrandAPI = async (body: {
+  grand_category_id: number;
+  parent_category_id: number;
+}) => axios.post(`${API_BASE_URL}product-category/remove-parent-from-grand`, body);

@@ -1,0 +1,414 @@
+/** @format */
+
+.sage-catalog-root {
+  padding: 32px;
+  background: #f8fafc;
+  min-height: 100vh;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.sage-catalog-header {
+  margin-bottom: 24px;
+
+  h1 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.5px;
+    margin: 0;
+  }
+
+  p {
+    font-size: 13.5px;
+    color: #64748b;
+    margin-top: 6px;
+    margin-bottom: 0;
+    max-width: 640px;
+    line-height: 1.5;
+  }
+}
+
+.sage-catalog-scope-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.sage-catalog-scope-toggle {
+  display: flex;
+  background: #eef2f6;
+  padding: 4px;
+  border-radius: 10px;
+  width: fit-content;
+}
+
+.sage-scope-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  background: transparent;
+  padding: 9px 16px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: 0.15s ease;
+  white-space: nowrap;
+
+  // Defensive: some global resets (e.g. Tailwind Preflight) force
+  // `svg { display: block }`, which breaks icon+label alignment even
+  // inside a flex container in some edge cases. Pinning it explicitly
+  // here guarantees the icon stays inline with the label regardless.
+  svg {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  span {
+    display: inline-flex;
+  }
+
+  &.active {
+    background: #fff;
+    color: #0f172a;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+}
+
+.sage-catalog-howto-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #4f46e5;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 13px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s ease, border-color 0.12s ease;
+
+  svg {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background: #f5f3ff;
+    border-color: #c7d2fe;
+  }
+}
+
+.sage-catalog-howto {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sage-catalog-howto-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+
+  strong {
+    display: block;
+    font-size: 13px;
+    color: #0f172a;
+    margin-bottom: 3px;
+  }
+
+  p {
+    font-size: 12.5px;
+    color: #64748b;
+    line-height: 1.55;
+    margin: 0;
+  }
+}
+
+.sage-catalog-howto-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #6366f1;
+}
+
+.sage-catalog-howto-why {
+  font-size: 12px;
+  color: #94a3b8;
+  font-style: italic;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.sage-catalog-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 16px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    height: 40px;
+    min-width: 280px;
+
+    input {
+      border: none;
+      outline: none;
+      font-size: 14px;
+      width: 100%;
+    }
+    svg {
+      color: #94a3b8;
+    }
+  }
+}
+
+.sage-catalog-mode-note {
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 10px;
+
+  &--stored {
+    color: #6b7280;
+  }
+
+  &--live {
+    color: #7c3aed;
+  }
+}
+
+.sage-catalog-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sage-catalog-count {
+  font-size: 13px;
+  color: #6b7280;
+
+  strong {
+    color: #0f172a;
+    font-weight: 700;
+  }
+
+  .loading {
+    color: #9ca3af;
+    font-style: italic;
+  }
+}
+
+.sage-catalog-bulk-import-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #15803d;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: #dcfce7;
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+.sage-catalog-table-wrap {
+  position: relative;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  min-height: 200px;
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    transition: opacity 0.15s ease;
+
+    &.dimmed {
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    th {
+      background: #f8fafc;
+      padding: 14px 16px;
+      text-align: left;
+      font-size: 12px;
+      color: #64748b;
+      text-transform: uppercase;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 13.5px;
+    }
+  }
+}
+
+.sage-catalog-checkbox-col {
+  width: 40px;
+  text-align: center !important;
+
+  input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    accent-color: #4f46e5;
+  }
+}
+
+.sage-catalog-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 5;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(1px);
+  text-align: center;
+  padding: 0 40px;
+}
+
+.sage-catalog-loading-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5563;
+  max-width: 340px;
+}
+
+.sage-catalog-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.sage-catalog-mono {
+  font-family: ui-monospace, monospace;
+  font-size: 12.5px;
+  color: #6b7280;
+}
+
+.sage-catalog-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
+
+  &--imported {
+    background: #f0fdf4;
+    color: #15803d;
+    border-color: #bbf7d0;
+  }
+
+  &--not-imported {
+    background: #f1f5f9;
+    color: #64748b;
+    border-color: #e2e8f0;
+  }
+}
+
+.sage-catalog-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sage-catalog-view-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+  border: 1px solid #c7d2fe;
+  background: #eef2ff;
+  color: #4338ca;
+
+  &:hover {
+    background: #e0e7ff;
+  }
+}
+
+.spin {
+  animation: sage-spin 0.8s linear infinite;
+}
+
+@keyframes sage-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sage-catalog-empty {
+  padding: 60px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 24px;
+  button {
+    height: 36px;
+    min-width: 36px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    &.active { background: #0f172a; color: #fff; border-color: #0f172a; }
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
+  }
+}

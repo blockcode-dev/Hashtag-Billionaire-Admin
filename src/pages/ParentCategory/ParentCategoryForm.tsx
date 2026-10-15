@@ -181,7 +181,7 @@ const ParentCategoryForm = ({ mode }: Props) => {
       });
 
       console.log("selectedCategories", selectedCategories);
-console.log("selectedCategoriesData", selectedCategoriesData);
+      console.log("selectedCategoriesData", selectedCategoriesData);
 
       navigate("/parent-category");
     } catch (err: any) {
@@ -333,7 +333,12 @@ console.log("selectedCategoriesData", selectedCategoriesData);
                     >
                       {isSelected && <Check size={11} strokeWidth={3} />}
                     </div>
-                    <span className="pcf__list-item-title">{cat.title}</span>
+                    <span className="pcf__list-item-title">
+                      {cat.title}{" "}
+                      <span className="pcf__list-item-supplier">
+                        ({cat.supplier})
+                      </span>
+                    </span>
                   </div>
                 );
               })
@@ -512,7 +517,12 @@ console.log("selectedCategoriesData", selectedCategoriesData);
               filteredSelected.map((cat) => (
                 <div key={cat.id} className="pcf__selected-item">
                   <div className="pcf__selected-dot" />
-                  <span className="pcf__selected-item-title">{cat.title}</span>
+                  <span className="pcf__selected-item-title">
+                    {cat.title}{" "}
+                    <span className="pcf__selected-item-supplier">
+                      ({cat.supplier})
+                    </span>
+                  </span>
                   <button
                     className="pcf__remove-btn"
                     onClick={() => removeCategory(cat.id)}

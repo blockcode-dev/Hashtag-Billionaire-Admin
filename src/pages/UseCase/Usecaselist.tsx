@@ -1,7 +1,14 @@
 /** @format */
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Upload } from "antd";
+import ReactCrop, {
+  centerCrop,
+  makeAspectCrop,
+  Crop,
+  PixelCrop,
+} from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
 import { UploadOutlined } from "@ant-design/icons";
 
 import {
@@ -16,6 +23,7 @@ import {
   ChevronUp,
   ImageOff,
   Eye,
+  Package,
 } from "lucide-react";
 import {
   CreateUseCaseAPI,
@@ -27,6 +35,7 @@ import {
 } from "@/services/Api/IndustryApi";
 import { GetParentCategoriesAPI } from "@/services/Api/ParentCategoryApi";
 import "./UseCaseList.scss";
+import { useNavigate } from "react-router-dom";
 
 const IMAGE_BASE_URL = "https://node.hashtagbillionaire.com";
 
@@ -77,7 +86,9 @@ const CategoryTags = ({ categories }: { categories: ParentCategory[] }) => {
     return <span className="uc__none">No categories</span>;
   }
 
-  const visible = expanded ? categories : categories.slice(0, CATEGORIES_PREVIEW);
+  const visible = expanded
+    ? categories
+    : categories.slice(0, CATEGORIES_PREVIEW);
 
   const remaining = categories.length - CATEGORIES_PREVIEW;
 
@@ -109,6 +120,7 @@ const CategoryTags = ({ categories }: { categories: ParentCategory[] }) => {
 };
 
 const UseCaseList = () => {
+  const navigate = useNavigate();
   const [useCases, setUseCases] = useState<UseCase[]>([]);
 
   const [industries, setIndustries] = useState<IndustryOption[]>([]);
@@ -140,13 +152,132 @@ const UseCaseList = () => {
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const handleFileChange = ({ fileList }: any) => {
-    setFileList(fileList);
+  // ── Image crop state ───────────────────────────────────
+  // react-image-crop shows the full picked image with a draggable,
+  // resizable selection rectangle — the person drags the edges/corners
+  // to trim more or less off any side before it's saved as the image.
+  const [cropModalOpen, setCropModalOpen] = useState(false);
 
-    if (fileList.length && fileList[0].originFileObj) {
-      setPreviewUrl(URL.createObjectURL(fileList[0].originFileObj));
-    } else if (!fileList.length) {
-      setPreviewUrl(null);
+  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
+
+  const [pendingFileName, setPendingFileName] = useState("image.png");
+
+  const [crop, setCrop] = useState<Crop>();
+
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
+
+  const [cropSaving, setCropSaving] = useState(false);
+
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
+  const handleBeforeUpload = (file: File) => {
+    if (rawImageSrc) URL.revokeObjectURL(rawImageSrc);
+
+    setPendingFileName(file.name);
+    setRawImageSrc(URL.createObjectURL(file));
+    setCropModalOpen(true);
+
+    // Prevent antd from uploading or auto-adding this raw file — the
+    // cropped result is what eventually becomes the real fileList entry.
+    return false;
+  };
+
+  const ASPECT_RATIO = 4 / 5;
+
+  const [fixedCropSize, setFixedCropSize] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
+
+  const onCropImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { width, height } = e.currentTarget;
+
+    const initialCrop = centerCrop(
+      makeAspectCrop({ unit: "%", width: 95 }, ASPECT_RATIO, width, height),
+      width,
+      height,
+    );
+
+    setCrop(initialCrop);
+    setCompletedCrop(undefined);
+
+    // Lock the crop box to this exact pixel size so it can only be
+    // moved, not resized — this guarantees 4:3 can never drift.
+    const pixelWidth = (initialCrop.width / 100) * width;
+    const pixelHeight = (initialCrop.height / 100) * height;
+    setFixedCropSize({ width: pixelWidth, height: pixelHeight });
+  };
+  const closeCropModal = () => {
+    if (rawImageSrc) URL.revokeObjectURL(rawImageSrc);
+
+    setCropModalOpen(false);
+    setRawImageSrc(null);
+    setCrop(undefined);
+    setCompletedCrop(undefined);
+    setFixedCropSize(null);
+  };
+
+  const handleCropConfirm = async () => {
+    if (!imgRef.current || !completedCrop?.width || !completedCrop?.height) {
+      closeCropModal();
+      return;
+    }
+
+    setCropSaving(true);
+
+    try {
+      const image = imgRef.current;
+
+      const scaleX = image.naturalWidth / image.width;
+      const scaleY = image.naturalHeight / image.height;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(completedCrop.width * scaleX);
+      canvas.height = Math.round(completedCrop.height * scaleY);
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas not supported");
+
+      ctx.drawImage(
+        image,
+        completedCrop.x * scaleX,
+        completedCrop.y * scaleY,
+        completedCrop.width * scaleX,
+        completedCrop.height * scaleY,
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      );
+
+      const blob: Blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error("Crop failed"))),
+          "image/png",
+          1,
+        );
+      });
+
+      const croppedFile = new File([blob], pendingFileName, {
+        type: "image/png",
+      });
+
+      setFileList([
+        {
+          uid: `crop-${Date.now()}`,
+          name: pendingFileName,
+          status: "done",
+          originFileObj: croppedFile,
+        },
+      ]);
+
+      setPreviewUrl(URL.createObjectURL(croppedFile));
+
+      closeCropModal();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCropSaving(false);
     }
   };
 
@@ -160,7 +291,7 @@ const UseCaseList = () => {
   const [categoriesLoaded, setCategoriesLoaded] = useState(false);
 
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<number>>(
-    new Set()
+    new Set(),
   );
 
   const [categorySearch, setCategorySearch] = useState("");
@@ -216,7 +347,7 @@ const UseCaseList = () => {
           id: i.id,
           title: i.title,
           sort_order: i.sort_order ?? 0,
-        }))
+        })),
       );
     } catch (err) {
       console.error(err);
@@ -262,6 +393,7 @@ const UseCaseList = () => {
     setFileList([]);
     setPreviewUrl(null);
     setFormError("");
+    closeCropModal();
     setFormOpen(true);
   };
 
@@ -273,6 +405,7 @@ const UseCaseList = () => {
     setFileList([]);
     setPreviewUrl(getImageUrl(item.image));
     setFormError("");
+    closeCropModal();
     setFormOpen(true);
   };
 
@@ -287,6 +420,7 @@ const UseCaseList = () => {
     setFileList([]);
     setPreviewUrl(null);
     setFormError("");
+    closeCropModal();
   };
 
   const handleFormSubmit = async () => {
@@ -335,8 +469,8 @@ const UseCaseList = () => {
                   industry: updated?.industry ?? industryMeta ?? x.industry,
                   image: updated?.image ?? x.image,
                 }
-              : x
-          )
+              : x,
+          ),
         );
       } else {
         const res = await CreateUseCaseAPI(formData);
@@ -379,7 +513,7 @@ const UseCaseList = () => {
     setCategoryModalOpen(true);
 
     setSelectedCategoryIds(
-      new Set((item.parent_categories || []).map((c) => c.id))
+      new Set((item.parent_categories || []).map((c) => c.id)),
     );
 
     if (categoriesLoaded) return;
@@ -391,9 +525,7 @@ const UseCaseList = () => {
 
       const catList = res.data?.data?.data || res.data?.data || [];
 
-      setAllCategories(
-        catList.map((c: any) => ({ id: c.id, title: c.title }))
-      );
+      setAllCategories(catList.map((c: any) => ({ id: c.id, title: c.title })));
 
       setCategoriesLoaded(true);
     } catch (err) {
@@ -439,15 +571,15 @@ const UseCaseList = () => {
       await UpdateUseCaseParentCategoriesAPI(categoryTarget.id, body);
 
       const selectedCategoryObjs = allCategories.filter((c) =>
-        selectedCategoryIds.has(c.id)
+        selectedCategoryIds.has(c.id),
       );
 
       setUseCases((prev) =>
         prev.map((x) =>
           x.id === categoryTarget.id
             ? { ...x, parent_categories: selectedCategoryObjs }
-            : x
-        )
+            : x,
+        ),
       );
 
       closeCategoryModal();
@@ -459,7 +591,7 @@ const UseCaseList = () => {
   };
 
   const filteredCategories = allCategories.filter((c) =>
-    c.title.toLowerCase().includes(categorySearch.toLowerCase())
+    c.title.toLowerCase().includes(categorySearch.toLowerCase()),
   );
 
   // Group the flat use-case list by industry, ordered by each industry's
@@ -468,7 +600,7 @@ const UseCaseList = () => {
   // cases by their own sort_order/created_at), so grouping happens here.
   const groupedUseCases = useMemo(() => {
     const industrySortOrder = new Map<number, number>(
-      industries.map((i) => [i.id, i.sort_order])
+      industries.map((i) => [i.id, i.sort_order]),
     );
 
     const groups = new Map<
@@ -486,7 +618,7 @@ const UseCaseList = () => {
           industryTitle: item.industry?.title || "Unassigned",
           industrySortOrder:
             industryId != null
-              ? industrySortOrder.get(industryId) ?? Number.MAX_SAFE_INTEGER
+              ? (industrySortOrder.get(industryId) ?? Number.MAX_SAFE_INTEGER)
               : Number.MAX_SAFE_INTEGER,
           items: [],
         });
@@ -655,6 +787,15 @@ const UseCaseList = () => {
                           <td>
                             <div className="uc__actions">
                               <button
+                                className="uc__btn-products"
+                                onClick={() =>
+                                  navigate(`/use-cases/${item.id}/products`)
+                                }
+                                title="Manage products"
+                              >
+                                <Package size={14} />
+                              </button>
+                              <button
                                 className="uc__btn-categories"
                                 onClick={() => openCategoryModal(item)}
                                 title="Manage categories"
@@ -665,6 +806,7 @@ const UseCaseList = () => {
                               <button
                                 className="uc__btn-edit"
                                 onClick={() => openEditModal(item)}
+                                title="Edit use case"
                               >
                                 <Pencil size={14} />
                               </button>
@@ -672,6 +814,7 @@ const UseCaseList = () => {
                               <button
                                 className="uc__btn-delete"
                                 onClick={() => setDeleteTarget(item)}
+                                title="Delete use case"
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -769,12 +912,11 @@ const UseCaseList = () => {
 
               <div className="uc__upload">
                 <Upload
-                  beforeUpload={() => false}
+                  beforeUpload={handleBeforeUpload}
                   maxCount={1}
                   fileList={fileList}
-                  onChange={handleFileChange}
                   showUploadList={false}
-                  accept=".png,.jpg,.jpeg,.svg"
+                  accept=".png,.jpg,.jpeg"
                 >
                   {previewUrl ? (
                     <div className="uc__upload-preview">
@@ -808,7 +950,7 @@ const UseCaseList = () => {
                   </div>
 
                   <div className="uc__upload-hint">
-                    PNG, JPG, JPEG or SVG
+                    PNG or JPG — drag the selection edges to crop
                     <br />
                     Max 5 MB
                   </div>
@@ -848,8 +990,72 @@ const UseCaseList = () => {
                 {formLoading
                   ? "Saving..."
                   : editTarget
-                  ? "Save Changes"
-                  : "Create Use Case"}
+                    ? "Save Changes"
+                    : "Create Use Case"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Image Crop Modal ────────────────────────────── */}
+      {cropModalOpen && rawImageSrc && (
+        <div className="uc__overlay" onClick={closeCropModal}>
+          <div
+            className="uc__modal uc__modal--crop"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="uc__modal-close"
+              onClick={closeCropModal}
+              disabled={cropSaving}
+            >
+              <X size={16} />
+            </button>
+
+            <h2>Crop Image</h2>
+
+            <p className="uc__modal-subtitle">
+              Drag the box to choose the part of the image to keep.
+            </p>
+
+            <div className="uc__crop-area">
+              <ReactCrop
+                crop={crop}
+                onChange={(_, percentCrop) => setCrop(percentCrop)}
+                onComplete={(c) => setCompletedCrop(c)}
+                aspect={ASPECT_RATIO}
+                keepSelection
+                ruleOfThirds
+                minWidth={fixedCropSize?.width}
+                maxWidth={fixedCropSize?.width}
+                minHeight={fixedCropSize?.height}
+                maxHeight={fixedCropSize?.height}
+              >
+                <img
+                  ref={imgRef}
+                  src={rawImageSrc}
+                  alt="Crop source"
+                  onLoad={onCropImageLoad}
+                />
+              </ReactCrop>
+            </div>
+
+            <div className="uc__modal-actions">
+              <button
+                className="uc__modal-cancel"
+                onClick={closeCropModal}
+                disabled={cropSaving}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="uc__modal-confirm uc__modal-confirm--primary"
+                onClick={handleCropConfirm}
+                disabled={cropSaving || !completedCrop?.width}
+              >
+                {cropSaving ? "Saving..." : "Crop & Save"}
               </button>
             </div>
           </div>

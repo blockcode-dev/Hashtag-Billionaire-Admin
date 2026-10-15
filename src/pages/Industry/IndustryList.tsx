@@ -1,7 +1,14 @@
 /** @format */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Upload } from "antd";
+import ReactCrop, {
+  centerCrop,
+  makeAspectCrop,
+  Crop,
+  PixelCrop,
+} from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
 import { UploadOutlined } from "@ant-design/icons";
 
 import {
@@ -153,13 +160,132 @@ const IndustryList = () => {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [lightboxSrc]);
 
-  const handleFileChange = ({ fileList }: any) => {
-    setFileList(fileList);
+  // ── Image crop state ───────────────────────────────────
+  // react-image-crop shows the full picked image with a draggable,
+  // resizable selection rectangle — the person drags the edges/corners
+  // to trim more or less off any side before it's saved as the image.
+  const [cropModalOpen, setCropModalOpen] = useState(false);
 
-    if (fileList.length && fileList[0].originFileObj) {
-      setPreviewUrl(URL.createObjectURL(fileList[0].originFileObj));
-    } else if (!fileList.length) {
-      setPreviewUrl(null);
+  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
+
+  const [pendingFileName, setPendingFileName] = useState("image.png");
+
+  const [crop, setCrop] = useState<Crop>();
+
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
+
+  const [cropSaving, setCropSaving] = useState(false);
+
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
+  const handleBeforeUpload = (file: File) => {
+    if (rawImageSrc) URL.revokeObjectURL(rawImageSrc);
+
+    setPendingFileName(file.name);
+    setRawImageSrc(URL.createObjectURL(file));
+    setCropModalOpen(true);
+
+    // Prevent antd from uploading or auto-adding this raw file — the
+    // cropped result is what eventually becomes the real fileList entry.
+    return false;
+  };
+  const ASPECT_RATIO = 4 / 3;
+
+  const [fixedCropSize, setFixedCropSize] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
+
+  const onCropImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { width, height } = e.currentTarget;
+
+    const initialCrop = centerCrop(
+      makeAspectCrop({ unit: "%", width: 95 }, ASPECT_RATIO, width, height),
+      width,
+      height,
+    );
+
+    setCrop(initialCrop);
+    setCompletedCrop(undefined);
+
+    // Lock the crop box to this exact pixel size so it can only be
+    // moved, not resized — this guarantees 4:3 can never drift.
+    const pixelWidth = (initialCrop.width / 100) * width;
+    const pixelHeight = (initialCrop.height / 100) * height;
+    setFixedCropSize({ width: pixelWidth, height: pixelHeight });
+  };
+
+  const closeCropModal = () => {
+    if (rawImageSrc) URL.revokeObjectURL(rawImageSrc);
+
+    setCropModalOpen(false);
+    setRawImageSrc(null);
+    setCrop(undefined);
+    setCompletedCrop(undefined);
+    setFixedCropSize(null); // add this line
+  };
+
+  const handleCropConfirm = async () => {
+    if (!imgRef.current || !completedCrop?.width || !completedCrop?.height) {
+      closeCropModal();
+      return;
+    }
+
+    setCropSaving(true);
+
+    try {
+      const image = imgRef.current;
+
+      const scaleX = image.naturalWidth / image.width;
+      const scaleY = image.naturalHeight / image.height;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(completedCrop.width * scaleX);
+      canvas.height = Math.round(completedCrop.height * scaleY);
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas not supported");
+
+      ctx.drawImage(
+        image,
+        completedCrop.x * scaleX,
+        completedCrop.y * scaleY,
+        completedCrop.width * scaleX,
+        completedCrop.height * scaleY,
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      );
+
+      const blob: Blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error("Crop failed"))),
+          "image/png",
+          1,
+        );
+      });
+
+      const croppedFile = new File([blob], pendingFileName, {
+        type: "image/png",
+      });
+
+      setFileList([
+        {
+          uid: `crop-${Date.now()}`,
+          name: pendingFileName,
+          status: "done",
+          originFileObj: croppedFile,
+        },
+      ]);
+
+      setPreviewUrl(URL.createObjectURL(croppedFile));
+
+      closeCropModal();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCropSaving(false);
     }
   };
 
@@ -273,7 +399,7 @@ const IndustryList = () => {
           fd.append("sort_order", String(item.sort_order));
 
           return UpdateIndustryAPI(item.id, fd);
-        })
+        }),
       );
     } catch (err) {
       console.error(err);
@@ -296,6 +422,7 @@ const IndustryList = () => {
     setFileList([]);
     setPreviewUrl(null);
     setFormError("");
+    closeCropModal();
     setFormOpen(true);
   };
 
@@ -306,6 +433,7 @@ const IndustryList = () => {
     setFileList([]);
     setPreviewUrl(getImageUrl(item.image));
     setFormError("");
+    closeCropModal();
     setFormOpen(true);
   };
 
@@ -319,6 +447,7 @@ const IndustryList = () => {
     setFileList([]);
     setPreviewUrl(null);
     setFormError("");
+    closeCropModal();
   };
 
   const handleFormSubmit = async () => {
@@ -357,8 +486,8 @@ const IndustryList = () => {
                   image: updated?.image ?? x.image,
                   sort_order: updated?.sort_order ?? x.sort_order,
                 }
-              : x
-          )
+              : x,
+          ),
         );
       } else {
         const res = await CreateIndustryAPI(formData);
@@ -490,9 +619,7 @@ const IndustryList = () => {
                         (search ? " ind__drag-handle--disabled" : "")
                       }
                       title={
-                        search
-                          ? "Clear search to reorder"
-                          : "Drag to reorder"
+                        search ? "Clear search to reorder" : "Drag to reorder"
                       }
                     >
                       <GripVertical size={15} />
@@ -626,12 +753,11 @@ const IndustryList = () => {
 
               <div className="ind__upload">
                 <Upload
-                  beforeUpload={() => false}
+                  beforeUpload={handleBeforeUpload}
                   maxCount={1}
                   fileList={fileList}
-                  onChange={handleFileChange}
                   showUploadList={false}
-                  accept=".png,.jpg,.jpeg,.svg"
+                  accept=".png,.jpg,.jpeg"
                 >
                   {previewUrl ? (
                     <div className="ind__upload-preview">
@@ -665,7 +791,7 @@ const IndustryList = () => {
                   </div>
 
                   <div className="ind__upload-hint">
-                    PNG, JPG, JPEG or SVG
+                    PNG or JPG — drag the selection edges to crop
                     <br />
                     Max 5 MB
                   </div>
@@ -705,8 +831,72 @@ const IndustryList = () => {
                 {formLoading
                   ? "Saving..."
                   : editTarget
-                  ? "Save Changes"
-                  : "Create Industry"}
+                    ? "Save Changes"
+                    : "Create Industry"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Image Crop Modal ────────────────────────────── */}
+      {cropModalOpen && rawImageSrc && (
+        <div className="ind__overlay" onClick={closeCropModal}>
+          <div
+            className="ind__modal ind__modal--crop"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="ind__modal-close"
+              onClick={closeCropModal}
+              disabled={cropSaving}
+            >
+              <X size={16} />
+            </button>
+
+            <h2>Crop Image</h2>
+
+            <p className="ind__modal-subtitle">
+              Drag the edges or corners to trim the image, then save.
+            </p>
+
+            <div className="ind__crop-area">
+              <ReactCrop
+                crop={crop}
+                onChange={(_, percentCrop) => setCrop(percentCrop)}
+                onComplete={(c) => setCompletedCrop(c)}
+                aspect={ASPECT_RATIO}
+                keepSelection
+                ruleOfThirds
+                minWidth={fixedCropSize?.width}
+                maxWidth={fixedCropSize?.width}
+                minHeight={fixedCropSize?.height}
+                maxHeight={fixedCropSize?.height}
+              >
+                <img
+                  ref={imgRef}
+                  src={rawImageSrc}
+                  alt="Crop source"
+                  onLoad={onCropImageLoad}
+                />
+              </ReactCrop>
+            </div>
+
+            <div className="ind__modal-actions">
+              <button
+                className="ind__modal-cancel"
+                onClick={closeCropModal}
+                disabled={cropSaving}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="ind__modal-confirm ind__modal-confirm--primary"
+                onClick={handleCropConfirm}
+                disabled={cropSaving || !completedCrop?.width}
+              >
+                {cropSaving ? "Saving..." : "Crop & Save"}
               </button>
             </div>
           </div>
