@@ -16,7 +16,7 @@ import {
   GetSageProductDetailsAPI,
   ImportSelectedSageProductsAPI,
 } from "@/services/Api/SageApi";
-import "./SageProductView.scss";
+import "./Sageproductview.scss";
 
 type TabKey = "original" | "imported";
 
