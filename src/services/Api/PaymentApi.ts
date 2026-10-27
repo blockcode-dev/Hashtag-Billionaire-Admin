@@ -8,7 +8,7 @@ export const GetAllPaymentsAPI = async (params: {
   search?: string;
 }) => {
   return axios.get(
-    `${API_BASE_URL}/payment/admin/all`,
+    `${API_BASE_URL}payment/admin/all`,
     {
       params,
 

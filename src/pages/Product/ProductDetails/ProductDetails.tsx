@@ -4,7 +4,17 @@ import { ArrowLeft } from "lucide-react";
 import { GetProductByIdAPI } from "@/services/Api/ProductApi";
 import "./ProductDetail.scss";
 import { Thumbnail } from "@/components/common/Thumbnail";
+import { VariantStatusTag } from "@/components/common/VariantStatusTag";
 import { sanitizeHtml } from "@/lib/sanitize";
+import {
+  UNREPORTED_STOCK_HINT,
+  describeShippingWeight,
+  formatWeight,
+  isInStock,
+  isStockUnreported,
+  stockLabel,
+  supplierWeight,
+} from "@/lib/variants";
 
 /* ─── supplier badge ───────────────────────────────────────────────────── */
 const SUPPLIER_LABELS: Record<string, string> = {
@@ -47,13 +57,6 @@ function formatDate(v: any): string | null {
   const d = new Date(v);
   if (isNaN(d.getTime())) return null;
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-}
-
-function getStockLabel(stock: any): string {
-  const n = Number(stock);
-  if (stock === null || stock === undefined || isNaN(n)) return "—";
-  if (n >= 999999) return "Made to order";
-  return n.toLocaleString();
 }
 
 /* ─── color swatch (handles multi-color codes like "#000,#0f0") ────────── */
@@ -524,12 +527,13 @@ const ProductDetails = () => {
   const priceRange = getProductPriceRange(variants);
   const fallbackPricing = !priceRange && fallbackVariant ? getVariantPricing(fallbackVariant) : null;
 
+  // Stock a supplier doesn't report (SAGE) isn't counted, but it is in stock, as in the shop.
   const totalStock = variants.reduce(
-    (acc: number, v: any) => acc + (Number(v.stock) < 999999 ? Number(v.stock) || 0 : 0),
+    (acc: number, v: any) => acc + (isStockUnreported(v) ? 0 : Number(v.stock) || 0),
     0
   );
-  const hasUnlimited = variants.some((v: any) => Number(v.stock) >= 999999);
-  const inStockCount = variants.filter((v: any) => v.stock > 0).length;
+  const hasUnlimited = variants.some(isStockUnreported);
+  const inStockCount = variants.filter(isInStock).length;
 
   const brand = product.brand;
   const categories: any[] = product.categories || [];
@@ -596,6 +600,14 @@ const ProductDetails = () => {
             )}
             {product.is_discontinued && (
               <span className="pd-sync-badge discontinued">Discontinued</span>
+            )}
+            {product.restored_at && (
+              <span
+                className="pd-sync-badge restored"
+                title="A supplier sync brought this product back after it had been removed."
+              >
+                Restored {formatDate(product.restored_at)}
+              </span>
             )}
             {product.is_brand_manually_assigned && (
               <span className="pd-sync-badge manual-brand">Brand: Manual</span>
@@ -894,13 +906,14 @@ const ProductDetails = () => {
                 ellipsis and a title tooltip instead of forcing scroll. */}
             <colgroup>
               <col style={{ width: "64px" }} />
-              <col style={{ width: "16%" }} />
-              <col style={{ width: "24%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "19%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "12%" }} />
               <col style={{ width: "10%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "11%" }} />
-              <col style={{ width: "11%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "10%" }} />
             </colgroup>
             <thead>
               <tr>
@@ -908,6 +921,7 @@ const ProductDetails = () => {
                 <th>SKU</th>
                 <th>Color</th>
                 <th>Size</th>
+                <th>Status</th>
                 <th>Stock</th>
                 <th>Price</th>
                 <th>Cost</th>
@@ -950,8 +964,14 @@ const ProductDetails = () => {
                       <span className="pd-size-badge">{v.size || "—"}</span>
                     </td>
                     <td>
-                      <span className={`pd-stock-badge ${v.stock > 0 ? "in" : "out"}`}>
-                        {getStockLabel(v.stock)}
+                      <VariantStatusTag variant={v} />
+                    </td>
+                    <td>
+                      <span
+                        className={`pd-stock-badge ${isInStock(v) ? "in" : "out"}`}
+                        title={isStockUnreported(v) ? UNREPORTED_STOCK_HINT : undefined}
+                      >
+                        {stockLabel(v, { short: true })}
                       </span>
                     </td>
                     <td className="pd-price">
@@ -999,8 +1019,12 @@ const ProductDetails = () => {
                 <strong className="mono">{activeVariant.color_code || "—"}</strong>
               </div>
               <div>
-                <span>Weight</span>
-                <strong>{activeVariant.unit_weight ? `${activeVariant.unit_weight} lb` : "—"}</strong>
+                <span>Supplier weight</span>
+                <strong>{supplierWeight(activeVariant) ? formatWeight(supplierWeight(activeVariant)) : "—"}</strong>
+              </div>
+              <div>
+                <span>Ships at</span>
+                <strong>{describeShippingWeight(activeVariant)}</strong>
               </div>
               <div>
                 <span>Case qty</span>
@@ -1032,7 +1056,7 @@ const ProductDetails = () => {
               </div>
               <div>
                 <span>Stock</span>
-                <strong>{getStockLabel(activeVariant.stock)}</strong>
+                <strong>{stockLabel(activeVariant)}</strong>
               </div>
               <div>
                 <span>Track inventory</span>

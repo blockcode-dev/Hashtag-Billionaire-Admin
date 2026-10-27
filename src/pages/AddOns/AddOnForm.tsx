@@ -72,9 +72,6 @@ const AddOnForm = () => {
   // The preview that failed to load (a saved image whose file is gone).
   const [failedPreview, setFailedPreview] = useState<string | null>(null);
   const previewFailed = !!previewUrl && failedPreview === previewUrl;
-  // The backend ignores remove_image for now (BACKEND_QUESTIONS.md B8), so a
-  // saved image can be replaced but not removed.
-  const showingSavedImage = isEdit && hadImage && !imageFile;
 
   // Crop
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
@@ -326,6 +323,7 @@ const AddOnForm = () => {
       JSON.stringify(features.map((f) => f.trim()).filter(Boolean)),
     );
 
+    // Removing a saved image without picking a new one clears it (BACKEND_QUESTIONS.md B8).
     if (imageFile) formData.append("images", imageFile);
     else if (isEdit && hadImage && !previewUrl)
       formData.append("remove_image", "true");
@@ -554,7 +552,7 @@ const AddOnForm = () => {
                 <div className="addon__image-missing">
                   <ImageOff size={24} aria-hidden />
                   <strong>This image's file is missing</strong>
-                  <span>Use Replace to upload it again.</span>
+                  <span>Replace it, or remove it.</span>
                 </div>
               ) : (
                 <img
@@ -578,16 +576,14 @@ const AddOnForm = () => {
                   <RefreshCw size={14} />
                   Replace
                 </button>
-                {!showingSavedImage && (
-                  <button
-                    type="button"
-                    className="addon__image-remove"
-                    onClick={removeImage}
-                  >
-                    <Trash2 size={14} />
-                    Remove
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="addon__image-remove"
+                  onClick={removeImage}
+                >
+                  <Trash2 size={14} />
+                  Remove
+                </button>
               </div>
             </div>
           ) : (

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Search,
@@ -21,17 +21,20 @@ import { toast } from "sonner";
 
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Combobox } from "@/components/common/Combobox";
 
 import {
   GetAllSourcingRequestsAPI,
   UpdateSourcingRequestStatusAPI,
+  type SourcingRequestStatus,
 } from "@/services/Api/SourcingRequestApi";
 
 import "./SourcingRequests.scss";
 
-const ITEMS_PER_PAGE = 100;
+// Paged, searched and filtered by the backend.
+const ITEMS_PER_PAGE = 50;
 
-const STATUS_OPTIONS = [
+const STATUS_OPTIONS: { value: SourcingRequestStatus; label: string }[] = [
   { value: "PENDING", label: "Pending" },
   { value: "IN_REVIEW", label: "In Review" },
   { value: "ACCEPTED", label: "Accepted" },
@@ -94,14 +97,17 @@ const AttachmentThumb: React.FC<{
 
 const SourcingRequests = () => {
 
-  const [allRequests, setAllRequests] = useState<any[]>([]);
+  const [requests, setRequests] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<SourcingRequestStatus | "">("");
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [viewModal, setViewModal] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [lightboxLoaded, setLightboxLoaded] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [statusChange, setStatusChange] = useState<{
     id: number;
     from: string;
@@ -110,49 +116,50 @@ const SourcingRequests = () => {
   const [statusNote, setStatusNote] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
-  const loadRequests = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await GetAllSourcingRequestsAPI();
-      setAllRequests(res.data.data?.data || []);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to Load", { description: "Failed to load sourcing requests." });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // The request the table last finished; it's loading until the current one has.
+  const requestKey = `${page}|${debouncedSearch}|${statusFilter}`;
+  const [settledKey, setSettledKey] = useState<string | null>(null);
+  const loading = settledKey !== requestKey;
 
+  // Search once typing pauses, from the first page.
   useEffect(() => {
-    loadRequests();
-  }, [loadRequests]);
-
-  const filteredRequests = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return allRequests;
-
-    return allRequests.filter(
-      (request) =>
-        request.name?.toLowerCase().includes(q) ||
-        request.email?.toLowerCase().includes(q) ||
-        request.company?.toLowerCase().includes(q) ||
-        request.requested_name?.toLowerCase().includes(q),
-    );
-  }, [allRequests, search]);
-
-  useEffect(() => {
-    setPage(1);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
   }, [search]);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredRequests.length / ITEMS_PER_PAGE),
-  );
-
-  const pagedRequests = useMemo(() => {
-    const start = (page - 1) * ITEMS_PER_PAGE;
-    return filteredRequests.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredRequests, page]);
+  useEffect(() => {
+    let active = true;
+    const key = `${page}|${debouncedSearch}|${statusFilter}`;
+    GetAllSourcingRequestsAPI({
+      page,
+      limit: ITEMS_PER_PAGE,
+      search: debouncedSearch || undefined,
+      status: statusFilter || undefined,
+    })
+      .then((res) => {
+        if (!active) return;
+        const payload = res.data?.data ?? {};
+        setRequests(payload.data || []);
+        setTotal(payload.pagination?.total ?? 0);
+        setTotalPages(Math.max(1, payload.pagination?.totalPages ?? 1));
+      })
+      .catch((err: any) => {
+        if (!active) return;
+        setRequests([]);
+        toast.error("Failed to Load", {
+          description: err.response?.data?.message || "Failed to load sourcing requests.",
+        });
+      })
+      .finally(() => {
+        if (active) setSettledKey(key);
+      });
+    return () => {
+      active = false;
+    };
+  }, [page, debouncedSearch, statusFilter]);
 
   const formatDate = (date: string) => {
     if (!date) return "—";
@@ -171,11 +178,11 @@ const SourcingRequests = () => {
       // email using this note, so there's no separate "edit notes" endpoint.
       await UpdateSourcingRequestStatusAPI(
         id,
-        status as "PENDING" | "IN_REVIEW" | "ACCEPTED" | "REJECTED" | "COMPLETED",
+        status as SourcingRequestStatus,
         note,
       );
 
-      setAllRequests((prev) =>
+      setRequests((prev) =>
         prev.map((request) =>
           request.id === id
             ? { ...request, status, admin_notes: note }
@@ -228,10 +235,24 @@ const SourcingRequests = () => {
         </div>
 
         <div className="header-actions">
+          <Combobox
+            searchable={false}
+            allowClear
+            placeholder="All statuses"
+            style={{ width: 170, height: 44 }}
+            value={statusFilter || undefined}
+            onChange={(value) => {
+              setStatusFilter(value ?? "");
+              setPage(1);
+            }}
+            options={STATUS_OPTIONS}
+          />
+
           <div className="search-box">
             <Search size={17} />
             <input
               type="text"
+              aria-label="Search sourcing requests"
               placeholder="Search by name, email, company or request..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -250,10 +271,14 @@ const SourcingRequests = () => {
           <div className="empty-state">
             <p>Loading sourcing requests...</p>
           </div>
-        ) : pagedRequests.length === 0 ? (
+        ) : requests.length === 0 ? (
           <div className="empty-state">
             <Inbox size={38} strokeWidth={1.5} />
-            <p>No sourcing requests found</p>
+            <p>
+              {debouncedSearch || statusFilter
+                ? "No sourcing requests match these filters"
+                : "No sourcing requests yet"}
+            </p>
           </div>
         ) : (
           <>
@@ -271,7 +296,7 @@ const SourcingRequests = () => {
               </thead>
 
               <tbody>
-                {pagedRequests.map((request, idx) => (
+                {requests.map((request, idx) => (
                   <tr key={request.id}>
                     <td className="index-cell">
                       {(page - 1) * ITEMS_PER_PAGE + idx + 1}
@@ -352,7 +377,8 @@ const SourcingRequests = () => {
                 <ChevronLeft size={16} />
               </button>
               <span>
-                {page} / {totalPages}
+                {page} / {totalPages} · {total.toLocaleString()}{" "}
+                {total === 1 ? "request" : "requests"}
               </span>
               <button
                 disabled={page === totalPages}

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Search,
@@ -21,15 +21,18 @@ import {
   GetAllContactUsAPI,
   DeleteContactUsAPI,
   UpdateContactUsStatusAPI,
+  type ContactUsStatus,
 } from "@/services/Api/ContactUsApi";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Combobox } from "@/components/common/Combobox";
 
 import "./ContactUs.scss";
 
-const ITEMS_PER_PAGE = 100;
+// Paged, searched and filtered by the backend (at most 100 a page).
+const ITEMS_PER_PAGE = 50;
 
-const STATUS_OPTIONS = [
+const STATUS_OPTIONS: { value: ContactUsStatus; label: string }[] = [
   { value: "NEW", label: "New" },
   { value: "IN_PROGRESS", label: "In Progress" },
   { value: "CLOSED", label: "Closed" },
@@ -43,56 +46,63 @@ const getInitials = (name?: string) => {
 
 const ContactUsPage = () => {
 
-  const [allContacts, setAllContacts] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ContactUsStatus | "">("");
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [reloadKey, setReloadKey] = useState(0);
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [viewModal, setViewModal] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  const loadContacts = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await GetAllContactUsAPI();
-      setAllContacts(res.data.data || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // The request the table last finished; it's loading until the current one has.
+  const requestKey = `${page}|${debouncedSearch}|${statusFilter}|${reloadKey}`;
+  const [settledKey, setSettledKey] = useState<string | null>(null);
+  const loading = settledKey !== requestKey;
 
+  // Search once typing pauses, from the first page.
   useEffect(() => {
-    loadContacts();
-  }, [loadContacts]);
-
-  const filteredContacts = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return allContacts;
-
-    return allContacts.filter(
-      (c) =>
-        c.name?.toLowerCase().includes(q) ||
-        c.email?.toLowerCase().includes(q) ||
-        c.reason?.toLowerCase().includes(q),
-    );
-  }, [allContacts, search]);
-
-  useEffect(() => {
-    setPage(1);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
   }, [search]);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredContacts.length / ITEMS_PER_PAGE),
-  );
-
-  const pagedContacts = useMemo(() => {
-    const start = (page - 1) * ITEMS_PER_PAGE;
-    return filteredContacts.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredContacts, page]);
+  useEffect(() => {
+    let active = true;
+    const key = `${page}|${debouncedSearch}|${statusFilter}|${reloadKey}`;
+    GetAllContactUsAPI({
+      page,
+      limit: ITEMS_PER_PAGE,
+      search: debouncedSearch || undefined,
+      status: statusFilter || undefined,
+    })
+      .then((res) => {
+        if (!active) return;
+        const payload = res.data?.data ?? {};
+        setContacts(payload.data || []);
+        setTotal(payload.pagination?.total ?? 0);
+        setTotalPages(Math.max(1, payload.pagination?.totalPages ?? 1));
+      })
+      .catch((err: any) => {
+        if (!active) return;
+        setContacts([]);
+        toast.error("Couldn't load inquiries", {
+          description: err.response?.data?.message || "Try again in a moment.",
+        });
+      })
+      .finally(() => {
+        if (active) setSettledKey(key);
+      });
+    return () => {
+      active = false;
+    };
+  }, [page, debouncedSearch, statusFilter, reloadKey]);
 
   const formatDate = (date: string) => {
     if (!date) return "—";
@@ -105,9 +115,9 @@ const ContactUsPage = () => {
 
   const updateStatus = async (id: number, status: string) => {
     try {
-      await UpdateContactUsStatusAPI(id, status as any);
+      await UpdateContactUsStatusAPI(id, status as ContactUsStatus);
 
-      setAllContacts((prev) =>
+      setContacts((prev) =>
         prev.map((c) => (c.id === id ? { ...c, status } : c)),
       );
 
@@ -125,8 +135,10 @@ const ContactUsPage = () => {
     try {
       await DeleteContactUsAPI(selectedId);
 
-      setAllContacts((prev) => prev.filter((c) => c.id !== selectedId));
       setDeleteModal(false);
+      // Reload so the page refills; step back if that was its last inquiry.
+      if (contacts.length === 1 && page > 1) setPage((p) => p - 1);
+      else setReloadKey((k) => k + 1);
 
       toast.success("Inquiry Deleted", { description: "The contact inquiry has been deleted successfully." });
     } catch (err: any) {
@@ -145,12 +157,26 @@ const ContactUsPage = () => {
         </div>
 
         <div className="header-actions">
+          <Combobox
+            searchable={false}
+            allowClear
+            placeholder="All statuses"
+            style={{ width: 170, height: 44 }}
+            value={statusFilter || undefined}
+            onChange={(value) => {
+              setStatusFilter(value ?? "");
+              setPage(1);
+            }}
+            options={STATUS_OPTIONS}
+          />
+
           <div className="search-box">
             <Search size={17} />
 
             <input
               type="text"
-              placeholder="Search by name, email or reason..."
+              aria-label="Search inquiries"
+              placeholder="Search name, email, reason or message..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -169,10 +195,14 @@ const ContactUsPage = () => {
           <div className="empty-state">
             <p>Loading inquiries...</p>
           </div>
-        ) : pagedContacts.length === 0 ? (
+        ) : contacts.length === 0 ? (
           <div className="empty-state">
             <Inbox size={38} strokeWidth={1.5} />
-            <p>No inquiries found</p>
+            <p>
+              {debouncedSearch || statusFilter
+                ? "No inquiries match these filters"
+                : "No inquiries yet"}
+            </p>
           </div>
         ) : (
           <>
@@ -190,7 +220,7 @@ const ContactUsPage = () => {
               </thead>
 
               <tbody>
-                {pagedContacts.map((c, idx) => (
+                {contacts.map((c, idx) => (
                   <tr key={c.id}>
                     <td className="index-cell">
                       {(page - 1) * ITEMS_PER_PAGE + idx + 1}
@@ -271,7 +301,8 @@ const ContactUsPage = () => {
               </button>
 
               <span>
-                {page} / {totalPages}
+                {page} / {totalPages} · {total.toLocaleString()}{" "}
+                {total === 1 ? "inquiry" : "inquiries"}
               </span>
 
               <button

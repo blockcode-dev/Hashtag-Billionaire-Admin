@@ -1,6 +1,7 @@
 /** @format */
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import {
   GetPricingMarkupAPI,
@@ -15,6 +16,9 @@ import {
 } from "lucide-react";
 
 import "./PricingMarkup.scss";
+
+// The backend accepts 0 to 1000 and answers 400 for anything else.
+const MAX_MARKUP = 1000;
 
 const PricingMarkupPage = () => {
   const [pricing, setPricing] = useState<any[]>([]);
@@ -50,9 +54,15 @@ const PricingMarkupPage = () => {
   };
 
   const handleSave = async (id: number) => {
+    const value = Number(markup);
+    if (String(markup).trim() === "" || !Number.isFinite(value) || value < 0 || value > MAX_MARKUP) {
+      toast.error(`Enter a markup from 0 to ${MAX_MARKUP}%.`);
+      return;
+    }
+
     try {
       await UpdatePricingMarkupAPI(id, {
-        markup_percent: Number(markup),
+        markup_percent: value,
       });
 
       setPricing((prev) =>
@@ -60,15 +70,18 @@ const PricingMarkupPage = () => {
           p.id === id
             ? {
                 ...p,
-                markup_percent: Number(markup),
+                markup_percent: value,
               }
             : p,
         ),
       );
 
       setEditingId(null);
-    } catch (err) {
-      console.error("Failed to update pricing", err);
+      toast.success("Markup saved");
+    } catch (err: any) {
+      toast.error("Couldn't save the markup", {
+        description: err?.response?.data?.message || "Try again in a moment.",
+      });
     }
   };
 
@@ -115,6 +128,10 @@ const PricingMarkupPage = () => {
                   {editingId === item.id ? (
                     <input
                       type="number"
+                      min={0}
+                      max={MAX_MARKUP}
+                      step="any"
+                      aria-label={`Markup for ${item.supplier}`}
                       value={markup}
                       onChange={(e) =>
                         setMarkup(e.target.value)

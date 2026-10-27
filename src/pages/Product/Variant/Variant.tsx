@@ -15,12 +15,15 @@ import {
 } from "lucide-react";
 import { GetAllVariantAPI, GetProductStatsAPI } from "@/services/Api/ProductApi";
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/common/Combobox";
 import { EmptyState } from "@/components/common/EmptyState";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Pagination } from "@/components/common/Pagination";
 import { SearchInput } from "@/components/common/SearchInput";
 import { Spinner } from "@/components/common/Spinner";
 import { Thumbnail } from "@/components/common/Thumbnail";
+import { VariantStatusTag } from "@/components/common/VariantStatusTag";
+import { UNREPORTED_STOCK_HINT, VARIANT_STATUS_FILTERS, isStockUnreported, stockLabel } from "@/lib/variants";
 import "./Variant.scss";
 
 const PAGE_SIZE = 100;
@@ -51,6 +54,8 @@ const VariantPage = () => {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
+  // "" lists what's on sale; otherwise one of VARIANT_STATUS_FILTERS.
+  const [status, setStatus] = useState("");
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState<number | null>(null);
   const [stats, setStats] = useState<any>(null);
@@ -59,7 +64,7 @@ const VariantPage = () => {
   const [settled, setSettled] = useState<{ key: string; failed: boolean } | null>(null);
   const navigate = useNavigate();
 
-  const requestKey = `${page}|${debouncedSearch}|${reloadKey}`;
+  const requestKey = `${page}|${debouncedSearch}|${status}|${reloadKey}`;
   const loading = settled?.key !== requestKey;
   const error = settled?.key === requestKey && settled.failed;
 
@@ -75,9 +80,9 @@ const VariantPage = () => {
 
   useEffect(() => {
     let cancelled = false;
-    const key = `${page}|${debouncedSearch}|${reloadKey}`;
+    const key = `${page}|${debouncedSearch}|${status}|${reloadKey}`;
 
-    GetAllVariantAPI({ page, limit: PAGE_SIZE, search: debouncedSearch })
+    GetAllVariantAPI({ page, limit: PAGE_SIZE, search: debouncedSearch, status: status || undefined })
       .then((res) => {
         if (cancelled) return;
         const payload = res.data?.data ?? {};
@@ -97,7 +102,7 @@ const VariantPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [page, debouncedSearch, reloadKey]);
+  }, [page, debouncedSearch, status, reloadKey]);
 
   useEffect(() => {
     GetProductStatsAPI()
@@ -116,14 +121,28 @@ const VariantPage = () => {
         title="Product Variants"
         description="Every size and colour of every product, across all suppliers."
         actions={
-          <SearchInput
-            aria-label="Search variants"
-            placeholder="Search name, SKU, style…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            allowClear
-            wrapperClassName="w-full sm:w-72"
-          />
+          <>
+            <Combobox
+              searchable={false}
+              allowClear
+              placeholder="On sale"
+              className="w-full sm:w-48"
+              value={status || undefined}
+              onChange={(value) => {
+                setStatus(value ?? "");
+                setPage(1);
+              }}
+              options={VARIANT_STATUS_FILTERS}
+            />
+            <SearchInput
+              aria-label="Search variants"
+              placeholder="Search name, SKU, style…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              allowClear
+              wrapperClassName="w-full sm:w-72"
+            />
+          </>
         }
       />
 
@@ -151,6 +170,7 @@ const VariantPage = () => {
               <th>Size</th>
               <th>Cost / price</th>
               <th>Stock</th>
+              <th>Status</th>
               <th>
                 <span className="sr-only">Actions</span>
               </th>
@@ -182,7 +202,12 @@ const VariantPage = () => {
                     {isManual(v) ? "Price" : "Supplier cost"}
                   </div>
                 </td>
-                <td>{count(v.stock)}</td>
+                <td title={isStockUnreported(v) ? UNREPORTED_STOCK_HINT : undefined}>
+                  {stockLabel(v, { short: true })}
+                </td>
+                <td>
+                  <VariantStatusTag variant={v} />
+                </td>
                 <td className="text-right">
                   <Button
                     variant="ghost"
@@ -219,7 +244,11 @@ const VariantPage = () => {
         ) : !loading && variants.length === 0 ? (
           <EmptyState
             description={
-              debouncedSearch ? `No variants match “${debouncedSearch}”.` : "No variants yet."
+              debouncedSearch
+                ? `No variants match “${debouncedSearch}”.`
+                : status
+                  ? "No variants with this status."
+                  : "No variants yet."
             }
           />
         ) : null}

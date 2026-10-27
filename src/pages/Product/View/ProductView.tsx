@@ -1,84 +1,129 @@
 /** @format */
 
-import { Link, useLocation, useNavigate } from "react-router";
-import { useState, useEffect } from "react";
-import { ArrowLeft } from "lucide-react";
+import { Link, useLocation, useNavigate, useParams } from "react-router";
+import { useEffect, useState } from "react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/common/Spinner";
+import { VariantStatusTag } from "@/components/common/VariantStatusTag";
+import { GetVariantByIdAdminAPI } from "@/services/Api/ProductApi";
 import { sanitizeHtml } from "@/lib/sanitize";
+import {
+  describeShippingWeight,
+  formatShortDate,
+  formatWeight,
+  isStockUnreported,
+  stockLabel,
+  supplierWeight,
+} from "@/lib/variants";
 import "./ProductView.scss";
 
 const ProductView = () => {
+  const { id } = useParams();
   const { state } = useLocation();
   const navigate = useNavigate();
 
-  const [variant, setVariant] = useState(state?.variant);
-  const [all] = useState(state?.all || []);
-  const [activeImage, setActiveImage] = useState(
-    state?.variant?.images?.[0]?.file_uri,
-  );
+  // The Variants list passes its row so the page shows at once. It's reloaded by
+  // id either way, so a refresh or a shared link works and the data is current.
+  const passed = state?.variant && String(state.variant.id) === String(id) ? state.variant : null;
+  const [variant, setVariant] = useState<any>(passed);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [pickedImage, setPickedImage] = useState<string | null>(null);
+  const [prevId, setPrevId] = useState(id);
+
+  if (id !== prevId) {
+    setPrevId(id);
+    setVariant(passed);
+    setLoadError(null);
+    setPickedImage(null);
+  }
 
   useEffect(() => {
-    if (variant) {
-      setActiveImage(variant.images?.[0]?.file_uri);
-    }
-  }, [variant]);
+    let active = true;
+    GetVariantByIdAdminAPI(id)
+      .then((res) => {
+        if (active) setVariant(res.data?.data ?? null);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setLoadError(
+          err?.response?.status === 404
+            ? "There's no variant with this id."
+            : "We couldn't load this variant. Try again in a moment.",
+        );
+      });
+    return () => {
+      active = false;
+    };
+  }, [id]);
 
-  useEffect(() => {
-    if (state?.variant) {
-      setVariant(state.variant);
-    }
-  }, [state]);
-
-  // The variant arrives in router state from the Variants list, so a direct
-  // visit or a refresh has nothing to show.
   if (!variant)
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-center">
-        <h1>Variant not loaded</h1>
-        <p className="max-w-sm text-sm text-muted-foreground">
-          Open a variant from the Variants list to see its details.
-        </p>
-        <Button asChild variant="outline">
-          <Link to="/variants">
-            <ArrowLeft />
-            Go to Variants
-          </Link>
-        </Button>
+        {loadError ? (
+          <>
+            <h1>Variant not found</h1>
+            <p className="max-w-sm text-sm text-muted-foreground">{loadError}</p>
+            <Button asChild variant="outline">
+              <Link to="/variants">
+                <ArrowLeft />
+                Go to Variants
+              </Link>
+            </Button>
+          </>
+        ) : (
+          <Spinner size="large" label="Loading variant" />
+        )}
       </div>
     );
 
-  const related = all.filter(
-    (v: any) => v.product_id === variant.product_id && v.id !== variant.id,
-  );
+  const images: string[] = (variant.images || []).map((img: any) => img.file_uri).filter(Boolean);
+  const activeImage = pickedImage && images.includes(pickedImage) ? pickedImage : images[0];
 
   // For supplier products `price` is the supplier's cost; the shop adds that supplier's
   // markup (Pricing Markup). sale_price and retail_price are the supplier's reference
   // prices and aren't used for pricing.
   const manual = (variant.supplier ?? variant.product?.supplier ?? "").toUpperCase() === "MANUAL";
+  const unreported = isStockUnreported(variant);
+  const supplier = supplierWeight(variant);
+  const discontinuedOn = formatShortDate(variant.discontinued_at);
 
   return (
     <div className="product-view">
-      {/* 🔙 BACK BUTTON */}
-      <button className="btn-back" onClick={() => navigate(-1)}>
-        <ArrowLeft size={16} />
-        Back
-      </button>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <button className="btn-back" onClick={() => navigate(-1)}>
+          <ArrowLeft size={16} />
+          Back
+        </button>
+        {variant.product_id && (
+          <Button asChild variant="outline" size="sm">
+            <Link to={`/products/${variant.product_id}`}>
+              <ExternalLink />
+              View product
+            </Link>
+          </Button>
+        )}
+      </div>
 
-      <h1 className="title">{variant.product?.name}</h1>
+      <div className="mb-4 flex flex-wrap items-start gap-3">
+        <h1 className="title">{variant.product?.name}</h1>
+        <VariantStatusTag variant={variant} className="pt-1" />
+      </div>
 
       {/* TOP */}
       <div className="top-section">
         {/* IMAGE */}
         <div className="image-gallery">
-          <img src={activeImage} className="main-image" />
+          <img src={activeImage} className="main-image" alt={variant.product?.name || ""} />
 
           <div className="thumbs">
             {variant.images?.map((img: any) => (
               <img
                 key={img.id}
                 src={img.file_uri}
+                alt=""
                 className={activeImage === img.file_uri ? "active" : ""}
-                onClick={() => setActiveImage(img.file_uri)}
+                onClick={() => setPickedImage(img.file_uri)}
               />
             ))}
           </div>
@@ -135,15 +180,20 @@ const ProductView = () => {
             <div>
               <span>Stock</span>
               <strong
-                className={`stock ${variant.stock > 100 ? "high" : "low"}`}
+                className={unreported ? "stock" : `stock ${variant.stock > 100 ? "high" : "low"}`}
               >
-                {variant.stock}
+                {stockLabel(variant)}
               </strong>
             </div>
 
             <div>
-              <span>Weight</span>
-              <strong>{variant.unit_weight} kg</strong>
+              <span>Supplier weight</span>
+              <strong>{supplier ? formatWeight(supplier) : "—"}</strong>
+            </div>
+
+            <div>
+              <span>Ships at</span>
+              <strong>{describeShippingWeight(variant)}</strong>
             </div>
 
             <div>
@@ -160,6 +210,13 @@ const ProductView = () => {
               <span>Country</span>
               <strong>{variant.country_of_origin}</strong>
             </div>
+
+            {discontinuedOn && (
+              <div>
+                <span>Discontinued by supplier</span>
+                <strong>{discontinuedOn}</strong>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -174,71 +231,47 @@ const ProductView = () => {
         />
       </div>
 
-      {/* WAREHOUSE */}
-      
-      <div className="warehouse-card">
-        <h3>Warehouse Stock</h3>
+      {/* WAREHOUSE: only suppliers that report stock per warehouse have rows (not SAGE). */}
+      {variant.variant_warehouse?.length > 0 && (
+        <div className="warehouse-card">
+          <h3>Warehouse Stock</h3>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Warehouse</th>
-              <th>Stock</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {variant.variant_warehouse?.map((w: any) => (
-              <tr key={w.id}>
-                <td>{w.warehouse_abbr}</td>
-                <td>{w.stock}</td>
-                <td>
-                  <span className={`tag ${w.stock > 20 ? "good" : "low"}`}>
-                    {w.stock > 20 ? "Available" : "Low"}
-                  </span>
-                </td>
+          <table>
+            <thead>
+              <tr>
+                <th>Warehouse</th>
+                <th>Stock</th>
+                <th>Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
 
-        {/* TOTAL */}
-        <div className="total">
-          Total Stock:{" "}
-          <strong>
-            {variant.variant_warehouse?.reduce(
-              (sum: number, w: any) => sum + w.stock,
-              0,
-            )}
-          </strong>
-        </div>
-      </div>
+            <tbody>
+              {variant.variant_warehouse?.map((w: any) => (
+                <tr key={w.id}>
+                  <td>{w.warehouse_abbr}</td>
+                  <td>{w.stock}</td>
+                  <td>
+                    <span className={`tag ${w.stock > 20 ? "good" : "low"}`}>
+                      {w.stock > 20 ? "Available" : "Low"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-      {/* RELATED */}
-      {/* <h2 className="section-title">Other Variants</h2>
-
-      <div className="variant-grid">
-        {related.map((v: any) => (
-          <div
-            key={v.id}
-            className="variant-card clickable"
-            onClick={() =>
-              navigate(`/variant/${v.id}`, {
-                state: { variant: v, all },
-              })
-            }
-          >
-            <img src={v.images?.[0]?.file_uri} />
-
-            <div className="info">
-              <p className="color">{v.color}</p>
-              <p className="size">{v.size}</p>
-              <p className="price">$ {v.sale_price}</p>
-            </div>
+          {/* TOTAL */}
+          <div className="total">
+            Total Stock:{" "}
+            <strong>
+              {variant.variant_warehouse?.reduce(
+                (sum: number, w: any) => sum + w.stock,
+                0,
+              )}
+            </strong>
           </div>
-        ))}
-      </div> */}
+        </div>
+      )}
     </div>
   );
 };

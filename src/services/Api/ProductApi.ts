@@ -4,14 +4,23 @@ import axios from "axios";
 
 import { API_BASE_URL } from "@/config/env";
 
+// Without `status` the backend lists variants on sale, of products that aren't
+// discontinued. With it: active, inactive, discontinued, restored or removed.
 export const GetAllVariantAPI = async (params: {
   page?: number;
   limit?: number;
   search?: string;
+  status?: string;
 }) => {
   return axios.get(`${API_BASE_URL}product/get/variant`, {
     params,
   });
+};
+
+// One variant in the same shape as a row of GetAllVariantAPI. Inactive and
+// removed variants are included; an unknown id is a 404.
+export const GetVariantByIdAdminAPI = async (id: number | string) => {
+  return axios.get(`${API_BASE_URL}product/admin/variant/${id}`);
 };
 
 

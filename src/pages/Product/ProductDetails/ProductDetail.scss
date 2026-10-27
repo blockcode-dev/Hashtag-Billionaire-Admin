@@ -100,6 +100,7 @@
     &.auto { background: var(--success-soft); color: var(--success-soft-foreground); }
     &.discontinued { background: var(--destructive-soft); color: var(--destructive); }
     &.manual-brand { background: var(--primary-soft); color: var(--primary); }
+    &.restored { background: var(--info-soft); color: var(--info-soft-foreground); }
   }
 
   // HEADER

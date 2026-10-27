@@ -2,34 +2,33 @@ import axios from "axios";
 
 import { API_BASE_URL } from "@/config/env";
 
-const getHeaders = () => ({
-  "x-access-token": localStorage.getItem("token") || "",
-});
+// The admin token is attached by the axios interceptor (services/Api/interceptors.ts).
 
-export const GetAllSourcingRequestsAPI = async () => {
-  return axios.get(`${API_BASE_URL}sourcing-requests/admin`, {
-    headers: getHeaders(),
-  });
+export type SourcingRequestStatus =
+  | "PENDING"
+  | "IN_REVIEW"
+  | "ACCEPTED"
+  | "REJECTED"
+  | "COMPLETED";
+
+// Returns { data[], pagination: { total, page, limit, totalPages } }. Search covers
+// name, email, company, the product asked for and the request text.
+export const GetAllSourcingRequestsAPI = async (params: {
+  page: number;
+  limit?: number;
+  search?: string;
+  status?: SourcingRequestStatus;
+}) => {
+  return axios.get(`${API_BASE_URL}sourcing-requests/admin`, { params });
 };
 
 export const UpdateSourcingRequestStatusAPI = async (
   id: number,
-  status:
-    | "PENDING"
-    | "IN_REVIEW"
-    | "ACCEPTED"
-    | "REJECTED"
-    | "COMPLETED",
+  status: SourcingRequestStatus,
   admin_notes?: string,
 ) => {
-  return axios.put(
-    `${API_BASE_URL}/sourcing-requests/${id}`,
-    {
-      status,
-      admin_notes,
-    },
-    {
-      headers: getHeaders(),
-    },
-  );
+  return axios.put(`${API_BASE_URL}sourcing-requests/${id}`, {
+    status,
+    admin_notes,
+  });
 };
