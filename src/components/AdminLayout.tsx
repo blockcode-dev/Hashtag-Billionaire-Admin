@@ -1,4 +1,5 @@
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { useProfileSync } from "@/hooks/use-profile-sync";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
 import ProtectedRoute from "./ProtectedRoute";
@@ -11,6 +12,9 @@ interface AdminLayoutProps {
 // App shell: sidebar, header and the page area. Pages render inside a padded
 // column on the app background and don't set their own page background.
 export function AdminLayout({ children, superAdminOnly = false }: AdminLayoutProps) {
+  // Keeps the role, and so the menu and Super Admin pages, current.
+  useProfileSync();
+
   return (
     <ProtectedRoute>
       <SidebarProvider>

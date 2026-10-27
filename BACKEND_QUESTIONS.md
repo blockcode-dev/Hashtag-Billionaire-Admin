@@ -527,3 +527,12 @@ These need the `feature/client-decisions` backend release (`a833bda`) and should
 2. **Inactive variants on the product page:** `GET product/admin/:id` loads only active variants, so the product page can't show a product's inactive or removed ones; the Variants page's status filter lists them. Would including them, with `status`, be easy? Not blocking.
 3. **Gallery order:** with no bulk endpoint, one move costs a `PUT` per photo whose `sort_order` changes (2 once the numbers are spread out). Fine at the shop's 35 photos; a `PUT gallery/order` taking the ids in order would help if the gallery grows. Not blocking.
 4. **Default weight:** the panel can't read `DEFAULT_PACKAGE_WEIGHT_LB`, so where a variant has no admin or supplier weight it says "the store's default weight" rather than a number (production still uses 0.5 lb, the release 1 lb). If an admin endpoint exposes the value, the panel can show it.
+
+## E6. The Settings page (2026-10-27, after `docs/admin-settings.md`)
+
+The panel's Settings page follows the brief: reading mode with masked secrets and source badges, edit mode and saving behind the settings key, per-field errors, Reset, the test email and the 10-minute timeout. Two differences:
+
+1. **Super Admins only:** the owner asked for Settings to be a Super Admin control, shared by every Super Admin. The panel shows the menu entry and the page to Super Admins only, but `admin/settings` still answers any admin (the brief applied Q44). If Settings should be Super Admin only, please add `requireSuperAdmin` to `admin/settings/*`; until then a regular admin can still read the masked page through the API, and unlock it with the key.
+2. **Keeping Super Admins in step:** the settings are stored once, so every Super Admin sees the same values. While the page is open it re-reads `GET admin/settings` every minute and when the window regains focus: reading mode shows other admins' changes and who made them; edit mode lists settings others changed since unlock, and the save dialog warns when one of them is also being saved. Nothing is needed from the backend for this. An `updated_at` check on `PUT` (refuse a stale save) would make it airtight; not blocking.
+
+The panel also re-reads the admin's role from `GET admin/auth/getProfile` when it opens, on focus and every 5 minutes, so an admin made Super Admin (or no longer one) sees the right menu without signing in again.

@@ -15,6 +15,7 @@ import {
   Package,
   PackagePlus,
   PackageSearch,
+  Settings2,
   ShoppingBag,
   SlidersHorizontal,
   Tags,
@@ -33,7 +34,7 @@ export interface NavItem {
   icon: LucideIcon;
   url?: string;
   children?: NavLeaf[];
-  // Admin accounts are managed by Super Admins only.
+  // Admin accounts and the site's settings are Super Admin screens.
   superAdminOnly?: boolean;
 }
 
@@ -102,6 +103,10 @@ export const NAV_GROUPS: NavGroup[] = [
       { title: "Sourcing Requests", url: "/sourcing-requests", icon: PackageSearch },
     ],
   },
+  {
+    label: "System",
+    items: [{ title: "Settings", url: "/settings", icon: Settings2, superAdminOnly: true }],
+  },
 ];
 
 // Routes that live outside the menu but belong to a menu entry.
@@ -115,7 +120,6 @@ const ALIASES: Record<string, string> = {
 const ACCOUNT_PAGES: Record<string, string> = {
   "/admin/profile": "Profile",
   "/change-password": "Change password",
-  "/settings": "Settings",
 };
 
 const matches = (pathname: string, url: string) => pathname === url || pathname.startsWith(url + "/");

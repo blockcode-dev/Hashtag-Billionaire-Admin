@@ -7,7 +7,7 @@ import { BrowserRouter, Navigate, Routes, Route } from "react-router";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Users from "./pages/User/Users";
-import AdminSettings from "./pages/AdminSettings";
+import SettingsPage from "./pages/Settings/SettingsPage";
 import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/AdminLayout";
 import AdminForgotPassword from "./components/AdminForgotPassword";
@@ -118,8 +118,8 @@ const App = () => (
           <Route
             path="/settings"
             element={
-              <AdminLayout>
-                <AdminSettings />
+              <AdminLayout superAdminOnly>
+                <SettingsPage />
               </AdminLayout>
             }
           />
