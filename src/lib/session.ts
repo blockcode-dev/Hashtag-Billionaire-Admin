@@ -83,20 +83,37 @@ export const useSession = () => {
   return session;
 };
 
-// Same rule as the backend (helpers/validatePassword.js): 8 to 100 characters,
-// at least 2 digits, no spaces, and not one of two blocked values. Returns an
-// error message, or null when it passes.
-const BLOCKED_PASSWORDS = ["Passw0rd", "Password123"];
-
+// Same rule as the backend (helpers/validatePassword.js) and the shop's sign-up
+// form: 8 to 128 characters, with an uppercase letter, a number and a special
+// character (anything that isn't a letter or a digit, so a space counts).
+// Returns an error message, or null when it passes.
 export const checkPasswordRule = (password: string): string | null => {
   if (password.length < 8) return "Password must be at least 8 characters.";
-  if (password.length > 100) return "Password must be 100 characters or fewer.";
-  if ((password.match(/\d/g) || []).length < 2)
-    return "Password must contain at least 2 digits.";
-  if (/\s/.test(password)) return "Password must not contain spaces.";
-  if (BLOCKED_PASSWORDS.includes(password)) return "This password is too common. Choose another.";
+  if (password.length > 128) return "Password must be 128 characters or fewer.";
+  if (!/[A-Z]/.test(password)) return "Password must include an uppercase letter.";
+  if (!/[0-9]/.test(password)) return "Password must include a number.";
+  if (!/[^A-Za-z0-9]/.test(password))
+    return "Password must include a special character, such as ! or #.";
   return null;
 };
 
 export const PASSWORD_RULE_HINT =
-  "At least 8 characters, including at least 2 digits, and no spaces.";
+  "8 to 128 characters, with an uppercase letter, a number and a special character.";
+
+// A random password that passes the rule above, for an admin to set and share.
+// Leaves out characters that are easy to misread (0/O, 1/l/I).
+export const generatePassword = (length = 14): string => {
+  const sets = ["ABCDEFGHJKLMNPQRSTUVWXYZ", "abcdefghijkmnopqrstuvwxyz", "23456789", "!#$%&*?@"];
+  const all = sets.join("");
+  const random = (n: number) => crypto.getRandomValues(new Uint32Array(1))[0] % n;
+  const chars = [
+    ...sets.map((set) => set[random(set.length)]),
+    ...Array.from({ length: length - sets.length }, () => all[random(all.length)]),
+  ];
+  // Shuffle so the guaranteed characters aren't always first.
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = random(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join("");
+};

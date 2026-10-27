@@ -195,8 +195,9 @@ const PAYMENT_STATUS: Record<string, BadgeConfig> = {
 };
 
 // The backend lists only paid orders unless payment_status is sent, so the filter always
-// sends one; there is no "all" option yet.
+// sends one. "ALL" lists every payment status.
 const PAYMENT_FILTERS = [
+  { value: "ALL", label: "All payments", stat: "Orders" },
   { value: "SUCCESS", label: "Paid", stat: "Paid orders" },
   { value: "PENDING", label: "Payment pending", stat: "Awaiting payment" },
   { value: "REJECTED", label: "Payment rejected", stat: "Payment rejected" },

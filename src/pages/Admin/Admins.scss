@@ -117,6 +117,11 @@ $danger: var(--destructive);
         }
       }
 
+      .you-label {
+        color: var(--muted-foreground);
+        font-size: 12px;
+      }
+
       .role-badge {
         background: var(--success-soft);
         color: var(--success-soft-foreground);
@@ -148,6 +153,11 @@ $danger: var(--destructive);
         .edit-btn {
           background: var(--primary-soft);
           color: var(--primary);
+        }
+
+        .password-btn {
+          background: var(--info-soft);
+          color: var(--info-soft-foreground);
         }
 
         .delete-btn {

@@ -60,3 +60,12 @@ export const GetUserDetailsAPI = async (userId: number) => {
     params: { id: userId },
   });
 };
+
+// Sets a customer's password for the admin to share. The customer is signed out
+// everywhere and any emailed reset link stops working.
+export const SetUserPasswordAPI = async (
+  userId: number,
+  body: { password: string; confirm_password: string },
+) => {
+  return axios.put(`${API_BASE_URL}admin/user/setPassword/${userId}`, body);
+};

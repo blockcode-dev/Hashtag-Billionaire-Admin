@@ -6,6 +6,7 @@ import {
   CreditCard,
   FolderTree,
   Globe,
+  Images,
   Import,
   LayoutDashboard,
   Layers,
@@ -77,6 +78,10 @@ export const NAV_GROUPS: NavGroup[] = [
       { title: "Payments", url: "/payments", icon: CreditCard },
       { title: "Pricing Markup", url: "/pricing-markup", icon: BadgeDollarSign },
     ],
+  },
+  {
+    label: "Content",
+    items: [{ title: "Gallery", url: "/gallery", icon: Images }],
   },
   {
     label: "Operations",

@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit,
+  KeyRound,
 } from "lucide-react";
 
 import { useNavigate } from "react-router";
@@ -19,9 +20,11 @@ import { toast } from "sonner";
 import {
   GetAllAdminsAPI,
   DeleteAdminAPI,
+  SetAdminPasswordAPI,
 } from "@/services/Api/AdminApi";
 
 import { SUPER_ADMIN_ROLE, getAdminId } from "@/lib/session";
+import { SetPasswordDialog } from "@/components/common/SetPasswordDialog";
 
 import "./Admins.scss";
 
@@ -40,12 +43,21 @@ const AdminsPage = () => {
   const [selectedAdminId, setSelectedAdminId] =
     useState<number | null>(null);
 
+  // The admin whose password is being set, or null.
+  const [passwordAdmin, setPasswordAdmin] =
+    useState<any | null>(null);
+
   const currentAdminId = getAdminId();
 
-  // The backend refuses both (400 for yourself, 403 for a Super Admin).
-  const canDelete = (a: any) =>
-    a.admin_role?.name !== SUPER_ADMIN_ROLE &&
-    String(a.id) !== String(currentAdminId);
+  // Super Admins can delete and set passwords for any other admin, Super Admins
+  // included, but not for themselves (the backend answers 400), so the Super
+  // Admin doing it always remains.
+  const isSelf = (a: any) =>
+    String(a.id) === String(currentAdminId);
+
+  const selectedAdmin = allAdmins.find(
+    (a) => a.id === selectedAdminId,
+  );
 
   const loadAdmins = useCallback(async () => {
     try {
@@ -143,15 +155,19 @@ const AdminsPage = () => {
               type="text"
               placeholder="Search admins..."
               value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
             />
 
             {search && (
               <button
                 className="clear-btn"
-                onClick={() => setSearch("")}
+                onClick={() => {
+                  setSearch("");
+                  setPage(1);
+                }}
               >
                 <X size={15} />
               </button>
@@ -195,7 +211,12 @@ const AdminsPage = () => {
                     1}
                 </td>
 
-                <td>{a.name}</td>
+                <td>
+                  {a.name}
+                  {isSelf(a) && (
+                    <span className="you-label"> (you)</span>
+                  )}
+                </td>
 
                 <td>{a.email}</td>
 
@@ -213,6 +234,7 @@ const AdminsPage = () => {
                   <div className="action-buttons">
                     <button
                       className="edit-btn"
+                      aria-label={`Edit ${a.name}`}
                       onClick={() =>
                         navigate(
                           `/admins/edit/${a.id}`,
@@ -222,9 +244,31 @@ const AdminsPage = () => {
                       <Edit size={16} />
                     </button>
 
-                    {canDelete(a) && (
+                    <button
+                      className="password-btn"
+                      aria-label={
+                        isSelf(a)
+                          ? "Change your password"
+                          : `Set a password for ${a.name}`
+                      }
+                      title={
+                        isSelf(a)
+                          ? "Change your password"
+                          : "Set password"
+                      }
+                      onClick={() =>
+                        isSelf(a)
+                          ? navigate("/change-password")
+                          : setPasswordAdmin(a)
+                      }
+                    >
+                      <KeyRound size={16} />
+                    </button>
+
+                    {!isSelf(a) && (
                       <button
                         className="delete-btn"
+                        aria-label={`Delete ${a.name}`}
                         onClick={() => {
                           setSelectedAdminId(
                             a.id,
@@ -285,7 +329,13 @@ const AdminsPage = () => {
 
             <p>
               Are you sure you want to delete
-              this admin?
+              {selectedAdmin
+                ? ` ${selectedAdmin.name}`
+                : " this admin"}
+              ?
+              {selectedAdmin?.admin_role?.name ===
+                SUPER_ADMIN_ROLE &&
+                " They're a Super Admin."}
             </p>
 
             <div className="modal-actions">
@@ -308,6 +358,18 @@ const AdminsPage = () => {
           </div>
         </div>
       )}
+
+      <SetPasswordDialog
+        account={passwordAdmin}
+        effect="Their sessions end, and they sign in with the new password."
+        onClose={() => setPasswordAdmin(null)}
+        onSubmit={(password) =>
+          SetAdminPasswordAPI(passwordAdmin.id, {
+            password,
+            confirm_password: password,
+          })
+        }
+      />
     </div>
   );
 };

@@ -157,6 +157,11 @@ $danger: var(--destructive);
           justify-content: center;
         }
 
+        .password-btn {
+          background: var(--info-soft);
+          color: var(--info-soft-foreground);
+        }
+
         .delete-btn {
           background: var(--destructive-soft);
           color: var(--destructive);

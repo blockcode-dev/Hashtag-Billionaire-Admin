@@ -13,9 +13,11 @@ import {
   formatShortDate,
   formatWeight,
   isStockUnreported,
+  shippingWeight,
   stockLabel,
   supplierWeight,
 } from "@/lib/variants";
+import { WeightField } from "../ShippingWeight";
 import "./ProductView.scss";
 
 const ProductView = () => {
@@ -84,8 +86,11 @@ const ProductView = () => {
   // markup (Pricing Markup). sale_price and retail_price are the supplier's reference
   // prices and aren't used for pricing.
   const manual = (variant.supplier ?? variant.product?.supplier ?? "").toUpperCase() === "MANUAL";
+  const removed = variant.status === "removed";
   const unreported = isStockUnreported(variant);
   const supplier = supplierWeight(variant);
+  const ships = shippingWeight(variant);
+  const adminWeight = ships.source === "admin" ? ships.lb : null;
   const discontinuedOn = formatShortDate(variant.discontinued_at);
 
   return (
@@ -220,6 +225,25 @@ const ProductView = () => {
           </div>
         </div>
       </div>
+
+      {/* SHIPPING WEIGHT: saved on its own, so supplier updates keep running. */}
+      {!removed && (
+        <div className="desc-card">
+          <h3>Shipping weight</h3>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Rates and labels use the weight set here, then the supplier's weight, then the store's default. It
+            doesn't stop supplier updates for this product.
+          </p>
+          <WeightField
+            id={`weight-variant-${variant.id}`}
+            label="Weight for this variant"
+            target={{ variant_ids: [Number(variant.id)] }}
+            current={adminWeight}
+            canClear={adminWeight != null}
+            onSaved={(weight) => setVariant((v: any) => ({ ...v, admin_weight_lb: weight }))}
+          />
+        </div>
+      )}
 
       {/* DESCRIPTION */}
       <div className="desc-card">

@@ -14,8 +14,9 @@ import "./AddEditAdmin.scss";
 
 type Option = { id: number; name: string };
 
-// "User" is the customer role; it isn't an admin role.
-const HIDDEN_ROLES = [SUPER_ADMIN_ROLE, "User"];
+// "User" is the customer role; it isn't an admin role. Super Admin is offered:
+// a Super Admin can make other admins Super Admins (client decision Q44).
+const HIDDEN_ROLES = ["User"];
 
 const AddEditAdmin = () => {
   const navigate = useNavigate();
@@ -34,10 +35,9 @@ const AddEditAdmin = () => {
   const [roles, setRoles] = useState<Option[]>([]);
   const [departments, setDepartments] = useState<Option[]>([]);
 
-  // The backend refuses to assign the Super Admin role, and an admin can't
-  // change their own role.
-  const editingSuperAdmin = currentRoleName === SUPER_ADMIN_ROLE;
-  const roleLocked = isSelf || editingSuperAdmin;
+  // Nobody can change their own role (the backend answers 400), so the Super
+  // Admin editing always stays one.
+  const roleLocked = isSelf;
 
   const roleOptions = useMemo(
     () => roles.filter((r) => !HIDDEN_ROLES.includes(r.name)),
@@ -199,7 +199,11 @@ const AddEditAdmin = () => {
                 )}
               </div>
               {isSelf && <p className="field-hint">You can't change your own role.</p>}
-              {!isSelf && editingSuperAdmin && <p className="field-hint">The Super Admin role can't be changed here.</p>}
+              {!roleLocked && selectedRoleName === SUPER_ADMIN_ROLE && (
+                <p className="field-hint">
+                  Super Admins can also add, edit and delete admins, other Super Admins included.
+                </p>
+              )}
             </div>
 
             {/* Field: Department */}

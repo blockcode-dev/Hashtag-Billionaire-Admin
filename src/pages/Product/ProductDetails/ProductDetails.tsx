@@ -15,6 +15,7 @@ import {
   stockLabel,
   supplierWeight,
 } from "@/lib/variants";
+import { ShippingWeightCard } from "../ShippingWeight";
 
 /* ─── supplier badge ───────────────────────────────────────────────────── */
 const SUPPLIER_LABELS: Record<string, string> = {
@@ -889,6 +890,17 @@ const ProductDetails = () => {
           )}
         </div>
       </div>
+
+      {/* SHIPPING WEIGHT — saved on its own, so supplier updates keep running */}
+      <ShippingWeightCard
+        className="mb-6"
+        productId={Number(product.id)}
+        variants={variants}
+        onChange={(update) => {
+          setProduct((p: any) => ({ ...p, variants: update(p.variants || []) }));
+          setActiveVariant((a: any) => (a ? update([a])[0] : a));
+        }}
+      />
 
       {/* VARIANTS TABLE */}
       <div className="pd-variants-section">

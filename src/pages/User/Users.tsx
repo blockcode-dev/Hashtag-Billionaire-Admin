@@ -9,6 +9,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  KeyRound,
 } from "lucide-react";
 
 import { useNavigate } from "react-router";
@@ -16,7 +17,9 @@ import { useNavigate } from "react-router";
 import {
   GetAllUsersAPI,
   DeleteUserAPI,
+  SetUserPasswordAPI,
 } from "@/services/Api/UserApi";
+import { SetPasswordDialog } from "@/components/common/SetPasswordDialog";
 
 import "./Users.scss";
 
@@ -34,6 +37,10 @@ const UsersPage = () => {
 
   const [selectedUserId, setSelectedUserId] =
     useState<number | null>(null);
+
+  // The customer whose password is being set, or null.
+  const [passwordUser, setPasswordUser] =
+    useState<any | null>(null);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -225,7 +232,17 @@ const UsersPage = () => {
                 <td>
                   <div className="action-buttons">
                     <button
+                      className="password-btn"
+                      aria-label={`Set a password for ${u.user_profile?.name || u.email}`}
+                      title="Set password"
+                      onClick={() => setPasswordUser(u)}
+                    >
+                      <KeyRound size={16} />
+                    </button>
+
+                    <button
                       className="delete-btn"
+                      aria-label={`Delete ${u.user_profile?.name || u.email}`}
                       onClick={() => {
                         setSelectedUserId(
                           u.id,
@@ -308,6 +325,23 @@ const UsersPage = () => {
           </div>
         </div>
       )}
+
+      <SetPasswordDialog
+        account={
+          passwordUser && {
+            name: passwordUser.user_profile?.name,
+            email: passwordUser.email,
+          }
+        }
+        effect="They're signed out on every device, and any emailed reset link stops working."
+        onClose={() => setPasswordUser(null)}
+        onSubmit={(password) =>
+          SetUserPasswordAPI(passwordUser.id, {
+            password,
+            confirm_password: password,
+          })
+        }
+      />
     </div>
   );
 };

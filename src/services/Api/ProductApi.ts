@@ -23,6 +23,20 @@ export const GetVariantByIdAdminAPI = async (id: number | string) => {
   return axios.get(`${API_BASE_URL}product/admin/variant/${id}`);
 };
 
+// Shipping weight in pounds for a whole product or for chosen variants. null
+// clears it, back to the supplier's weight or the default of 1 lb. Saved apart
+// from the product update, so it doesn't stop supplier updates for the product.
+export const SetAdminWeightAPI = async (
+  body:
+    | { product_id: number; weight_lb: number | null }
+    | { variant_ids: number[]; weight_lb: number | null },
+) => {
+  return axios.put<{ data: { variants: number; weight_lb: number | null } }>(
+    `${API_BASE_URL}product/admin/weight`,
+    body,
+  );
+};
+
 
 export const GetProductStatsAPI = async () => {
   const token = localStorage.getItem("token");

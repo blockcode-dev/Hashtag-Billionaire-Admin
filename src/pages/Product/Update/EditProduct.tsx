@@ -34,6 +34,7 @@ import { Pagination } from "@/components/common/Pagination";
 import { Spinner } from "@/components/common/Spinner";
 import { Tip } from "@/components/common/Tip";
 import { GetProductByIdAPI, UpdateProductAPI } from "@/services/Api/ProductApi";
+import { ShippingWeightCard } from "../ShippingWeight";
 import {
   GetAllCategoriesAPI,
   CreateCategoryAPI,
@@ -1988,6 +1989,10 @@ const EditProduct: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* Shipping weight: saved on its own, so it doesn't lock the product
+          against supplier updates the way Save does. */}
+      <ShippingWeightCard className="mb-5" productId={Number(id)} />
 
       {/* Variants */}
       <div className="edit-card">

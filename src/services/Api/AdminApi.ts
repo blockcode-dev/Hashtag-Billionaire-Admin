@@ -37,8 +37,18 @@ export const UpdateAdminAPI = async (
   return axios.put(`${API_BASE_URL}admin/auth/updateAdmin/${admin_id}`, body);
 };
 
+// Super Admins can be deleted too; nobody can delete themselves (400).
 export const DeleteAdminAPI = async (admin_id: number) => {
   return axios.post(`${API_BASE_URL}admin/auth/deleteAdmin`, { admin_id });
+};
+
+// Sets another admin's password for the Super Admin to share. Their sessions
+// end. Your own password goes through change-password instead (400 here).
+export const SetAdminPasswordAPI = async (
+  admin_id: number,
+  body: { password: string; confirm_password: string },
+) => {
+  return axios.put(`${API_BASE_URL}admin/auth/setAdminPassword/${admin_id}`, body);
 };
 
 export const GetAdminDetailsAPI = async (adminId: number) => {

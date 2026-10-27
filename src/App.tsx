@@ -50,6 +50,7 @@ import AddOnList from "./pages/AddOns/AddOnList";
 import AddOnForm from "./pages/AddOns/AddOnForm";
 import CustomizationList from "./pages/Customization/CustomizationList";
 import CustomizationForm from "./pages/Customization/CustomizationForm";
+import GalleryPage from "./pages/Gallery/GalleryPage";
 
 const App = () => (
   <TooltipProvider>
@@ -361,6 +362,15 @@ const App = () => (
             element={
               <AdminLayout>
                 <SourcingRequests />
+              </AdminLayout>
+            }
+          />
+
+          <Route
+            path="/gallery"
+            element={
+              <AdminLayout>
+                <GalleryPage />
               </AdminLayout>
             }
           />

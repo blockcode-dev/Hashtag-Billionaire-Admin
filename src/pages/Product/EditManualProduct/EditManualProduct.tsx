@@ -34,6 +34,7 @@ import {
   GetProductByIdAPI,
   UpdateManualProductFullAPI,
 } from "@/services/Api/ProductApi";
+import { ShippingWeightCard } from "../ShippingWeight";
 import {
   GetAllCategoriesAPI,
   CreateCategoryAPI,
@@ -3033,6 +3034,11 @@ const EditManualProduct: React.FC = () => {
       </div>
 
       <GuideCard open={guideOpen} onToggle={() => setGuideOpen((v) => !v)} />
+
+      {/* Saved on its own, apart from Save Changes. New variants get a weight once saved. */}
+      {currentStep === VARIANTS_STEP && (
+        <ShippingWeightCard className="mb-5" productId={Number(id)} />
+      )}
 
       {stepRenderers[currentStep]()}
 
