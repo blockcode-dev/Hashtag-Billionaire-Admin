@@ -16,6 +16,8 @@ API=https://node.hashtagbillionaire.com/api/v1
 TOKEN=$(curl -s -X POST "$API/admin/auth/login" -F email="$EMAIL" -F password="$PASSWORD" | jq -r .data.token)
 ```
 
+> **Update (panel, 2026-11-04):** E7 lists what the panel changed for the 4 November releases. Section F, at the end of this file, lists what the panel needs from the backend, in priority order. Please answer those under their IDs.
+
 > **Update (backend, 2026-10-16):** backend changes for the panel are now listed release by release in the backend repo's `docs/admin-panel-changes.md`. The latest release (`aba0065`) adds variant status markers (`status`, `is_discontinued`, `discontinued_at`, `restored_at`), a `?status=` filter on `product/get/variant`, and a new SAGE stock rule. It also removes supplier cost from shopper endpoints; admin endpoints keep it.
 
 ## Summary
@@ -536,3 +538,212 @@ The panel's Settings page follows the brief: reading mode with masked secrets an
 2. **Keeping Super Admins in step:** the settings are stored once, so every Super Admin sees the same values. While the page is open it re-reads `GET admin/settings` every minute and when the window regains focus: reading mode shows other admins' changes and who made them; edit mode lists settings others changed since unlock, and the save dialog warns when one of them is also being saved. Nothing is needed from the backend for this. An `updated_at` check on `PUT` (refuse a stale save) would make it airtight; not blocking.
 
 The panel also re-reads the admin's role from `GET admin/auth/getProfile` when it opens, on focus and every 5 minutes, so an admin made Super Admin (or no longer one) sees the right menu without signing in again.
+
+## E7. What the panel changed (2026-11-04, against backend `32cc62e`)
+
+On branch `feature/backend-nov-4`, commits `98642ba`, `443db6c` and `f4ad77e`. Not merged or deployed yet. Everything here also works against an older backend: a field that isn't there shows as `--`, or the section stays hidden.
+
+**The 4 November list in `docs/admin-panel-changes.md`:**
+
+- **Failed labels:** the Shipping tab shows `shipment_error`, with "Try again" calling `POST order/admin/:id/label`. It's offered only when the order is paid, not cancelled and has no `label_url`. A `502` shows ShipStation's new reason; any other refusal reloads the list, since the order changed elsewhere.
+- **Finding failed labels:** a "Label failed" badge in the order list and the order's header, and a dot on the Shipping tab.
+- **Shipping costs:** the customer paid (`shipping_amount`), the label cost (`actual_shipping_cost`) and the difference (`shipping_profit`, red when negative), plus the service from `service_code`.
+- **Graphics:** each item has a Production Files list with a download link per file, with the location or option it's for. `missingArtworkCaution` counts `graphics`.
+- **Formats that don't display:** AI, EPS, PSD and CDR stay out of the image gallery. That covers `customized_image` too, which can point at one of those on a pre-made line.
+- **`setup_fee`:** reads "Graphic fee" on lines with `graphics`, and "Setup / digitizing fee" on older ones. The panel's order sums still balance.
+- **Pre-made lines:** `graphics` is empty on them (see F8), so Production Files also lists each option's `logo_image`.
+- **`logo_image` paths:** these now resolve against the panel's file host. They used to use the origin of `original_image`, which is a supplier's CDN on some lines and the panel itself when there's no image.
+
+**The `503` from `docs/admin-settings.md`:** no supplier screen showed it. Those screens now show the backend's message, with an "Open Settings" link for Super Admins (`src/lib/api-errors.ts`).
+
+**Found by comparing the panel with the backend's code:**
+
+- **Imports:** SAGE and OttoCap imports read their counts instead of reporting success. "Imported 3 of 5" is a warning, and failed products stay selected. SanMar says "Not updated" for a locked product. A discontinued SanMar style says so in the preview and after importing.
+- **Payments:** Order Totals appears once per order and reads "Order subtotal". It used to repeat under every item, with a per-line label on the order's figure. Pre-made options and add-ons are listed, SAGE rows have their unit price, and supplier cost rows are hidden when the fields are missing, instead of reading $0.00.
+- **Sourcing requests:** the note box starts from the saved note. It started empty, so changing a status erased the note.
+- **Edit Product:** stock SAGE doesn't report is shown as "Not reported" and isn't sent. It used to save as 0.
+- **Remove tier:** on a use case it now calls `tiers/products/:id/exclude`. Clearing the override left a category tier in place, while the panel said "No tier".
+- **Use case products:** search now goes to the backend; it only filtered the page on screen.
+- **Create Product:** if the variants fail, the panel opens the new product in Edit. A retry used to make a second product.
+- **Option names:** trimmed on Edit Manual and Duplicate. A trailing space failed the save.
+- **Categories and sub categories:** these lists have a pager; they stopped at 50 rows with no way on.
+- **Smaller fixes:** the product page explains a `404` instead of spinning forever. Failed loads and saves are shown on Users, Payments, Pricing, Industries, Use Cases and both category lists. Searches and S&S brand names are URL-encoded. Unpublishing a brand asks first, because it deletes the logo (F16). Remove on an industry or use case image applies only to a new pick (F19). Settings' `missing` flag shows a red tag, and Profile and Change password in the header now get the unsaved-changes warning. Log out and the browser's Back button still don't, because the page can't see them.
+
+The panel's `a833bda` and `159e507` work waits on nothing now that the backend is live, so all of it can ship together.
+
+## F. Backend changes the panel needs (2026-11-04)
+
+Found by reading the backend at `32cc62e` against the panel. Paths are relative to `src/`. "Panel meanwhile" says what the panel does until the change lands. Where the panel has to follow up, the item says so.
+
+### Do first
+
+#### F1. `GET payment/admin/all` needs `requireAdmin` now (High, security)
+
+The route still has no `requireAdmin` (`routes/v1/Common/payment.route.js:19`). That's audit C1, held for the payments phase, but please don't wait for it. `4b5729f` adds a reason that isn't written here because this repo is public. It's in the Team alignment doc, under "Admin panel review".
+
+There's a second effect. With no `req.admin`, `hideSupplierPricing` strips `actual_product_price` and `supplier_markup` from this list once `EXPOSE_SUPPLIER_COST` is off.
+
+**Fix:** add `requireAdmin` to `/admin/all` now. The panel already sends the token, so nothing changes on our side.
+
+**Panel meanwhile:** hides the two cost rows when the fields are missing.
+
+#### F2. The payments list shows the wrong shipping amount (High)
+
+`checkout.service.js:969-971` sends `order.actual_shipping_cost || order.shipping_amount`. DECIMAL columns arrive as strings, so an order with no label gives `"0.00"`, which is truthy, and shows $0.00. Once there's a label it shows the label's cost, and since `4b5729f` that's nearly every paid order. The same bug was fixed in `GET order/admin` (`order.service.js:1265`) but not here.
+
+**Fix:** `Number(order.shipping_amount || 0)`.
+
+#### F3. Neither admin list sends tax (High)
+
+`GET payment/admin/all` and `GET order/admin` have no `tax_amount`, though `getPaymentHistory` does (`checkout.service.js:685-689`), so the Payments totals don't add up to the grand total.
+
+**Fix:** add `tax_amount` and `tax_rate` to `order` in the payments list and to `GET order/admin`.
+
+**Panel meanwhile:** Payments shows a Tax row as soon as `tax_amount` arrives, with no release needed. Orders works it out as total − subtotal − shipping.
+
+#### F4. `payment_method` is always empty (Medium)
+
+`checkout.service.js:943` sends `data.payment_method`, but `Payment` has `payment_mode` and `payment_provider` (`models/payment.model.js:48,71`). The Transaction column's second line is blank.
+
+**Fix:** `payment_method: data.payment_mode`.
+
+#### F5. `GET product/admin/:id` refuses products admins should open (Medium)
+
+`getProductByIdAdmin` passes `is_active: true` (`product.service.js:4150-4153`), under a comment saying admins can open discontinued products. Syncs set `is_active: false` on products a supplier dropped (`ssSync.service.js:60`, `sanmarSync`, `sageSync`), and their variants still link to them.
+
+**Fix:** drop the filter.
+
+**Panel meanwhile:** shows "Product not found" with a way back. It used to spin forever.
+
+#### F6. Imports that hide why they failed (Medium)
+
+The panel can only report what it's told:
+
+1. **`POST sage/import/selected`:** the per-product catch (`sage.service.js:1203`) turns everything into `failed: N` and answers 201, including the `503` for a missing SAGE setting. Please rethrow `ApiError`s of 500 and above. **Panel meanwhile:** when every product fails, it suggests checking Settings, which is only a guess.
+2. **`POST sage/import`:** the same catch (`:525`) has no count at all, and the batch ends as `success`. Please return `failed`, and set `partial_success` as `import/selected` does.
+3. **`POST product/sync/ss/:styleId`:** any error becomes 500 "Sync failed. Details are saved on import batch N." (`product.controller.js:172-183`), which hides the `503` too. Please rethrow `ApiError`.
+4. **The same route, "No data found":** it answers 200 with nothing imported and leaves the batch `processing` (`:155-157`), and the panel reports success. Please answer 404.
+
+#### F7. Locked products look imported, or get overwritten (Medium)
+
+Saves return `{ skipped: true }` for a `sync_locked` product, and each supplier then does something different:
+
+| Supplier | What happens | Where |
+|---|---|---|
+| S&S | Ignored: "Product synced successfully" | `product.controller.js:160-171` |
+| SanMar | Returned; the panel now says "Not updated" | `sanmar.controller.js:88-93` |
+| SAGE | Counted as imported | `sage.service.js:523,1198` |
+| OttoCap, Import All | `product.id` is undefined, so a 500 | `ottocap.controller.js:54-58` |
+| OttoCap, Import Selected | No lock check: the product is overwritten | `ottoCap.service.js:1067` |
+
+**Fix:** honour the lock in `importSelectedOttoVariants`, and return `skipped` from all of them. Once that's in, the panel will show "locked, not updated" for S&S, SAGE and OttoCap too.
+
+### Needed for production
+
+#### F8. Pre-made files have no real name, and downloads lose it (Medium)
+
+Pre-made lines never fill `customization_config.graphics` (`cartWishlist.service.js:1753-1762`), so `graphics` is empty and production sees `customization_images-1793….ai`. `/graphics` also sends `Content-Disposition: attachment` with no filename (`app.js`), so every download saves under the server's name, even when the panel shows the customer's. On a cross-origin link the browser ignores the `download` attribute.
+
+**Fix:** fill `graphics` on pre-made lines with `toLineGraphic`, and send the original name when downloading, for example through a signed-in download route.
+
+**Panel meanwhile:** lists the `logo_image` files under their stored names.
+
+#### F9. Finding failed labels across orders (Medium)
+
+Failed labels are only visible a page at a time, since `GET order/admin` has no filter for them.
+
+**Fix:** a `shipment_status` query parameter. The panel will add it to the filters.
+
+Please also send `carrier_code`: `carrier` stays empty until a label is bought, so a failed order shows only its service.
+
+#### F10. Question: a paid order stuck with no label and no failure
+
+`shipPaidOrder` sets the claim before its `try`, and `Order.findByPk` runs outside it. A crash there, or between claiming and failing, leaves the order paid with `shipment_status: "PENDING"` and no `shipment_error`, and the panel offers "Try again" only on `FAILED`.
+
+Should the panel also offer it on paid `PENDING` orders after the 10-minute claim timeout? We haven't, because a paid order from before this release with no label would then buy a real one. If there's a cut-off date, or if the backend can mark these orders `FAILED` itself, either works.
+
+### Catalog
+
+#### F11. Edit Manual can't remove a value and its variant in one save (High)
+
+The size check runs in step 6 against the database (`product.service.js:784-796`), before step 7 applies the request's variants (`:821`). Deleting a variant and its option value together gets 400 "still used by a variant", after the name, categories and images are already written, since there's no transaction (M31).
+
+**Fix:** remove the sizes after the variants step.
+
+#### F12. A deleted customization's name can't be reused (Medium)
+
+The name check has no `is_active` filter (`customization.service.js:41-52`), and delete only sets `is_active: false` (`:335-338`), so the admin gets "already exists" for a row the list hides. The `-deleted-` slug suffix is also undone by the hooks at `models/customizationOption.model.js:85,101`.
+
+#### F13. Use case and category filters together ignore the use case (Medium)
+
+`getAllProductsAdmin` sets `where.id` for the use case or tier (`product.service.js:4369`), and the category filter overwrites it (`:4446`), so every product in the category is listed. Price and search already intersect (`:4472`, `:4493`).
+
+#### F14. `add-category-to-parent` returns no `grand_categories` (Low)
+
+`parentCategory.service.js:345` loads the parent with no include, and the panel reads `data.parent.grand_categories`, so a new sub category looks unmapped until the page is refreshed.
+
+#### F15. An S&S sync undoes a manual brand (Medium)
+
+`product.service.js:3474` writes `brand_id` without checking `is_brand_manually_assigned`, and that flag doesn't set `sync_locked` (`:4981-4985`). The panel shows "Manually set" until the next sync.
+
+#### F16. Unpublishing a brand deletes its logo (Low)
+
+`brand.service.js:156-172` removes the file and clears `logo_url`. Please keep it, so a brand can be published again without a new upload.
+
+**Panel meanwhile:** asks first and says the logo will be deleted. We'll soften that once it's fixed.
+
+#### F17. A bulk route for excluding from tiers (Low)
+
+"Remove tier" on selected products now sends one `DELETE tiers/products/:id/exclude` per product, up to 50, because the only bulk route clears overrides. A `POST tiers/products/bulk-exclude` taking `{ product_ids, use_case_id }` would replace them. If one of the calls fails, the rest still apply.
+
+#### F18. Use case products: a `source` filter and totals (Low)
+
+`GET industry/use-case/:id/products` has no `source` filter, so the panel's All, Manual and Category chips filter and count only the page on screen. Please add `?source=` and totals per source.
+
+#### F19. Clearing an industry or use case image (Low)
+
+There's no way to remove a saved image (`industry.service.js:149-154,369-374`). Please take `remove_image="true"`, as add-ons do. The panel will bring Remove back for saved images.
+
+#### F20. `GET sage/product/:id`: `track_inventory` and `status` on variants (Low)
+
+The variant list has only `id, sku, color, stock, price` (`sage.service.js:463`).
+
+**Panel meanwhile:** reads a `null` stock as "Not reported". The panel's own stock rule needs `track_inventory`.
+
+#### F21. SAGE totals stop at 1,000 (Medium)
+
+`searchProducts` asks for `maxTotalItems: 1000` and reports `allProducts.length` as the total (`sage.service.js:353,384`). The panel shows that as the real figure, and "Sync Complete Catalog" imports only those 1,000. The supplier list comes from the first 200 products (`:284`).
+
+**Fix:** return the true total, or `capped: true`. The panel will label it.
+
+#### F22. OttoCap data can only be loaded from the server (Medium)
+
+`ottocap/import-catalog` and `import-inventory` take no upload. They re-read fixed files in `<STORAGE_DIR>/imports/ottocap` (`ottoCap.service.js:33,87`), with no cron and nothing in `docs/deployment.md`. The OttoCap tab and its stock are only as new as the last file someone copied there, and the monthly sync reads the same tables.
+
+**Fix:** a multipart upload that replaces the file and runs the import, returning when it was last loaded. The panel will add the upload control. At the very least, please document the steps in `deployment.md`.
+
+**Panel meanwhile:** an empty catalog says it has to be loaded on the server first.
+
+#### F23. Duplicate loses admin weights (Low)
+
+`product.service.js:1171-1195` doesn't return `admin_weight_lb`, so a copy ships at the default. Please return it, and the panel will call `PUT product/admin/weight` after saving the copy's variants.
+
+### Payments list, smaller items
+
+#### F24. Blank sizes (Low)
+
+`size: variant.size_details?.name` reads only the relation, and `size` isn't in the variant's attributes (`checkout.service.js:874,1028`; `order.service.js:1351`). SAGE and OttoCap keep the text in the `size` column, for example "One Size", so it shows blank on both Orders and Payments.
+
+**Fix:** add `size` to the attributes and use `size_details?.name || variant.size`.
+
+#### F25. Removed products lose their details (Low)
+
+The includes at `checkout.service.js:863-875` have no `paranoid: false`, and Product has no `attachments`, unlike `getAdminOrders` (`order.service.js:1119,1151`). Paid lines for items a sync later removed show no name, SKU or colour. `customized_image` also has no `getCustomizationArtwork` fallback here (`:1032`).
+
+A4 is still open too: `subQuery: false` with `limit` (`:909`) gives short pages and cut-off items. That's also why the panel's search filters only the current page, and it doesn't send `search` to this route because of the `Op` bug (`docs/deployment.md`, Known lint errors).
+
+### Still open from earlier
+
+- **`requireSuperAdmin` on `admin/settings/*`** (E6, item 1): the routes still use `requireAdmin` only.
+- **Weight range, inactive variants on the product page, a default weight the panel can read, a bulk gallery order** (E5).
+- **`docs/admin-panel-changes.md:165`** still says the SAGE sync runs on the 5th. It's the 1st now.
