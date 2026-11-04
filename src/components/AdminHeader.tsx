@@ -1,7 +1,7 @@
 /** @format */
 
 import { Fragment, useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { ChevronDown, KeyRound, LogOut, UserRound } from "lucide-react";
 import {
   DropdownMenu,
@@ -97,13 +97,17 @@ export function AdminHeader() {
             {profile?.email && <span className="block truncate text-xs text-muted-foreground">{profile.email}</span>}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => navigate("/admin/profile")}>
-            <UserRound />
-            Profile
+          <DropdownMenuItem asChild>
+            <Link to="/admin/profile">
+              <UserRound />
+              Profile
+            </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => navigate("/change-password")}>
-            <KeyRound />
-            Change password
+          <DropdownMenuItem asChild>
+            <Link to="/change-password">
+              <KeyRound />
+              Change password
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onSelect={signOut}>

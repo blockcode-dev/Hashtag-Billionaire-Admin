@@ -8,7 +8,7 @@ export const GetGrandCategoriesAPI = async (
   search = ""
 ) => {
   return axios.get(
-    `${API_BASE_URL}product-category/get-grand-categories?page=${page}&limit=${limit}&search=${search}`
+    `${API_BASE_URL}product-category/get-grand-categories?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`
   );
 };
 

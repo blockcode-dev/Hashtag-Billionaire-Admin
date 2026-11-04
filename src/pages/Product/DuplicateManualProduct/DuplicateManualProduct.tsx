@@ -1509,8 +1509,8 @@ const DuplicateManualProduct: React.FC = () => {
         const val = opt.values.find((ov) => ov._key === valueKey);
         if (!val) return null;
         return {
-          name: opt.name,
-          value: val.name,
+          name: opt.name.trim(),
+          value: val.name.trim(),
           type: opt.type,
           display_style: opt.display_style || opt.type || "dropdown",
           ...(opt.type === "color" ? { color_code: val.color_code } : {}),

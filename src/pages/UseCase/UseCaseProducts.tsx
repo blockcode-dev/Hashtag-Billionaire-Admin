@@ -1,8 +1,9 @@
 /** @format */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/api-errors";
 import {
   ArrowLeft,
   Search,
@@ -31,8 +32,7 @@ import {
   GetCurrentTiersForProductsAPI,
   SetProductTierAPI,
   AddProductsToTierAPI,
-  ClearProductTierOverrideAPI,
-  BulkClearProductTierOverrideAPI,
+  ExcludeProductFromAllTiersAPI,
 } from "@/services/Api/TierApi";
 import "./UseCaseProducts.scss";
 
@@ -242,7 +242,9 @@ const UseCaseProducts = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(50);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const latestLoad = useRef(0);
 
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
 
@@ -303,17 +305,20 @@ const UseCaseProducts = () => {
   };
 
   const loadProducts = async () => {
+    const thisLoad = ++latestLoad.current;
     try {
       setLoading(true);
-      const res = await GetUseCaseProductsAPI(useCaseId, page, limit, "");
+      const res = await GetUseCaseProductsAPI(useCaseId, page, limit, debouncedSearch);
+      if (thisLoad !== latestLoad.current) return;
       const payload = res.data?.data;
       setProducts(payload?.data || []);
       setTotal(payload?.pagination?.total || 0);
       setSelectedIds(new Set());
     } catch (err) {
       console.error(err);
+      toastApiError("Couldn't load the products", err);
     } finally {
-      setLoading(false);
+      if (thisLoad === latestLoad.current) setLoading(false);
     }
   };
 
@@ -322,10 +327,16 @@ const UseCaseProducts = () => {
     loadTiers();
   }, [useCaseId]);
 
+  // The backend searches the whole use case, not just the page on screen.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   useEffect(() => {
     loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [useCaseId, page]);
+  }, [useCaseId, page, debouncedSearch]);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
@@ -336,19 +347,8 @@ const UseCaseProducts = () => {
       list = list.filter((p) => (p.source || "category") === sourceFilter);
     }
 
-    const term = search.trim().toLowerCase();
-    if (term) {
-      list = list.filter((p) => {
-        const nameMatch = p.name?.toLowerCase().includes(term);
-        const categoryMatch = (p.parent_categories || []).some((c) =>
-          c.title.toLowerCase().includes(term),
-        );
-        return nameMatch || categoryMatch;
-      });
-    }
-
     return list;
-  }, [products, sourceFilter, search]);
+  }, [products, sourceFilter]);
 
   const manualCount = useMemo(
     () => products.filter((p) => p.source === "manual").length,
@@ -440,7 +440,8 @@ const UseCaseProducts = () => {
 
     try {
       setBulkAssigning(-1); // sentinel: bulk removal in progress
-      await BulkClearProductTierOverrideAPI(ids, useCaseId);
+      // Excluded, not just cleared: clearing brings back any tier from the product's category.
+      await Promise.all(ids.map((id) => ExcludeProductFromAllTiersAPI(id, useCaseId)));
       setProducts((prev) =>
         prev.map((p) => (ids.includes(p.id) ? { ...p, tier: null } : p)),
       );
@@ -497,7 +498,7 @@ const UseCaseProducts = () => {
 
     try {
       setTierSavingId(product.id);
-      await ClearProductTierOverrideAPI(product.id,  useCaseId,);
+      await ExcludeProductFromAllTiersAPI(product.id, useCaseId);
       setProducts((prev) =>
         prev.map((p) => (p.id === product.id ? { ...p, tier: null } : p)),
       );
@@ -519,17 +520,19 @@ const UseCaseProducts = () => {
 
       if (removeTarget.source === "manual") {
         await ClearUseCaseProductOverrideAPI(useCaseId, removeTarget.id);
+        // A product that also matches by category stays, so ask what's left.
+        await loadProducts();
       } else {
         await ExcludeProductsFromUseCaseAPI(useCaseId, [removeTarget.id]);
+        setProducts((prev) => prev.filter((p) => p.id !== removeTarget.id));
+        setTotal((prev) => Math.max(0, prev - 1));
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(removeTarget.id);
+          return next;
+        });
       }
 
-      setProducts((prev) => prev.filter((p) => p.id !== removeTarget.id));
-      setTotal((prev) => Math.max(0, prev - 1));
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(removeTarget.id);
-        return next;
-      });
       toast.success(`"${removeTarget.name}" removed from this use case`);
       setRemoveTarget(null);
     } catch (err) {
@@ -748,7 +751,10 @@ const UseCaseProducts = () => {
           {search && (
             <button
               className="ucp__search-clear"
-              onClick={() => setSearch("")}
+              onClick={() => {
+                setSearch("");
+                setPage(1);
+              }}
               title="Clear search"
             >
               <X size={13} />

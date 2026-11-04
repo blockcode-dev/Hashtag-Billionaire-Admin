@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/api-errors";
 
 import {
   GetPricingMarkupAPI,
@@ -39,6 +40,7 @@ const PricingMarkupPage = () => {
       setPricing(res.data.data || []);
     } catch (err) {
       console.error("Failed to load pricing", err);
+      toastApiError("Couldn't load the markups", err);
     } finally {
       setLoading(false);
     }

@@ -11,6 +11,7 @@ import { ImagePreview } from "@/components/common/ImagePreview";
 import { SearchInput } from "@/components/common/SearchInput";
 import { StatusTag } from "@/components/common/StatusTag";
 
+import { toastApiError } from "@/lib/api-errors";
 import { GetAllPaymentsAPI } from "@/services/Api/PaymentApi";
 
 import "./Payments.scss";
@@ -70,6 +71,7 @@ const PaymentsPage = () => {
       setTotal(payload.total || 0);
     } catch (err) {
       console.error("Failed to load payments", err);
+      toastApiError("Couldn't load the payments", err);
     } finally {
       setLoading(false);
     }
@@ -100,7 +102,7 @@ const PaymentsPage = () => {
         p.user?.email?.toLowerCase()?.includes(keyword) ||
         p.user?.name?.toLowerCase()?.includes(keyword) ||
         p.order?.order_number?.toLowerCase()?.includes(keyword) ||
-        p.payment_status?.toLowerCase()?.includes(keyword)
+        paymentTag(p.payment_status).label.toLowerCase().includes(keyword)
       );
     });
 
@@ -281,7 +283,7 @@ const PaymentsPage = () => {
         <SearchInput
           allowClear
           size="large"
-          placeholder="Search by transaction, order, customer..."
+          placeholder="Search this page by transaction, order, customer..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           wrapperClassName="payment-search"
@@ -466,27 +468,33 @@ const PaymentsPage = () => {
                         <div className="breakdown-section">
                           <div className="breakdown-title">Pricing Details</div>
 
+                          {/* Supplier cost: this list has no admin sign-in yet (audit C1), so the
+                              backend can leave these out. A missing figure isn't $0.00. */}
                           {/* PRODUCT PRICE */}
-                          <div className="price-step">
-                            <div className="left">
-                              <div className="title">Actual Product Price</div>
-                              <div className="subtitle">Supplier base cost</div>
+                          {item?.pricing_breakdown?.actual_product_price != null && (
+                            <div className="price-step">
+                              <div className="left">
+                                <div className="title">Actual Product Price</div>
+                                <div className="subtitle">Supplier base cost</div>
+                              </div>
+                              <div className="right">
+                                ${Number(item.pricing_breakdown.actual_product_price).toFixed(2)}
+                              </div>
                             </div>
-                            <div className="right">
-                              ${Number(item?.pricing_breakdown?.actual_product_price || 0).toFixed(2)}
-                            </div>
-                          </div>
+                          )}
 
                           {/* MARKUP */}
-                          <div className="price-step">
-                            <div className="left">
-                              <div className="title">Supplier Markup</div>
-                              <div className="subtitle">Platform margin</div>
+                          {item?.pricing_breakdown?.supplier_markup != null && (
+                            <div className="price-step">
+                              <div className="left">
+                                <div className="title">Supplier Markup</div>
+                                <div className="subtitle">Platform margin</div>
+                              </div>
+                              <div className="right">
+                                ${Number(item.pricing_breakdown.supplier_markup).toFixed(2)}
+                              </div>
                             </div>
-                            <div className="right">
-                              ${Number(item?.pricing_breakdown?.supplier_markup || 0).toFixed(2)}
-                            </div>
-                          </div>
+                          )}
 
                           {/* FINAL PRODUCT */}
                           <div className="price-step highlight-row">
@@ -511,7 +519,9 @@ const PaymentsPage = () => {
                                   </div>
                                   <div className="subtitle">
                                     {pricing.quantity} × $
-                                    {pricing.price_per_item}
+                                    {pricing.price_per_item ??
+                                      pricing.final_price_per_item ??
+                                      pricing.second_location_price}
                                     {item?.customization_config?.custom_text
                                       ? ` • "${item.customization_config.custom_text}"`
                                       : ""}
@@ -524,10 +534,42 @@ const PaymentsPage = () => {
                             ),
                           )}
 
+                          {/* PRE-MADE OPTIONS */}
+                          {item?.pricing_breakdown?.customization?.items?.map(
+                            (line: any, idx: number) => (
+                              <div className="price-step" key={idx}>
+                                <div className="left">
+                                  <div className="title">{line.option_name}</div>
+                                  <div className="subtitle">{line.value_name}</div>
+                                </div>
+                                <div className="right">
+                                  ${Number(line.total || 0).toFixed(2)}
+                                </div>
+                              </div>
+                            ),
+                          )}
+
+                          {/* ADD-ONS */}
+                          {item?.pricing_breakdown?.addons?.map(
+                            (addon: any, idx: number) => (
+                              <div className="price-step" key={idx}>
+                                <div className="left">
+                                  <div className="title">{addon.name}</div>
+                                  <div className="subtitle">
+                                    {addon.quantity} × ${Number(addon.unit_price || 0).toFixed(2)}
+                                  </div>
+                                </div>
+                                <div className="right">
+                                  ${Number(addon.total || 0).toFixed(2)}
+                                </div>
+                              </div>
+                            ),
+                          )}
+
                           {/* SETUP */}
                           <div className="price-step">
                             <div className="left">
-                              <div className="title">Setup Fee</div>
+                              <div className="title">Setup / Graphic Fee</div>
                             </div>
                             <div className="right">
                               ${Number(item?.pricing_breakdown?.setup_fee || 0).toFixed(2)}
@@ -544,37 +586,6 @@ const PaymentsPage = () => {
                             </div>
                           </div>
                         </div>
-
-                        {/* ORDER TOTALS */}
-                        <div className="order-total-card">
-                          <div className="order-total-title">Order Totals</div>
-
-                          <div className="order-total-row">
-                            <span>
-                              Subtotal ({item.quantity} items × $
-                              {item?.pricing_breakdown?.final_price_per_item})
-                            </span>
-                            <strong>
-                              ${Number(selectedPayment.order?.subtotal_amount || 0).toFixed(2)}
-                            </strong>
-                          </div>
-
-                          <div className="order-total-row">
-                            <span>Shipping</span>
-                            <strong>
-                              ${Number(selectedPayment.order?.shipping_amount || 0).toFixed(2)}
-                            </strong>
-                          </div>
-
-                          <div className="order-total-divider" />
-
-                          <div className="order-total-row grand">
-                            <span>Grand Total</span>
-                            <strong>
-                              ${Number(selectedPayment.order?.total_amount || 0).toFixed(2)}
-                            </strong>
-                          </div>
-                        </div>
                       </div>
                     </div>
                     {index < selectedPayment.order.items.length - 1 && (
@@ -582,6 +593,45 @@ const PaymentsPage = () => {
                     )}
                   </div>
                 ))}
+
+                {/* ORDER TOTALS */}
+                {selectedPayment.order && (
+                  <div className="order-total-card">
+                    <div className="order-total-title">Order Totals</div>
+
+                    <div className="order-total-row">
+                      <span>Order subtotal</span>
+                      <strong>
+                        ${Number(selectedPayment.order.subtotal_amount || 0).toFixed(2)}
+                      </strong>
+                    </div>
+
+                    {selectedPayment.order.tax_amount != null && (
+                      <div className="order-total-row">
+                        <span>Tax</span>
+                        <strong>
+                          ${Number(selectedPayment.order.tax_amount).toFixed(2)}
+                        </strong>
+                      </div>
+                    )}
+
+                    <div className="order-total-row">
+                      <span>Shipping</span>
+                      <strong>
+                        ${Number(selectedPayment.order.shipping_amount || 0).toFixed(2)}
+                      </strong>
+                    </div>
+
+                    <div className="order-total-divider" />
+
+                    <div className="order-total-row grand">
+                      <span>Grand Total</span>
+                      <strong>
+                        ${Number(selectedPayment.order.total_amount || 0).toFixed(2)}
+                      </strong>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

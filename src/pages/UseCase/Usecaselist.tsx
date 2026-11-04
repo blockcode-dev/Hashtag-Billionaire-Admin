@@ -38,6 +38,7 @@ import "./UseCaseList.scss";
 import { useNavigate } from "react-router";
 
 import { IMAGE_BASE_URL } from "@/config/env";
+import { apiErrorMessage, toastApiError } from "@/lib/api-errors";
 
 const getImageUrl = (path: string | null | undefined) => {
   if (!path) return null;
@@ -328,6 +329,7 @@ const UseCaseList = () => {
       setUseCases(res.data.data.data || []);
     } catch (err) {
       console.error(err);
+      toastApiError("Couldn't load the use cases", err);
     } finally {
       setLoading(false);
     }
@@ -376,6 +378,7 @@ const UseCaseList = () => {
       setDeleteTarget(null);
     } catch (err) {
       console.error(err);
+      toastApiError("Couldn't delete the use case", err);
     } finally {
       setDeleteLoading(false);
     }
@@ -494,7 +497,7 @@ const UseCaseList = () => {
       closeFormModal();
     } catch (err) {
       console.error(err);
-      setFormError("Something went wrong. Please try again.");
+      setFormError(apiErrorMessage(err, "Something went wrong. Please try again."));
     } finally {
       setFormLoading(false);
     }
@@ -582,6 +585,7 @@ const UseCaseList = () => {
       closeCategoryModal();
     } catch (err) {
       console.error(err);
+      toastApiError("Couldn't save the categories", err);
     } finally {
       setCategorySaving(false);
     }
@@ -949,13 +953,14 @@ const UseCaseList = () => {
                     Max 5 MB
                   </div>
 
-                  {previewUrl && (
+                  {/* The backend can't clear a saved image, so only a new pick can be removed. */}
+                  {fileList.length > 0 && (
                     <button
                       type="button"
                       className="uc__remove-image"
                       onClick={() => {
                         setFileList([]);
-                        setPreviewUrl(null);
+                        setPreviewUrl(getImageUrl(editTarget?.image));
                       }}
                     >
                       Remove

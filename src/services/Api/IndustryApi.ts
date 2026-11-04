@@ -12,7 +12,7 @@ export const GetIndustriesAPI = async (
   search = ""
 ) => {
   return axios.get(
-    `${API_BASE_URL}industry?page=${page}&limit=${limit}&search=${search}`
+    `${API_BASE_URL}industry?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`
   );
 };
 
@@ -61,7 +61,7 @@ export const GetUseCasesAPI = async (
   search = ""
 ) => {
   return axios.get(
-    `${API_BASE_URL}industry/use-case?page=${page}&limit=${limit}&search=${search}`
+    `${API_BASE_URL}industry/use-case?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`
   );
 };
 
@@ -70,14 +70,6 @@ export const GetUseCaseByIdAPI = async (
 ) => {
   return axios.get(
     `${API_BASE_URL}industry/use-case/${id}`
-  );
-};
-
-export const GetUseCasesByIndustryAPI = async (
-  industryId: number
-) => {
-  return axios.get(
-    `${API_BASE_URL}industry/use-case/industry/${industryId}`
   );
 };
 
@@ -141,7 +133,7 @@ export const GetUseCaseProductsAPI = async (
   search = ""
 ) => {
   return axios.get(
-    `${API_BASE_URL}industry/use-case/${useCaseId}/products?page=${page}&limit=${limit}&search=${search}`
+    `${API_BASE_URL}industry/use-case/${useCaseId}/products?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`
   );
 };
 

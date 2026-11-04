@@ -107,11 +107,6 @@ const PublishedBrands: React.FC = () => {
               >
                 {record.name}
               </strong>
-              {record.supplier && (
-                <span style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
-                  {record.supplier}
-                </span>
-              )}
             </div>
           </div>
         );

@@ -165,6 +165,11 @@ const ParentCategoryForm = ({ mode }: Props) => {
     try {
       setError("");
 
+      if (!title.trim()) {
+        setError("Sub Category title is required");
+        return;
+      }
+
       setLoading(true);
       let parentCategoryId: any = id;
 
@@ -296,6 +301,7 @@ const ParentCategoryForm = ({ mode }: Props) => {
               { value: "SS", label: "SS Activewear" },
               { value: "SAGE", label: "Sage" },
               { value: "OTTOCAP", label: "Otto Cap" },
+              { value: "MANUAL", label: "Manual" },
             ].map((s) => (
               <button
                 key={s.value}

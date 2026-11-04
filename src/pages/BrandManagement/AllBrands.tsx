@@ -9,6 +9,7 @@ import { SearchInput } from "@/components/common/SearchInput";
 import { Spinner } from "@/components/common/Spinner";
 import { ImageUploadGrid, type UploadItem } from "@/components/common/Upload";
 import { toast } from "sonner";
+import { confirm } from "@/components/common/ConfirmDialog";
 import { Tip } from "@/components/common/Tip";
 import { PublishBrandAPI, GetAllBrandsAPI } from "@/services/Api/BrandsApi";
 import { useNavigate } from "react-router";
@@ -94,20 +95,28 @@ const AllBrands: React.FC = () => {
     }
   };
 
-  const unpublishBrand = async (brandId: number) => {
-    try {
-      setUnpublishingId(brandId);
-      const formData = new FormData();
-      formData.append("brand_id", String(brandId));
-      formData.append("show_on_website", "false");
-      await PublishBrandAPI(formData);
-      toast.success("Brand unpublished successfully");
-      getBrands();
-    } catch {
-      toast.error("Failed to unpublish brand");
-    } finally {
-      setUnpublishingId(null);
-    }
+  const unpublishBrand = (brandId: number) => {
+    confirm({
+      title: "Unpublish this brand?",
+      content: "It leaves the website and its logo is deleted. Publishing it again needs the logo uploaded again.",
+      okText: "Unpublish",
+      okType: "danger",
+      onOk: async () => {
+        try {
+          setUnpublishingId(brandId);
+          const formData = new FormData();
+          formData.append("brand_id", String(brandId));
+          formData.append("show_on_website", "false");
+          await PublishBrandAPI(formData);
+          toast.success("Brand unpublished successfully");
+          getBrands();
+        } catch {
+          toast.error("Failed to unpublish brand");
+        } finally {
+          setUnpublishingId(null);
+        }
+      },
+    });
   };
 
   /* ─── columns ───────────────────────────────────────────────── */
@@ -325,7 +334,7 @@ const AllBrands: React.FC = () => {
         >
           <SearchInput
             size="large"
-            placeholder="Search brands by name or supplier…"
+            placeholder="Search brands by name…"
             allowClear
             onChange={(e) => {
               if (!e.target.value) {

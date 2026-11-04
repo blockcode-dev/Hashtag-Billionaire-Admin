@@ -334,13 +334,15 @@ const SourcingRequests = () => {
                         <select
                           className={`status-select status-${request.status?.toLowerCase()}`}
                           value={request.status}
-                          onChange={(e) =>
+                          onChange={(e) => {
                             setStatusChange({
                               id: request.id,
                               from: request.status,
                               to: e.target.value,
-                            })
-                          }
+                            });
+                            // What's sent replaces the saved note, so start from it.
+                            setStatusNote(request.admin_notes || "");
+                          }}
                         >
                           {STATUS_OPTIONS.map((option) => (
                             <option key={option.value} value={option.value}>

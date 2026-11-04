@@ -134,6 +134,7 @@ function Banner({ tone, icon, children }: { tone: keyof typeof TONES; icon: Reac
 }
 
 function SourceBadge({ setting }: { setting: Setting }) {
+  if (setting.missing) return <StatusTag color="red">Not set</StatusTag>;
   switch (setting.source) {
     case "admin":
       return <StatusTag color="green">Set here</StatusTag>;

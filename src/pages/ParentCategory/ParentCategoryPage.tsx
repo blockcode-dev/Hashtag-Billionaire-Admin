@@ -7,7 +7,11 @@ import {
 } from "@/services/Api/ParentCategoryApi";
 import { Plus, Pencil, Trash2, Search, AlertTriangle, X, ChevronDown, ChevronUp } from "lucide-react";
 import { useNavigate } from "react-router";
+import { Pagination } from "@/components/common/Pagination";
+import { toastApiError } from "@/lib/api-errors";
 import "./ParentCategoryPage.scss";
+
+const PAGE_SIZE = 50;
 
 const TAGS_PREVIEW = 6;
 
@@ -53,6 +57,8 @@ const ParentCategoryPage = () => {
 
   const [categories, setCategories] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
@@ -61,10 +67,12 @@ const ParentCategoryPage = () => {
   const load = async () => {
     try {
       setLoading(true);
-      const res = await GetParentCategoriesAPI(1, 50, search);
+      const res = await GetParentCategoriesAPI(page, PAGE_SIZE, search);
       setCategories(res.data.data.data || []);
+      setTotal(res.data.data.pagination?.total ?? 0);
     } catch (err) {
       console.error(err);
+      toastApiError("Couldn't load the sub categories", err);
     } finally {
       setLoading(false);
     }
@@ -72,7 +80,7 @@ const ParentCategoryPage = () => {
 
   useEffect(() => {
     load();
-  }, [search]);
+  }, [search, page]);
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
@@ -83,6 +91,7 @@ const ParentCategoryPage = () => {
       setDeleteTarget(null);
     } catch (err) {
       console.error(err);
+      toastApiError("Couldn't delete the sub category", err);
     } finally {
       setDeleteLoading(false);
     }
@@ -104,10 +113,19 @@ const ParentCategoryPage = () => {
               type="text"
               placeholder="Search categories..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
             />
             {search && (
-              <button className="pcp__search-clear" onClick={() => setSearch("")}>
+              <button
+                className="pcp__search-clear"
+                onClick={() => {
+                  setSearch("");
+                  setPage(1);
+                }}
+              >
                 <X size={13} />
               </button>
             )}
@@ -192,6 +210,16 @@ const ParentCategoryPage = () => {
           </tbody>
         </table>
       </div>
+
+      {total > PAGE_SIZE && (
+        <Pagination
+          className="mt-4"
+          current={page}
+          total={total}
+          pageSize={PAGE_SIZE}
+          onChange={(next) => setPage(next)}
+        />
+      )}
 
       {/* DELETE MODAL */}
       {deleteTarget && (

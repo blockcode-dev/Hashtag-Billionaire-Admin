@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/common/EmptyState";
+import { apiErrorMessage } from "@/lib/api-errors";
 import { ArrowLeft } from "lucide-react";
 import { GetProductByIdAPI } from "@/services/Api/ProductApi";
 import "./ProductDetail.scss";
@@ -469,6 +472,7 @@ const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState<any>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState<string | null>(null);
   const [activeVariant, setActiveVariant] = useState<any>(null);
 
@@ -484,6 +488,7 @@ const ProductDetails = () => {
       setActiveImage(firstImage);
     } catch (err) {
       console.error(err);
+      setLoadError(apiErrorMessage(err, "This product couldn't be loaded."));
     }
   };
 
@@ -513,6 +518,15 @@ const ProductDetails = () => {
   const variantImageGroups: ColorImageGroup[] = useMemo(
     () => groupVariantImagesByColor(variants),
     [variants]
+  );
+
+  if (loadError) return (
+    <div className="pd-loading">
+      <EmptyState description={loadError} />
+      <Button type="button" variant="outline" onClick={() => navigate("/products")}>
+        Back to products
+      </Button>
+    </div>
   );
 
   if (!product) return (

@@ -33,6 +33,7 @@ import {
 import "./IndustryList.scss";
 
 import { IMAGE_BASE_URL } from "@/config/env";
+import { apiErrorMessage, toastApiError } from "@/lib/api-errors";
 
 const getImageUrl = (path: string | null | undefined) => {
   if (!path) return null;
@@ -295,6 +296,7 @@ const IndustryList = () => {
       setIndustries(res.data.data.data || []);
     } catch (err) {
       console.error(err);
+      toastApiError("Couldn't load the industries", err);
     } finally {
       setLoading(false);
     }
@@ -321,6 +323,7 @@ const IndustryList = () => {
       setDeleteTarget(null);
     } catch (err) {
       console.error(err);
+      toastApiError("Couldn't delete the industry", err);
     } finally {
       setDeleteLoading(false);
     }
@@ -400,6 +403,7 @@ const IndustryList = () => {
       );
     } catch (err) {
       console.error(err);
+      toastApiError("Couldn't save the new order", err);
       setIndustries(prevList);
     } finally {
       setReordering(false);
@@ -508,7 +512,7 @@ const IndustryList = () => {
       closeFormModal();
     } catch (err) {
       console.error(err);
-      setFormError("Something went wrong. Please try again.");
+      setFormError(apiErrorMessage(err, "Something went wrong. Please try again."));
     } finally {
       setFormLoading(false);
     }
@@ -790,13 +794,14 @@ const IndustryList = () => {
                     Max 5 MB
                   </div>
 
-                  {previewUrl && (
+                  {/* The backend can't clear a saved image, so only a new pick can be removed. */}
+                  {fileList.length > 0 && (
                     <button
                       type="button"
                       className="ind__remove-image"
                       onClick={() => {
                         setFileList([]);
-                        setPreviewUrl(null);
+                        setPreviewUrl(getImageUrl(editTarget?.image));
                       }}
                     >
                       Remove

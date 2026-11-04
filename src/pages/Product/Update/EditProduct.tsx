@@ -28,7 +28,9 @@ import {
 import { AutoComplete } from "@/components/common/AutoComplete";
 import { Combobox } from "@/components/common/Combobox";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/api-errors";
 import { IMAGE_ACCEPT, checkImageFiles, checkUploadCounts } from "@/lib/uploads";
+import { UNREPORTED_STOCK_HINT, isStockUnreported } from "@/lib/variants";
 import { confirm } from "@/components/common/ConfirmDialog";
 import { Pagination } from "@/components/common/Pagination";
 import { Spinner } from "@/components/common/Spinner";
@@ -170,6 +172,8 @@ interface VariantDraft {
   retail_price: string;
   case_price: string;
   stock: string;
+  // Stock the supplier doesn't report (SAGE): shown as such, and never sent back.
+  stockUnreported?: boolean;
   min_order_quantity: string;
   // Read-only context, shown but never sent back for edit
   supplier: string;
@@ -767,6 +771,7 @@ const EditProduct: React.FC = () => {
             retail_price: v.retail_price ?? "",
             case_price: v.case_price != null ? String(v.case_price) : "",
             stock: v.stock?.toString() ?? "",
+            stockUnreported: isStockUnreported(v),
             min_order_quantity: v.min_order_quantity?.toString() ?? "1",
             supplier: v.supplier || data.supplier || "MANUAL",
             country_of_origin: v.country_of_origin ?? null,
@@ -1272,7 +1277,7 @@ const EditProduct: React.FC = () => {
           retail_price:
             v.retail_price.trim() !== "" ? Number(v.retail_price) : null,
           case_price: v.case_price.trim() !== "" ? Number(v.case_price) : null,
-          stock: v.stock.trim() !== "" ? Number(v.stock) : 0,
+          ...(v.stockUnreported ? {} : { stock: v.stock.trim() !== "" ? Number(v.stock) : 0 }),
           min_order_quantity:
             v.min_order_quantity.trim() !== ""
               ? Number(v.min_order_quantity)
@@ -1319,7 +1324,7 @@ const EditProduct: React.FC = () => {
       navigate("/products");
     } catch (err) {
       console.error(err);
-      toast.error("Failed to update product");
+      toastApiError("Failed to update product", err);
     } finally {
       setSaving(false);
     }
@@ -1644,7 +1649,7 @@ const EditProduct: React.FC = () => {
           "Category" here (not "Parent"/"Grand") to match the same wording
           already used in the left nav, so non-technical admins recognize
           it. Both levels support add AND remove — these mapping tables are
-          fully admin-managed, the nightly supplier sync doesn't touch them.
+          fully admin-managed, the monthly supplier sync doesn't touch them.
           Runs for every product, not just MANUAL ones. */}
       <div className="edit-card">
         <div className="edit-card-header">
@@ -2134,13 +2139,17 @@ const EditProduct: React.FC = () => {
 
                 <div className="field small">
                   <label>Stock</label>
-                  <input
-                    type="number"
-                    value={v.stock}
-                    onChange={(e) =>
-                      updateVariantField(v.id, "stock", e.target.value)
-                    }
-                  />
+                  {v.stockUnreported ? (
+                    <input type="text" value="Not reported" title={UNREPORTED_STOCK_HINT} disabled />
+                  ) : (
+                    <input
+                      type="number"
+                      value={v.stock}
+                      onChange={(e) =>
+                        updateVariantField(v.id, "stock", e.target.value)
+                      }
+                    />
+                  )}
                 </div>
 
                 <div className="field small">

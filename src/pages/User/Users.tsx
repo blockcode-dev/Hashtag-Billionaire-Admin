@@ -20,6 +20,7 @@ import {
   SetUserPasswordAPI,
 } from "@/services/Api/UserApi";
 import { SetPasswordDialog } from "@/components/common/SetPasswordDialog";
+import { toastApiError } from "@/lib/api-errors";
 
 import "./Users.scss";
 
@@ -54,6 +55,7 @@ const UsersPage = () => {
       setAllUsers(payload.rows || []);
     } catch (err) {
       console.error("Failed to load users", err);
+      toastApiError("Couldn't load the customers", err);
     }
   }, []);
 
@@ -110,6 +112,7 @@ const UsersPage = () => {
       setDeleteModal(false);
     } catch (err) {
       console.error("Delete failed", err);
+      toastApiError("Couldn't delete the customer", err);
     }
   };
 

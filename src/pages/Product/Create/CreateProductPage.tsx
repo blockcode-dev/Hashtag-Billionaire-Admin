@@ -993,6 +993,7 @@ const CreateProductPage: React.FC = () => {
     }
 
     setLoading(true);
+    let createdProductId: number | null = null;
     try {
       const productFormData = new FormData();
 
@@ -1042,6 +1043,7 @@ const CreateProductPage: React.FC = () => {
       const productRes = await CreateProductAPI(productFormData);
       const product = productRes?.data?.data;
       if (!product?.id) throw new Error("Product creation failed");
+      createdProductId = product.id;
 
       const variantFormData = new FormData();
       variantFormData.append("product_id", product.id.toString());
@@ -1103,7 +1105,19 @@ const CreateProductPage: React.FC = () => {
       setVariants([DEFAULT_VARIANT()]);
       setSamePriceForAll(false);
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Something went wrong");
+      const apiMessage = err?.response?.data?.message;
+      if (createdProductId) {
+        // The product exists but its variants didn't save. Trying again here would make a
+        // second product, so open this one in Edit.
+        toast.error(
+          apiMessage
+            ? `Product created, but its variants didn't save: ${apiMessage}. Finish it in Edit.`
+            : "Product created, but its variants didn't save. Finish it in Edit.",
+        );
+        navigate(`/products/${createdProductId}/edit-manual`);
+      } else {
+        toast.error(apiMessage || "Something went wrong");
+      }
     } finally {
       setLoading(false);
     }

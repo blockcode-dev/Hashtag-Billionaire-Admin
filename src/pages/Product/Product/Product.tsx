@@ -30,6 +30,7 @@ import "./Product.scss";
 import { Thumbnail } from "@/components/common/Thumbnail";
 import { confirm } from "@/components/common/ConfirmDialog";
 import { toast } from "sonner";
+import { toastApiError } from "@/lib/api-errors";
 import { Spinner } from "@/components/common/Spinner";
 import { Tip } from "@/components/common/Tip";
 import {
@@ -485,7 +486,7 @@ const ProductsPage = () => {
         } catch (err) {
           console.error(err);
 
-          toast.error("Couldn't delete the product. Try again.");
+          toastApiError("Couldn't delete the product", err);
         }
       },
     });

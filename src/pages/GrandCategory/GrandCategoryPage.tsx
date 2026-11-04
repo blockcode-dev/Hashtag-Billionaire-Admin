@@ -17,7 +17,11 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { useNavigate } from "react-router";
+import { Pagination } from "@/components/common/Pagination";
+import { toastApiError } from "@/lib/api-errors";
 import "./GrandCategoryPage.scss";
+
+const PAGE_SIZE = 50;
 
 interface ParentCategory {
   id: number;
@@ -115,6 +119,12 @@ const GrandCategoryPage = () => {
   const [search, setSearch] =
     useState("");
 
+  const [page, setPage] =
+    useState(1);
+
+  const [total, setTotal] =
+    useState(0);
+
   const [loading, setLoading] =
     useState(false);
 
@@ -137,16 +147,21 @@ const GrandCategoryPage = () => {
 
       const res =
         await GetGrandCategoriesAPI(
-          1,
-          50,
+          page,
+          PAGE_SIZE,
           search
         );
 
       setCategories(
         res.data.data.data || []
       );
+
+      setTotal(
+        res.data.data.pagination?.total ?? 0
+      );
     } catch (err) {
       console.error(err);
+      toastApiError("Couldn't load the categories", err);
     } finally {
       setLoading(false);
     }
@@ -154,7 +169,7 @@ const GrandCategoryPage = () => {
 
   useEffect(() => {
     load();
-  }, [search]);
+  }, [search, page]);
 
   const handleDeleteConfirm =
     async () => {
@@ -178,6 +193,7 @@ const GrandCategoryPage = () => {
         setDeleteTarget(null);
       } catch (err) {
         console.error(err);
+        toastApiError("Couldn't delete the category", err);
       } finally {
         setDeleteLoading(false);
       }
@@ -205,19 +221,21 @@ const GrandCategoryPage = () => {
               type="text"
               placeholder="Search categories..."
               value={search}
-              onChange={(e) =>
+              onChange={(e) => {
                 setSearch(
                   e.target.value
-                )
-              }
+                );
+                setPage(1);
+              }}
             />
 
             {search && (
               <button
                 className="gcp__search-clear"
-                onClick={() =>
-                  setSearch("")
-                }
+                onClick={() => {
+                  setSearch("");
+                  setPage(1);
+                }}
               >
                 <X size={13} />
               </button>
@@ -376,6 +394,16 @@ const GrandCategoryPage = () => {
           </tbody>
         </table>
       </div>
+
+      {total > PAGE_SIZE && (
+        <Pagination
+          className="mt-4"
+          current={page}
+          total={total}
+          pageSize={PAGE_SIZE}
+          onChange={(next) => setPage(next)}
+        />
+      )}
 
       {deleteTarget && (
         <div
