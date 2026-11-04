@@ -10,6 +10,7 @@ import {
 
 import "./OttoCapTab.scss";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { toastApiError } from "@/lib/api-errors";
 
 const fmt = (n: any) => Number(n || 0).toLocaleString();
 
@@ -126,8 +127,8 @@ const OttoCapTab = () => {
       setLoadingProducts(true);
       const res = await GetOttoProductsAPI();
       setProducts(res.data.data?.data || []);
-    } catch {
-      toast.error("Failed to load products");
+    } catch (err) {
+      toastApiError("Failed to load products", err);
     } finally {
       setLoadingProducts(false);
     }
@@ -153,8 +154,8 @@ const OttoCapTab = () => {
         const res = await GetOttoProductVariantsAPI(sku);
         setSelectedProduct(res.data.data.product);
         setVariants(res.data.data.variants || []);
-      } catch {
-        toast.error("Failed to load product details");
+      } catch (err) {
+        toastApiError("Failed to load product details", err);
       } finally {
         setDetailsLoading(false);
       }
@@ -205,8 +206,8 @@ const OttoCapTab = () => {
       } else {
         toast.error(res?.data?.message || "Import failed");
       }
-    } catch {
-      toast.error("Import failed");
+    } catch (err) {
+      toastApiError("Import failed", err);
     } finally {
       setImportingAll(false);
     }
@@ -222,13 +223,19 @@ const OttoCapTab = () => {
       if (res?.data?.success || res?.status === 200 || res?.data?.status === 200) {
         await loadProducts();
         await loadProductDetails(selectedProduct.sku_no);
-        setSuccessInfo({ name: selectedProduct.name, sku: selectedProduct.sku_no });
-        toast.success("Imported successfully");
+        // This answers 200 however it went; the counts are the result.
+        const { success = 0, failed = 0 } = res?.data?.data ?? {};
+        if (failed > 0) {
+          toast.warning(`Imported ${success} of ${success + failed} variants. ${failed} failed.`);
+        } else {
+          setSuccessInfo({ name: selectedProduct.name, sku: selectedProduct.sku_no });
+          toast.success("Imported successfully");
+        }
       } else {
         toast.error(res?.data?.message || "Import failed");
       }
-    } catch {
-      toast.error("Import failed");
+    } catch (err) {
+      toastApiError("Import failed", err);
     } finally {
       setImportingSelected(false);
     }
@@ -290,7 +297,11 @@ const OttoCapTab = () => {
             : filteredProducts.length === 0
             ? (
               <div className="sidebar-empty">
-                <p>No results for<br /><strong>"{search}"</strong></p>
+                {search ? (
+                  <p>No results for<br /><strong>"{search}"</strong></p>
+                ) : (
+                  <p>No OttoCap products yet.<br />The catalog has to be loaded on the server first.</p>
+                )}
               </div>
             )
             : filteredProducts.map((item) => {

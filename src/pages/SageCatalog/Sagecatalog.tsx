@@ -26,6 +26,8 @@ import {
   GetAllCategoriesAPI,
   ImportSelectedSageProductsAPI,
 } from "@/services/Api/SageApi";
+import { toastApiError } from "@/lib/api-errors";
+import { sageImportOutcome } from "@/lib/sage";
 import { GetAllProductsAdminAPI } from "@/services/Api/ProductApi";
 import "./SageCatalog.scss";
 
@@ -178,7 +180,7 @@ const SageCatalogPage = () => {
     } catch (err) {
       if (thisRequestId !== requestIdRef.current) return;
       console.error("Failed to load SAGE catalog", err);
-      toast.error("Failed to load SAGE catalog");
+      toastApiError("Failed to load SAGE catalog", err);
     } finally {
       if (thisRequestId === requestIdRef.current) setLoading(false);
     }
@@ -230,18 +232,13 @@ const SageCatalogPage = () => {
             `Bulk import from Live Catalog (${ids.length} items)`,
           );
           const data = res?.data?.data;
-          if (data?.failed > 0) {
-            toast.warning(
-              `Imported ${data.success} of ${data.total} — ${data.failed} failed`,
-            );
-          } else {
-            toast.success(`Imported ${data?.success ?? ids.length} products`);
-          }
+          const outcome = sageImportOutcome(data?.success ?? ids.length, data?.total ?? ids.length);
+          toast[outcome.level](outcome.message);
           setSelectedIds(new Set());
           load();
         } catch (err) {
           console.error(err);
-          toast.error("Bulk import failed");
+          toastApiError("Bulk import failed", err);
         } finally {
           setBulkImporting(false);
         }

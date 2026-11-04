@@ -12,6 +12,7 @@ import SanmarTab from "./Sanmar/SanmarTab";
 import OttoCapTab from "./OttoCap/OttoCapTab";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toastApiError } from "@/lib/api-errors";
 
 // ─────────────────────────────────────────────
 // Types
@@ -558,8 +559,8 @@ useEffect(() => {
       const fetched = res.data.data?.data || [];
       setStyles(fetched);
       toast.success(`Loaded ${fetched.length} styles for ${brandName}`);
-    } catch {
-      toast.error("Failed to load styles for this brand");
+    } catch (err) {
+      toastApiError("Failed to load styles for this brand", err);
     } finally {
       setLoadingStyles(false);
     }
@@ -579,8 +580,8 @@ useEffect(() => {
     try {
       const res = await GetProductByStyleAPI(s.style_id);
       setProduct(res.data.data);
-    } catch {
-      toast.error("Failed to fetch product details");
+    } catch (err) {
+      toastApiError("Failed to fetch product details", err);
     } finally {
       setLoadingProduct(false);
     }
@@ -600,9 +601,9 @@ useEffect(() => {
       toast.dismiss(toastId);
       toast.success("Product imported successfully!");
       setLastImportedName(product?.product?.name ?? selectedStyle);
-    } catch {
+    } catch (err) {
       toast.dismiss(toastId);
-      toast.error("Import failed. Please try again.");
+      toastApiError("Import failed", err, "Please try again.");
     } finally {
       setImporting(false);
     }

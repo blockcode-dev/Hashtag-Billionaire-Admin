@@ -17,6 +17,8 @@ import {
   GetSageProductDetailsAPI,
   ImportSelectedSageProductsAPI,
 } from "@/services/Api/SageApi";
+import { toastApiError } from "@/lib/api-errors";
+import { sageImportOutcome, sageStockLabel } from "@/lib/sage";
 import "./Sageproductview.scss";
 import { sanitizeHtml } from "@/lib/sanitize";
 
@@ -134,7 +136,7 @@ const SageProductView = () => {
       setData(res?.data?.data || null);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to load SAGE product data");
+      toastApiError("Failed to load SAGE product data", err);
     } finally {
       setLoading(false);
     }
@@ -155,11 +157,11 @@ const SageProductView = () => {
         await load();
         setTab("imported");
       } else {
-        toast.error("Import failed");
+        toast.error(sageImportOutcome(0, 1).message);
       }
     } catch (err) {
       console.error(err);
-      toast.error("Import failed");
+      toastApiError("Import failed", err);
     } finally {
       setImporting(false);
     }
@@ -750,7 +752,7 @@ const SageProductView = () => {
                     <tr key={v.id}>
                       <td className="spv-mono">{v.sku}</td>
                       <td>{v.color || "—"}</td>
-                      <td>{v.stock?.toLocaleString?.() ?? v.stock}</td>
+                      <td>{sageStockLabel(v)}</td>
                       <td>{formatMoney(v.price) || "—"}</td>
                     </tr>
                   ))}

@@ -7,6 +7,9 @@ import {
   ImportSelectedSageProductsAPI,
   SearchSageProductsAPI,
 } from "@/services/Api/SageApi";
+import { toast } from "sonner";
+import { apiErrorMessage, toastApiError } from "@/lib/api-errors";
+import { sageImportOutcome, sageInStock, sageStockLabel } from "@/lib/sage";
 import "./SageImportCategoryTab.scss";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -31,7 +34,7 @@ type ProductDetail = Product & {
     id: number;
     sku: string;
     color: string;
-    stock: number;
+    stock: number | null;
     price: string;
   }[];
   [key: string]: any;
@@ -157,6 +160,7 @@ const SageImportTab: React.FC = () => {
   const [detailLoading, setDetailLoading] = useState(false);
 
   const [importStatus, setImportStatus] = useState<ImportStatus>("idle");
+  const [importError, setImportError] = useState("");
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 20, totalPages: 1 });
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
   const [supplierSearch, setSupplierSearch] = useState("");
@@ -210,22 +214,33 @@ const getLowestPrice = (
     }
   };
 
+  const showImportError = (err: unknown) => {
+    setImportError(apiErrorMessage(err, "The API rejected the request. Please try again."));
+    setImportStatus("error");
+    setStep(4);
+  };
+
   const handleImportSelected = async () => {
     if (!selectedProducts.length) return;
     setImportStatus("importing");
     try {
-      await ImportSelectedSageProductsAPI(selectedProducts, "Manual selected import");
+      const res = await ImportSelectedSageProductsAPI(selectedProducts, "Manual selected import");
+      const data = res?.data?.data;
+      const outcome = sageImportOutcome(data?.success, data?.total);
       setImportStatus("idle");
       setStep(3);
-      setSelectedProducts([]);
-      setShowSuccessBanner(true);
-    } catch {
-      setImportStatus("error");
+      setSelectedProducts(data?.failedIds ?? []);
+      if (outcome.level === "success") setShowSuccessBanner(true);
+      else toast[outcome.level](outcome.message);
+    } catch (err) {
+      showImportError(err);
     }
   };
 
   useEffect(() => {
-    GetAllCategoriesAPI().then((res) => setCategories(res?.data?.data?.rows || []));
+    GetAllCategoriesAPI()
+      .then((res) => setCategories(res?.data?.data?.rows || []))
+      .catch((err) => toastApiError("Couldn't load the categories", err));
   }, []);
 
   const handleSelectCategory = async (cat: Category) => {
@@ -238,10 +253,16 @@ const getLowestPrice = (
     setSuppliersLoading(true);
     setSupplierSearch("");
     setShowSuccessBanner(false);
-    const res = await GetSupplierByCategoryAPI(cat.title);
-    setSuppliers(res?.data?.data?.suppliers || []);
-    setSuppliersLoading(false);
-    setStep(2);
+    try {
+      const res = await GetSupplierByCategoryAPI(cat.title);
+      setSuppliers(res?.data?.data?.suppliers || []);
+      setStep(2);
+    } catch (err) {
+      setSuppliers([]);
+      toastApiError("Couldn't load the suppliers", err);
+    } finally {
+      setSuppliersLoading(false);
+    }
   };
 
   const handleSelectSupplier = async (supplier: Supplier) => {
@@ -263,7 +284,8 @@ const getLowestPrice = (
         totalPages: data?.pagination?.totalPages || 1,
       });
     } catch (err) {
-      console.error("Product fetch failed", err);
+      toastApiError("Couldn't load this supplier's products", err);
+      return;
     } finally {
       setProductsLoading(false);
     }
@@ -277,7 +299,8 @@ const getLowestPrice = (
     try {
       const detail = await GetSageProductDetailsAPI(product.prodEId);
       setProductDetail(detail?.data?.data || product);
-    } catch {
+    } catch (err) {
+      toastApiError("Couldn't load this product from SAGE", err);
       setProductDetail(product as ProductDetail);
     } finally {
       setDetailLoading(false);
@@ -288,13 +311,16 @@ const getLowestPrice = (
     if (!selectedCategory || !selectedSupplier) return;
     setImportStatus("importing");
     try {
-      await ImportSageProductsAPI(selectedCategory.title, selectedSupplier.supplierId);
+      const res = await ImportSageProductsAPI(selectedCategory.title, selectedSupplier.supplierId);
+      const data = res?.data?.data;
+      const outcome = sageImportOutcome(data?.totalImported, data?.totalFound);
       setSelectedProducts([]);
       setImportStatus("idle");
       setStep(3);
-      setShowSuccessBanner(true);
-    } catch {
-      setImportStatus("error");
+      if (outcome.level === "success") setShowSuccessBanner(true);
+      else toast[outcome.level](outcome.message);
+    } catch (err) {
+      showImportError(err);
     }
   };
 
@@ -312,7 +338,7 @@ const getLowestPrice = (
       setProducts(data?.products || []);
       setPagination(data?.pagination || {});
     } catch (err) {
-      console.error("Pagination fetch failed", err);
+      toastApiError("Couldn't load that page", err);
     } finally {
       setProductsLoading(false);
     }
@@ -673,7 +699,7 @@ const getLowestPrice = (
                   <div className="sage-detail-view__image-panel">
                     <img
                       src={productDetail?.thumbPic || selectedProduct.thumbPic}
-                      alt={productDetail?.name}
+                      alt={productDetail?.prName || productDetail?.name}
                       onError={(e) => {
                         (e.target as HTMLImageElement).src =
                           "https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=300&h=300&fit=crop";
@@ -704,7 +730,7 @@ const getLowestPrice = (
                   {/* Right: Content */}
                   <div className="sage-detail-view__content-panel">
                     <h1 className="sage-detail-view__name">
-                      {productDetail?.name}
+                      {productDetail?.prName || productDetail?.name}
                     </h1>
 
                     {/* Price + ID row */}
@@ -735,10 +761,10 @@ const getLowestPrice = (
                         </div>
                       )}
 
-                      {productDetail?.sku && (
+                      {(productDetail?.itemNum || productDetail?.sku) && (
                         <div className="sage-detail-view__meta-item">
                           <span className="label">SKU</span>
-                          <span className="value value--mono">{productDetail.sku}</span>
+                          <span className="value value--mono">{productDetail.itemNum || productDetail.sku}</span>
                         </div>
                       )}
 
@@ -790,8 +816,8 @@ const getLowestPrice = (
                                 </div>
                                 <div className="sage-variant-card__row">
                                   <span className="sage-variant-card__label">Stock</span>
-                                  <span className={`sage-variant-card__val ${variant.stock > 0 ? "sage-variant-card__val--in-stock" : "sage-variant-card__val--out"}`}>
-                                    {variant.stock > 0 ? variant.stock : "Out of stock"}
+                                  <span className={`sage-variant-card__val ${sageInStock(variant) ? "sage-variant-card__val--in-stock" : "sage-variant-card__val--out"}`}>
+                                    {sageInStock(variant) ? sageStockLabel(variant) : "Out of stock"}
                                   </span>
                                 </div>
                                 <div className="sage-variant-card__row">
@@ -822,7 +848,7 @@ const getLowestPrice = (
                 </svg>
               </div>
               <div className="sage-preview__placeholder-title">Synchronization Failed</div>
-              <p>The API rejected the request. Please try again.</p>
+              <p>{importError}</p>
               <button
                 className="sage-btn sage-btn--secondary sage-btn--sm"
                 onClick={() => { setStep(3); setImportStatus("idle"); }}

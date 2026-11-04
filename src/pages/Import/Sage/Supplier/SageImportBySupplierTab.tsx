@@ -18,6 +18,8 @@ import {
   ImportSelectedSageProductsAPI,
   SearchSageProductsAPI,
 } from "@/services/Api/SageApi";
+import { apiErrorMessage, toastApiError } from "@/lib/api-errors";
+import { sageImportOutcome, sageStockLabel } from "@/lib/sage";
 
 type ImportStatus = "idle" | "importing" | "done" | "error";
 
@@ -50,17 +52,17 @@ const SageImportBySupplierTab: React.FC = () => {
       `Importing ${selectedProducts.length} selected products...`,
     );
     try {
-      await ImportSelectedSageProductsAPI(
+      const res = await ImportSelectedSageProductsAPI(
         selectedProducts,
         "Manual selected supplier import",
       );
-      setImportStatus("done");
-      setImportMessage(
-        `${selectedProducts.length} products imported successfully!`,
-      );
-    } catch {
+      const data = res?.data?.data;
+      const outcome = sageImportOutcome(data?.success, data?.total);
+      setImportStatus(outcome.level === "success" ? "done" : "error");
+      setImportMessage(outcome.message);
+    } catch (err) {
       setImportStatus("error");
-      setImportMessage("Something went wrong during import. Please try again.");
+      setImportMessage(apiErrorMessage(err, "Something went wrong during import. Please try again."));
     }
   };
 
@@ -107,6 +109,8 @@ const SageImportBySupplierTab: React.FC = () => {
       setProducts(fetched);
       setPagination(data?.pagination || {});
       if (fetched.length > 0) setSupplierName(fetched[0].supplier);
+    } catch (err) {
+      toastApiError("Couldn't load this supplier's products", err);
     } finally {
       setProductsLoading(false);
     }
@@ -119,6 +123,9 @@ const SageImportBySupplierTab: React.FC = () => {
     try {
       const detail = await GetSageProductDetailsAPI(product.prodEId);
       setProductDetail(detail?.data?.data || product);
+    } catch (err) {
+      toastApiError("Couldn't load this product from SAGE", err);
+      setProductDetail(product);
     } finally {
       setDetailLoading(false);
     }
@@ -131,14 +138,14 @@ const SageImportBySupplierTab: React.FC = () => {
       `Importing products from ${supplierName || `Supplier #${supplierId}`}. This may take a few minutes for large catalogues — please don't close this tab.`,
     );
     try {
-      await ImportSageProductsAPI("", Number(supplierId));
-      setImportStatus("done");
-      setImportMessage(
-        `All ${pagination.total || ""} products imported successfully!`,
-      );
-    } catch {
+      const res = await ImportSageProductsAPI("", Number(supplierId));
+      const data = res?.data?.data;
+      const outcome = sageImportOutcome(data?.totalImported, data?.totalFound);
+      setImportStatus(outcome.level === "success" ? "done" : "error");
+      setImportMessage(outcome.message);
+    } catch (err) {
       setImportStatus("error");
-      setImportMessage("Something went wrong during import. Please try again.");
+      setImportMessage(apiErrorMessage(err, "Something went wrong during import. Please try again."));
     }
   };
 
@@ -664,7 +671,7 @@ const SageImportBySupplierTab: React.FC = () => {
                               <span>
                                 Stock:{" "}
                                 <strong>
-                                  {Number(variant.stock).toLocaleString()}
+                                  {sageStockLabel(variant)}
                                 </strong>
                               </span>
                               <span className="sage-detail__variant-price">

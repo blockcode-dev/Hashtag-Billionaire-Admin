@@ -7,6 +7,7 @@ import {
   GetSanmarProductAPI,
   ImportSanmarProductAPI,
 } from "@/services/Api/SanmarImportApi";
+import { toastApiError } from "@/lib/api-errors";
 
 import "./SanmarTab.scss";
 
@@ -29,7 +30,11 @@ type Brand = { id: number | string; name: string };
 type StyleItem = { style_name?: string; [key: string]: any };
 type ProductImage = string;
 type Product = {
-  product?: { name?: string; product_images?: ProductImage[] };
+  product?: {
+    name?: string;
+    product_images?: ProductImage[];
+    meta?: { is_discontinued?: boolean };
+  };
   variants?: Variant[];
 };
 
@@ -423,11 +428,13 @@ function StickyActionBar({
 
 function PostImportBanner({
   importedName,
+  discontinued,
   hasNext,
   onNext,
   onDismiss,
 }: {
   importedName: string;
+  discontinued?: boolean;
   hasNext: boolean;
   onNext: () => void;
   onDismiss: () => void;
@@ -456,7 +463,10 @@ function PostImportBanner({
             Import successful!
           </div>
           <div style={{ fontSize: 13, color: "var(--success)", marginTop: 2 }}>
-            <strong>{importedName}</strong> has been added to your store.
+            <strong>{importedName}</strong>{" "}
+            {discontinued
+              ? "was imported, but SanMar marks it discontinued, so it stays switched off."
+              : "has been added to your store."}
           </div>
         </div>
       </div>
@@ -727,7 +737,7 @@ const SanmarTab: React.FC = () => {
   useEffect(() => {
     GetSanmarBrandsAPI()
       .then((res) => setBrands(res.data.data?.data || []))
-      .catch(() => toast.error("Failed to load brands"))
+      .catch((err) => toastApiError("Failed to load brands", err))
       .finally(() => setBrandsLoading(false));
   }, []);
 
@@ -745,8 +755,8 @@ const SanmarTab: React.FC = () => {
       const res = await GetSanmarStylesAPI(brand.name);
       const data = res.data.data?.data || [];
       setStyles(data);
-    } catch {
-      toast.error("Failed to load styles");
+    } catch (err) {
+      toastApiError("Failed to load styles", err);
     } finally {
       setStylesLoading(false);
     }
@@ -764,8 +774,8 @@ const SanmarTab: React.FC = () => {
     try {
       const res = await GetSanmarProductAPI(selectedBrand.name, style);
       setProduct(res.data.data);
-    } catch {
-      toast.error("Failed to load product");
+    } catch (err) {
+      toastApiError("Failed to load product", err);
     } finally {
       setProductLoading(false);
     }
@@ -783,10 +793,14 @@ const SanmarTab: React.FC = () => {
     if (!selectedBrand || !selectedStyle) return;
     setImporting(true);
     try {
-      await ImportSanmarProductAPI({
+      const res = await ImportSanmarProductAPI({
         brand: selectedBrand.name,
         style: selectedStyle,
       });
+      if (res?.data?.data?.skipped) {
+        toast.info("Not updated", { description: "This product is locked, so supplier updates skip it." });
+        return;
+      }
       setStyles((prev) =>
         prev.map((s) =>
           s.style_name === selectedStyle ? { ...s, imported: true } : s,
@@ -794,8 +808,8 @@ const SanmarTab: React.FC = () => {
       );
       setLastImportedName(product?.product?.name ?? selectedStyle);
       toast.success("Product imported successfully!");
-    } catch {
-      toast.error("Import failed. Please try again.");
+    } catch (err) {
+      toastApiError("Import failed", err, "Please try again.");
     } finally {
       setImporting(false);
     }
@@ -842,6 +856,7 @@ const SanmarTab: React.FC = () => {
       {lastImportedName && (
         <PostImportBanner
           importedName={lastImportedName}
+          discontinued={product?.product?.meta?.is_discontinued}
           hasNext={selectedStyleIndex < styles.length - 1}
           onNext={handleNextFromBanner}
           onDismiss={() => setLastImportedName(null)}
@@ -980,6 +995,15 @@ const SanmarTab: React.FC = () => {
                 <div style={{ fontSize: 13, opacity: 0.8 }}>
                   {selectedBrand?.name} · <strong>{selectedStyle}</strong>
                 </div>
+                {product.product?.meta?.is_discontinued && (
+                  <div
+                    role="note"
+                    style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: 13, fontWeight: 600 }}
+                  >
+                    <TriangleAlert size={14} aria-hidden />
+                    SanMar marks this style as discontinued. It imports switched off and won't appear in the Products list.
+                  </div>
+                )}
 
                 {/* Product images */}
                 {product.product?.product_images &&

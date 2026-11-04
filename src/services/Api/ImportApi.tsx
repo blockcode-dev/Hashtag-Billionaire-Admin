@@ -8,7 +8,7 @@ import { API_BASE_URL } from "@/config/env";
 export const GetStylesByBrandAPI = async (brand: string) => {
   const token = localStorage.getItem("token");
 
-  return axios.get(`${API_BASE_URL}product/ss/styles/${brand}`, {
+  return axios.get(`${API_BASE_URL}product/ss/styles/${encodeURIComponent(brand)}`, {
     headers: { "x-access-token": token },
   });
 };
