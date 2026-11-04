@@ -18,3 +18,8 @@ export const GetAdminOrdersAPI = async (params: {
     },
   );
 };
+
+// Buys the label again for a paid order whose label failed. A 502 carries ShipStation's reason.
+export const RetryOrderLabelAPI = async (orderId: number) => {
+  return axios.post(`${API_BASE_URL}order/admin/${orderId}/label`);
+};

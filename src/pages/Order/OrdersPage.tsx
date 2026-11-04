@@ -1,16 +1,21 @@
 /** @format */
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { ArrowUpRight, Eye } from "lucide-react";
+import { ArrowUpRight, Download, Eye } from "lucide-react";
 import type { ReactNode } from "react";
+import axios from "axios";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Combobox } from "@/components/common/Combobox";
 import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
 import { EmptyState } from "@/components/common/EmptyState";
 import { SearchInput } from "@/components/common/SearchInput";
+import { Spinner } from "@/components/common/Spinner";
+import { IMAGE_BASE_URL } from "@/config/env";
 import "./Order.scss";
-import { GetAdminOrdersAPI } from "@/services/Api/OrderApi";
+import { GetAdminOrdersAPI, RetryOrderLabelAPI } from "@/services/Api/OrderApi";
 
 // ─────────────────────────────────────────────
 // Types
@@ -93,13 +98,20 @@ interface CustomizationConfig {
   print_method?: string;
   quantity?: number;
   custom_text?: string;
-  locations?: { location?: string; id?: string }[];
+  locations?: { location?: string; id?: string; graphic_id?: number | string | null }[];
   customization?: {
     customization_option_id: number;
     customization_option_value_id: number;
     logo_image?: string;
   }[];
   addons?: { product_addon_id: number; quantity: number }[];
+}
+
+/** A customer's original file, in the format they uploaded. Always downloads. */
+interface OrderGraphic {
+  id: number;
+  original_name: string;
+  file_url: string;
 }
 
 interface OrderItem {
@@ -111,6 +123,8 @@ interface OrderItem {
   size: string | null;
   original_image: string | null;
   customized_image: string | null;
+  /** Empty on lines ordered before 4 Nov 2026 and on pre-made products. */
+  graphics?: OrderGraphic[];
   price: number;
   quantity: number;
   total: number;
@@ -124,13 +138,20 @@ interface Order {
   order_number: string;
   created_at: string;
   subtotal_amount: number;
+  /** What the customer paid. What the label cost is actual_shipping_cost. */
   shipping_amount: number;
+  actual_shipping_cost?: number;
+  /** shipping_amount − actual_shipping_cost; negative when the label cost more. */
+  shipping_profit?: number;
   total_amount: number;
   status: string;
   payment_status: string;
   shipment_status: string;
+  /** ShipStation's reason when shipment_status is FAILED. */
+  shipment_error?: string | null;
   payment_method: string;
   carrier: string;
+  service_code?: string | null;
   tracking_number: string;
   tracking_url: string;
   label_url: string;
@@ -184,7 +205,7 @@ const SHIPMENT_STATUS: Record<string, BadgeConfig & { desc: string }> = {
   DELIVERED: { color: "var(--success-soft-foreground)", bg: "var(--success-soft)", dot: "var(--success)", label: "Delivered", desc: "The carrier confirmed delivery." },
   RETURNED: { color: "var(--warning-soft-foreground)", bg: "var(--warning-soft)", dot: "var(--warning)", label: "Returned", desc: "Coming back to the sender. Refund or reship needed." },
   EXCEPTION: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Exception", desc: "Delivery problem: bad address, customs hold or missed delivery." },
-  FAILED: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Failed", desc: "The carrier reported a failure." },
+  FAILED: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Label failed", desc: "ShipStation couldn't buy the label. The order stays paid, and the label can be tried again." },
   CANCELLED: { color: "var(--muted-foreground)", bg: "var(--muted)", dot: "var(--placeholder)", label: "Cancelled", desc: "The shipment was cancelled." },
 };
 
@@ -273,6 +294,10 @@ const humanize = (s?: string | null) =>
 const formatCarrier = (carrier?: string | null) =>
   carrier ? CARRIER_LABELS[carrier.toLowerCase()] ?? humanize(carrier) : "--";
 
+/** usps_ground_advantage → USPS Ground Advantage */
+const formatService = (code?: string | null) =>
+  humanize(code).replace(/\b(Usps|Ups|Dhl)\b/g, (m) => m.toUpperCase()).replace(/\bFedex\b/g, "FedEx");
+
 const initials = (name: string) =>
   (name || "?")
     .split(" ")
@@ -291,16 +316,23 @@ const decodeEntities = (s?: string | null) => {
   return textarea.value.replace(/\s+/g, " ").trim();
 };
 
-/** Manual customization logos are stored as relative paths ("/images/…"). */
-const resolveImageUrl = (path?: string | null, reference?: string | null): string | null => {
+/** Manual customization logos are stored as relative paths ("/images/…", "/graphics/…"). */
+const resolveImageUrl = (path?: string | null): string | null => {
   if (!path) return null;
   if (/^(https?:)?\/\//i.test(path) || path.startsWith("data:")) return path;
   try {
-    const origin = reference ? new URL(reference).origin : window.location.origin;
-    return new URL(path, origin).toString();
+    return new URL(path, IMAGE_BASE_URL).toString();
   } catch {
     return path;
   }
+};
+
+const fileNameOf = (url: string) => url.split(/[?#]/)[0].split("/").pop() || "Artwork file";
+
+/** Graphics can be any format; AI, EPS, PSD and CDR won't display in an <img>. */
+const isDisplayable = (url: string) => {
+  const name = fileNameOf(url);
+  return !name.includes(".") || /\.(jpe?g|png|gif|webp|avif|svg)$/i.test(name);
 };
 
 const tierRange = (tier?: PricingTier) => {
@@ -327,6 +359,44 @@ const getLocations = (item: OrderItem) =>
     .map((l) => l.location ?? l.id)
     .filter((l): l is string => Boolean(l));
 
+const getOptionNames = (item: OrderItem) =>
+  new Map((item.pricing_breakdown?.customization?.items ?? []).map((l) => [l.customization_option_id, l.option_name]));
+
+interface ItemFile {
+  url: string;
+  name: string;
+  /** The locations or the option this file is for. */
+  usedFor: string;
+}
+
+/**
+ * The files production needs. `graphics` holds the customer's originals; pre-made products
+ * don't fill it, so their files are only in each option's logo_image.
+ */
+const getItemFiles = (item: OrderItem): ItemFile[] => {
+  const config = item.customization_config;
+  const files: ItemFile[] = (item.graphics ?? []).map((graphic) => ({
+    url: graphic.file_url,
+    name: graphic.original_name,
+    usedFor: (config?.locations ?? [])
+      .filter((l) => Number(l.graphic_id) === graphic.id)
+      .map((l) => humanize(l.location ?? l.id))
+      .join(", "),
+  }));
+
+  const seen = new Set(files.map((f) => f.url));
+  const optionNames = getOptionNames(item);
+
+  (config?.customization ?? []).forEach((c) => {
+    const url = resolveImageUrl(c.logo_image);
+    if (url && !seen.has(url) && (url.includes("/graphics/") || !isDisplayable(url))) {
+      seen.add(url);
+      files.push({ url, name: fileNameOf(url), usedFor: optionNames.get(c.customization_option_id) ?? "" });
+    }
+  });
+  return files;
+};
+
 interface ItemImage {
   src: string | null;
   caption: string;
@@ -340,29 +410,30 @@ const getItemImages = (item: OrderItem): ItemImage[] => {
   const seen = new Set<string>();
   if (item.original_image) seen.add(item.original_image);
 
-  if (item.customized_image && !seen.has(item.customized_image)) {
+  if (item.customized_image && isDisplayable(item.customized_image) && !seen.has(item.customized_image)) {
     seen.add(item.customized_image);
     images.push({ src: item.customized_image, caption: KIND_META[kind].artworkCaption, fit: "contain" });
   }
 
-  const optionNames = new Map(
-    (item.pricing_breakdown?.customization?.items ?? []).map((l) => [l.customization_option_id, l.option_name]),
-  );
+  const optionNames = getOptionNames(item);
 
   (item.customization_config?.customization ?? []).forEach((c) => {
-    const url = resolveImageUrl(c.logo_image, item.original_image);
-    if (url && !seen.has(url)) {
+    const url = resolveImageUrl(c.logo_image);
+    if (url && isDisplayable(url) && !seen.has(url)) {
       seen.add(url);
       images.push({ src: url, caption: optionNames.get(c.customization_option_id) ?? "Artwork", fit: "contain" });
     }
   });
 
   // Customized line with no artwork at all → show an explicit empty slot.
-  if (images.length === 1 && kind !== "STANDARD") {
+  if (images.length === 1 && kind !== "STANDARD" && !getItemFiles(item).length) {
     images.push({ src: null, caption: KIND_META[kind].artworkCaption, fit: "contain" });
   }
   return images;
 };
+
+/** setup_fee is the $35 per new graphic since 4 Nov 2026; older lines hold the digitizing fee. */
+const setupFeeLabel = (item: OrderItem) => (item.graphics?.length ? "Graphic fee" : "Setup / digitizing fee");
 
 const getVariantChips = (item: OrderItem) =>
   [
@@ -421,7 +492,7 @@ const pushMismatch = (cautions: Caution[], what: string, expected: number, recor
 
 const missingArtworkCaution = (item: OrderItem, kind: ItemKind, cautions: Caution[]) => {
   const hasOptionArt = (item.customization_config?.customization ?? []).some((c) => c.logo_image);
-  if (kind !== "STANDARD" && !item.customized_image && !hasOptionArt) {
+  if (kind !== "STANDARD" && !item.customized_image && !item.graphics?.length && !hasOptionArt) {
     cautions.push({ level: "info", message: "No customization artwork is attached to this line." });
   }
 };
@@ -466,7 +537,7 @@ const calcDecoratedItem = (item: OrderItem, kind: ItemKind): ItemCalc => {
     lines.push({ label: "Decoration", detail: `${qty} × ${fmt$(decoUnit)}`, amount: round2(decoUnit * qty) });
   }
   if (rows.length && pb) pushMismatch(cautions, "Decoration per item", decoUnit, toNum(pb.customization_price));
-  if (setup > 0) lines.push({ label: "Setup / digitizing fee", detail: "One-time charge", amount: setup });
+  if (setup > 0) lines.push({ label: setupFeeLabel(item), detail: "One-time charge", amount: setup });
 
   const computedTotal = sum(lines.map((l) => l.amount));
   const reportedTotal = toNum(item.total ?? pb?.final_total);
@@ -831,7 +902,19 @@ const OrderTabs: React.FC<{
   </Tabs>
 );
 
-const OrderDetailModal = ({ order, open, onClose }: { order: Order | null; open: boolean; onClose: () => void }) => {
+const OrderDetailModal = ({
+  order,
+  open,
+  onClose,
+  retrying,
+  onRetryLabel,
+}: {
+  order: Order | null;
+  open: boolean;
+  onClose: () => void;
+  retrying: boolean;
+  onRetryLabel: (order: Order) => void;
+}) => {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [lightboxLabel, setLightboxLabel] = useState("");
 
@@ -864,6 +947,7 @@ const OrderDetailModal = ({ order, open, onClose }: { order: Order | null; open:
             <div className="om-badges">
               <StatusBadge value={order.status} map={ORDER_STATUS} />
               <StatusBadge value={order.payment_status} map={PAYMENT_STATUS} />
+              {order.shipment_status === "FAILED" && <StatusBadge value="FAILED" map={SHIPMENT_STATUS} />}
               <CheckPill warnings={calc.warningCount} />
             </div>
           </div>
@@ -892,7 +976,16 @@ const OrderDetailModal = ({ order, open, onClose }: { order: Order | null; open:
                 ),
                 children: <TabPricing order={order} calc={calc} />,
               },
-              { key: "shipping", label: "Shipping", children: <TabShipping order={order} /> },
+              {
+                key: "shipping",
+                label: (
+                  <span className="tab-label">
+                    Shipping
+                    {order.shipment_status === "FAILED" && <span className="tab-dot" aria-label="The label failed" />}
+                  </span>
+                ),
+                children: <TabShipping order={order} retrying={retrying} onRetryLabel={onRetryLabel} />,
+              },
             ]}
           />
         </div>
@@ -1057,8 +1150,33 @@ const ItemCard = ({ item, index, calc, onImageClick }: { item: OrderItem; index:
 
       {calc.kind === "MANUAL" ? <ManualDetails item={item} onImageClick={onImageClick} /> : <DecoratedDetails item={item} />}
 
+      <ProductionFiles item={item} />
+
       <CautionList cautions={calc.cautions} />
     </section>
+  );
+};
+
+/** Plain links: the backend serves these files as downloads, whatever their format. */
+const ProductionFiles = ({ item }: { item: OrderItem }) => {
+  const files = getItemFiles(item);
+  if (!files.length) return null;
+
+  return (
+    <>
+      <div className="item-section-title">Production Files</div>
+      <ul className="file-list">
+        {files.map((file) => (
+          <li key={file.url}>
+            <a className="file-link" href={file.url} download={file.name} title={`Download ${file.name}`}>
+              <Download size={14} aria-hidden />
+              <span className="file-name">{file.name}</span>
+              {file.usedFor && <span className="file-used-for">{file.usedFor}</span>}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 };
 
@@ -1074,7 +1192,7 @@ const DecoratedDetails = ({ item }: { item: OrderItem }) => {
       <div className="kv-grid kv-grid-3">
         <KV label="Print Method" value={humanize(item.customization_config?.print_method)} />
         <KV label="Locations" value={locations.length ? locations.map(humanize).join(", ") : "--"} />
-        <KV label="Setup Fee" value={toNum(pb?.setup_fee) ? fmt$(pb?.setup_fee) : "--"} />
+        <KV label={setupFeeLabel(item)} value={toNum(pb?.setup_fee) ? fmt$(pb?.setup_fee) : "--"} />
         {item.customization_config?.custom_text && (
           <KV label="Custom Text" value={`"${item.customization_config.custom_text}"`} />
         )}
@@ -1129,7 +1247,7 @@ const ManualDetails = ({ item, onImageClick }: { item: OrderItem; onImageClick: 
   const artworkByOption = new Map(
     (item.customization_config?.customization ?? [])
       .filter((c) => c.logo_image)
-      .map((c) => [c.customization_option_id, resolveImageUrl(c.logo_image, item.original_image)]),
+      .map((c) => [c.customization_option_id, resolveImageUrl(c.logo_image)]),
   );
   const hasArtwork = artworkByOption.size > 0;
 
@@ -1164,8 +1282,10 @@ const ManualDetails = ({ item, onImageClick }: { item: OrderItem; onImageClick: 
                   <tr key={li} className={toNum(line.total) === 0 ? "row-zero" : undefined}>
                     {hasArtwork && (
                       <td>
-                        {art ? (
+                        {art && isDisplayable(art) ? (
                           <ImageThumb src={art} caption={line.option_name} size="xs" fit="contain" onOpen={onImageClick} />
+                        ) : art ? (
+                          <span className="muted">File below</span>
                         ) : (
                           <span className="muted">--</span>
                         )}
@@ -1275,7 +1395,7 @@ const TabPricing = ({ order: o, calc }: { order: Order; calc: OrderCalc }) => (
           <div className="unit-note">
             Effective price per unit: <strong>{fmt$(c.effectiveUnit)}</strong>
             {c.kind !== "MANUAL" && toNum(item.pricing_breakdown?.setup_fee) > 0 && (
-              <> · {fmt$(item.price)} excluding setup fee</>
+              <> · {fmt$(item.price)} excluding {item.graphics?.length ? "graphic" : "setup"} fee</>
             )}
           </div>
           <CautionList cautions={c.cautions} />
@@ -1286,47 +1406,89 @@ const TabPricing = ({ order: o, calc }: { order: Order; calc: OrderCalc }) => (
 );
 
 // ── Tab: Shipping ────────────────────────────
-const TabShipping = ({ order: o }: { order: Order }) => (
-  <div className="tab-content">
-    <section className="section-card">
-      <div className="section-title">Tracking</div>
-      <div className="kv-grid kv-grid-3">
-        <KV label="Carrier" value={formatCarrier(o.carrier)} />
-        <KV label="Tracking Number" value={o.tracking_number || "--"} mono />
-        <KV label="Shipment Status">
-          <StatusBadge value={o.shipment_status || "--"} map={SHIPMENT_STATUS} />
-        </KV>
-      </div>
-      {(o.tracking_url || o.label_url) && (
-        <div className="tracking-actions">
-          {o.tracking_url && (
-            <a href={o.tracking_url} target="_blank" rel="noopener noreferrer" className="track-btn">
-              Track Shipment
-              <ArrowUpRight size={14} aria-hidden />
-            </a>
-          )}
-          {o.label_url && (
-            <a href={o.label_url} target="_blank" rel="noopener noreferrer" className="track-btn secondary">
-              Download Label ↓
-            </a>
-          )}
-        </div>
-      )}
-    </section>
+const TabShipping = ({
+  order: o,
+  retrying,
+  onRetryLabel,
+}: {
+  order: Order;
+  retrying: boolean;
+  onRetryLabel: (order: Order) => void;
+}) => {
+  const labelFailed = o.shipment_status === "FAILED";
+  // The backend refuses the rest: an unpaid or cancelled order, or one that has its label.
+  const canRetry = labelFailed && o.payment_status === "SUCCESS" && o.status !== "CANCELLED" && !o.label_url;
+  const labelCost = toNum(o.actual_shipping_cost);
+  const difference = toNum(o.shipping_profit);
 
-    <section className="section-card">
-      <div className="section-title">Shipment statuses</div>
-      <div className="status-guide-grid">
-        {Object.entries(SHIPMENT_STATUS).map(([key, cfg]) => (
-          <div className="status-guide-item" key={key}>
-            <StatusBadge value={key} map={SHIPMENT_STATUS} />
-            <div className="status-guide-desc">{cfg.desc}</div>
+  return (
+    <div className="tab-content">
+      {labelFailed && (
+        <section className="section-card label-failed">
+          <div className="section-title">The label wasn't bought</div>
+          <p className="label-failed-reason">{o.shipment_error || "ShipStation didn't give a reason."}</p>
+          <p className="label-failed-note">The payment stands and the order stays paid.</p>
+          {canRetry && (
+            <Button type="button" size="sm" disabled={retrying} onClick={() => onRetryLabel(o)}>
+              {retrying && <Spinner size="small" className="text-current" label="Buying the label" />}
+              {retrying ? "Trying again…" : "Try again"}
+            </Button>
+          )}
+        </section>
+      )}
+
+      <section className="section-card">
+        <div className="section-title">Tracking</div>
+        <div className="kv-grid kv-grid-3">
+          <KV label="Carrier" value={formatCarrier(o.carrier)} />
+          <KV label="Service" value={formatService(o.service_code)} />
+          <KV label="Tracking Number" value={o.tracking_number || "--"} mono />
+          <KV label="Shipment Status">
+            <StatusBadge value={o.shipment_status || "--"} map={SHIPMENT_STATUS} />
+          </KV>
+        </div>
+        {(o.tracking_url || o.label_url) && (
+          <div className="tracking-actions">
+            {o.tracking_url && (
+              <a href={o.tracking_url} target="_blank" rel="noopener noreferrer" className="track-btn">
+                Track Shipment
+                <ArrowUpRight size={14} aria-hidden />
+              </a>
+            )}
+            {o.label_url && (
+              <a href={o.label_url} target="_blank" rel="noopener noreferrer" className="track-btn secondary">
+                Download Label ↓
+              </a>
+            )}
           </div>
-        ))}
-      </div>
-    </section>
-  </div>
-);
+        )}
+      </section>
+
+      <section className="section-card">
+        <div className="section-title">Shipping Cost</div>
+        <div className="kv-grid kv-grid-3">
+          <KV label="Customer Paid" value={fmt$(o.shipping_amount)} />
+          <KV label="Label Cost" value={labelCost ? fmt$(labelCost) : "--"} />
+          <KV label="Difference">
+            {labelCost ? <span className={difference < 0 ? "amount-negative" : undefined}>{fmt$(difference)}</span> : "--"}
+          </KV>
+        </div>
+      </section>
+
+      <section className="section-card">
+        <div className="section-title">Shipment statuses</div>
+        <div className="status-guide-grid">
+          {Object.entries(SHIPMENT_STATUS).map(([key, cfg]) => (
+            <div className="status-guide-item" key={key}>
+              <StatusBadge value={key} map={SHIPMENT_STATUS} />
+              <div className="status-guide-desc">{cfg.desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+};
 
 // ─────────────────────────────────────────────
 // Main Orders Page
@@ -1343,6 +1505,8 @@ const OrdersPage = () => {
   const [limit, setLimit] = useState(50);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [retryingId, setRetryingId] = useState<number | null>(null);
 
   // Debounce search so we don't hit the API on every keystroke
   useEffect(() => {
@@ -1370,8 +1534,11 @@ const OrdersPage = () => {
         });
         if (!active) return;
         const payload = res?.data?.data as OrdersPayload | undefined;
-        setOrders(payload?.data ?? []);
+        const rows = payload?.data ?? [];
+        setOrders(rows);
         setTotal(payload?.pagination?.total ?? 0);
+        // The open order follows a reload, unless it's no longer on this page.
+        setSelectedOrder((current) => (current && rows.find((row) => row.id === current.id)) ?? current);
       } catch (err) {
         console.error("Failed to load orders", err);
       } finally {
@@ -1381,12 +1548,41 @@ const OrdersPage = () => {
     return () => {
       active = false;
     };
-  }, [page, limit, search, statusFilter, paymentFilter]);
+  }, [page, limit, search, statusFilter, paymentFilter, reloadKey]);
 
   const openOrder = useCallback((row: Order) => {
     setSelectedOrder(row);
     setModalOpen(true);
   }, []);
+
+  const patchOrder = useCallback((id: number, patch: Partial<Order>) => {
+    const apply = (order: Order) => (order.id === id ? { ...order, ...patch } : order);
+    setOrders((rows) => rows.map(apply));
+    setSelectedOrder((current) => current && apply(current));
+  }, []);
+
+  const retryLabel = useCallback(
+    async (order: Order) => {
+      setRetryingId(order.id);
+      try {
+        const res = await RetryOrderLabelAPI(order.id);
+        patchOrder(order.id, { ...res.data.data, shipment_error: null });
+        toast.success("Label created", { description: `${order.order_number} is in ShipStation with its label.` });
+      } catch (err) {
+        const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+        const message =
+          (axios.isAxiosError(err) && err.response?.data?.message) || "Check your connection and try again.";
+        toast.error("The label wasn't bought", { description: message });
+        // 502 is ShipStation refusing again, with its new reason. Anything else means the order
+        // changed under us: another admin bought the label, or is buying it now.
+        if (status === 502) patchOrder(order.id, { shipment_error: message });
+        else if (status) setReloadKey((key) => key + 1);
+      } finally {
+        setRetryingId(null);
+      }
+    },
+    [patchOrder],
+  );
 
   const columns: DataTableColumn<Order>[] = useMemo(
     () => [
@@ -1460,7 +1656,12 @@ const OrdersPage = () => {
       },
       {
         title: "Status",
-        render: (_v, row) => <StatusBadge value={row.status} map={ORDER_STATUS} />,
+        render: (_v, row) => (
+          <div className="cell-statuses">
+            <StatusBadge value={row.status} map={ORDER_STATUS} />
+            {row.shipment_status === "FAILED" && <StatusBadge value="FAILED" map={SHIPMENT_STATUS} />}
+          </div>
+        ),
       },
       {
         title: "Date",
@@ -1566,7 +1767,13 @@ const OrdersPage = () => {
         />
       </div>
 
-      <OrderDetailModal order={selectedOrder} open={modalOpen} onClose={() => setModalOpen(false)} />
+      <OrderDetailModal
+        order={selectedOrder}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        retrying={retryingId !== null && retryingId === selectedOrder?.id}
+        onRetryLabel={retryLabel}
+      />
     </div>
   );
 };
