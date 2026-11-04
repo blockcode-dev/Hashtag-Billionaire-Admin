@@ -541,7 +541,7 @@ The panel also re-reads the admin's role from `GET admin/auth/getProfile` when i
 
 ## E7. What the panel changed (2026-11-04, against backend `32cc62e`)
 
-On branch `feature/backend-nov-4`, commits `98642ba`, `443db6c` and `f4ad77e`. Not merged or deployed yet. Everything here also works against an older backend: a field that isn't there shows as `--`, or the section stays hidden.
+On `main`, commits `98642ba`, `443db6c` and `f4ad77e`. Not deployed yet. Everything here also works against an older backend: a field that isn't there shows as `--`, or the section stays hidden.
 
 **The 4 November list in `docs/admin-panel-changes.md`:**
 
