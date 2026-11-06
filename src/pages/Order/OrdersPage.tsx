@@ -49,7 +49,7 @@ interface ManualCustomizationLine {
   option_name: string;
   customization_option_value_id: number;
   value_name: string;
-  pricing_type: "FIXED" | "TIERED" | "QUANTITY_BASED" | string;
+  pricing_type: "FIXED" | "TIERED" | "QUANTITY_BASED" | "FIXED_QUANTITY" | string;
   unit_price: number | null;
   quantity: number;
   total: number;
@@ -586,6 +586,8 @@ const describeManualPricing = (line: ManualCustomizationLine, qty: number) => {
       return `Tiered${range ? ` (${range})` : ""} · ${lineQty} × ${fmt$(line.unit_price ?? line.pricing_tier?.price)}`;
     case "QUANTITY_BASED":
       return `Package · ${line.pricing_tier?.quantity ?? lineQty} units for ${fmt$(line.pricing_tier?.price)}`;
+    case "FIXED_QUANTITY":
+      return `Fixed quantity · ${fmt$(line.total)} for any quantity`;
     default:
       return humanize(line.pricing_type);
   }

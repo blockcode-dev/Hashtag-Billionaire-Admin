@@ -45,7 +45,8 @@ export const DeleteCustomizationOptionAPI = async (id: number) => {
 
 export interface CustomizationValuePayload {
   name: string;
-  pricing_type?: "FIXED" | "TIERED" | "QUANTITY_BASED";
+  pricing_type?: "FIXED" | "TIERED" | "QUANTITY_BASED" | "FIXED_QUANTITY";
+  /** FIXED: price per item. FIXED_QUANTITY: one total, whatever the quantity. */
   fixed_price?: number | null;
 }
 

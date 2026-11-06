@@ -15,6 +15,7 @@ import {
   Layers,
   Package,
   Plus,
+  Receipt,
   Tag,
   Trash2,
   X,
@@ -37,7 +38,7 @@ import "./Customization.scss";
 // TYPES
 // ============================================================
 
-type PricingType = "FIXED" | "TIERED" | "QUANTITY_BASED";
+type PricingType = "FIXED" | "TIERED" | "QUANTITY_BASED" | "FIXED_QUANTITY";
 
 interface RawPricing {
   id: number | string;
@@ -137,7 +138,14 @@ const EMPTY_BASIC: BasicInfo = {
   allowImageUpload: false,
 };
 
-const PRICING_TYPES: PricingType[] = ["FIXED", "TIERED", "QUANTITY_BASED"];
+const PRICING_TYPES: PricingType[] = ["FIXED", "TIERED", "QUANTITY_BASED", "FIXED_QUANTITY"];
+
+/**
+ * Types priced by the value's own fixed_price, with no pricing rows. FIXED
+ * charges it per item; FIXED_QUANTITY charges it once, whatever the quantity.
+ */
+const usesFixedPrice = (type: PricingType): boolean =>
+  type === "FIXED" || type === "FIXED_QUANTITY";
 
 const getErrorMessage = (err: unknown, fallback: string): string =>
   (axios.isAxiosError(err) && err.response?.data?.message) || fallback;
@@ -277,7 +285,7 @@ const valueSignature = (value: ValueDraft): string =>
     id: value.id ?? null,
     n: value.name.trim(),
     t: value.pricingType,
-    f: value.pricingType === "FIXED" && value.fixedPrice !== "" ? Number(value.fixedPrice) : null,
+    f: usesFixedPrice(value.pricingType) && value.fixedPrice !== "" ? Number(value.fixedPrice) : null,
     r: value.pricingType === "TIERED" ? tierSignature(value.tiers) : null,
     q: value.pricingType === "QUANTITY_BASED" ? quantitySignature(value.quantities) : null,
   });
@@ -308,9 +316,13 @@ const validate = (basic: BasicInfo, values: ValueDraft[]): ValidationResult => {
     else if (seen.has(name.toLowerCase())) fail(`“${name}” is already in the list.`);
     seen.add(name.toLowerCase());
 
-    if (value.pricingType === "FIXED") {
+    if (usesFixedPrice(value.pricingType)) {
       if (!isValidPrice(value.fixedPrice)) {
-        fail("Enter the price per item. Use 0 if it's free.");
+        fail(
+          `Enter the ${
+            value.pricingType === "FIXED" ? "price per item" : "total price"
+          }. Use 0 if it's free.`
+        );
       }
       return;
     }
@@ -380,10 +392,10 @@ const validate = (basic: BasicInfo, values: ValueDraft[]): ValidationResult => {
 };
 
 const buildValueBody = (value: ValueDraft): ValueBody =>
-  value.pricingType === "FIXED"
+  usesFixedPrice(value.pricingType)
     ? {
         name: value.name.trim(),
-        pricing_type: "FIXED",
+        pricing_type: value.pricingType,
         fixed_price: Number(Number(value.fixedPrice).toFixed(2)),
       }
     : { name: value.name.trim(), pricing_type: value.pricingType, fixed_price: null };
@@ -406,7 +418,7 @@ const buildQuantityBodies = (rows: QuantityDraft[]): QuantityBody[] =>
     }))
     .sort((a, b) => a.quantity - b.quantity);
 
-/** Pricing rows to send for a value (none for FIXED). */
+/** Pricing rows to send for a value (none for FIXED or FIXED_QUANTITY). */
 const buildPricingBodies = (value: ValueDraft): (TierBody | QuantityBody)[] =>
   value.pricingType === "TIERED"
     ? buildTierBodies(value.tiers)
@@ -416,7 +428,7 @@ const buildPricingBodies = (value: ValueDraft): (TierBody | QuantityBody)[] =>
 
 /** The first price the admin typed for a value, in whatever mode it's in. */
 const firstPrice = (value: ValueDraft): string =>
-  value.pricingType === "FIXED"
+  usesFixedPrice(value.pricingType)
     ? value.fixedPrice
     : value.pricingType === "TIERED"
     ? value.tiers[0]?.price || ""
@@ -453,7 +465,7 @@ const GUIDE_STEPS = [
   },
   {
     title: "Price each value",
-    text: "One price for any quantity, Price by quantity for ranges (1–50, 51+), or Set quantities for exact amounts like 25, 50, 100.",
+    text: "One price for any quantity, Price by quantity for ranges (1–50, 51+), Set quantities for exact amounts, or Fixed quantity for one total.",
   },
   {
     title: "Save",
@@ -491,7 +503,8 @@ const SetupGuide = memo(({ open, onToggle }: { open: boolean; onToggle: () => vo
 
         <p className="customization__setup-note">
           The value's price is added to every item in the order. For example,
-          Synthetic at $2.00 on 50 shirts adds $100.00.
+          Synthetic at $2.00 on 50 shirts adds $100.00. Fixed quantity is the
+          exception: it's charged once, so $50.00 stays $50.00 for 1 shirt or 1,000.
         </p>
       </>
     )}
@@ -570,6 +583,12 @@ const PRICING_CHOICES: {
     title: "Set quantities",
     text: "A price for exact amounts, like 25, 50, 100",
     icon: <Package size={18} />,
+  },
+  {
+    type: "FIXED_QUANTITY",
+    title: "Fixed quantity",
+    text: "One total price, whatever the quantity",
+    icon: <Receipt size={18} />,
   },
 ];
 
@@ -940,6 +959,7 @@ const ValueCard = memo(
     onRemoveQuantity,
   }: ValueCardProps) => {
     const label = value.name.trim() || "this value";
+    const fixedPriceLabel = value.pricingType === "FIXED" ? "Price per item" : "Total price";
 
     return (
       <article
@@ -985,22 +1005,26 @@ const ValueCard = memo(
             onSelect={onPricingType}
           />
 
-          {value.pricingType === "FIXED" ? (
+          {usesFixedPrice(value.pricingType) ? (
             <div className="customization__flat-price">
-              <label htmlFor={`price-${value.key}`}>Price per item</label>
+              <label htmlFor={`price-${value.key}`}>{fixedPriceLabel}</label>
 
               <div className="customization__flat-price-row">
                 <MoneyInput
                   id={`price-${value.key}`}
                   value={value.fixedPrice}
                   onChange={(v) => onFixedPrice(value.key, v)}
-                  label={`Price per item for ${label}`}
+                  label={`${fixedPriceLabel} for ${label}`}
                 />
 
                 <span className="customization__hint">
-                  {isValidPrice(value.fixedPrice)
-                    ? `10 items add ${formatMoney(Number(value.fixedPrice) * 10)} to the order.`
-                    : "Charged on every item, whatever the quantity."}
+                  {value.pricingType === "FIXED"
+                    ? isValidPrice(value.fixedPrice)
+                      ? `10 items add ${formatMoney(Number(value.fixedPrice) * 10)} to the order.`
+                      : "Charged on every item, whatever the quantity."
+                    : isValidPrice(value.fixedPrice)
+                    ? `Adds ${formatMoney(Number(value.fixedPrice))} once, for 1 item or 1,000.`
+                    : "Charged once, however many items are ordered."}
                 </span>
               </div>
             </div>
@@ -1179,7 +1203,7 @@ const CustomizationForm = () => {
         // but only when that mode is still empty.
         const carry = firstPrice(v);
 
-        if (type === "FIXED") {
+        if (usesFixedPrice(type)) {
           return {
             ...v,
             pricingType: type,
@@ -1354,7 +1378,7 @@ const CustomizationForm = () => {
         const detailsChanged =
           saved.name.trim() !== body.name ||
           typeChanged ||
-          (value.pricingType === "FIXED" &&
+          (usesFixedPrice(value.pricingType) &&
             Number(saved.fixedPrice || NaN) !== Number(value.fixedPrice));
 
         // Set the type first: pricing rows can only be added once the value

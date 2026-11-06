@@ -15,7 +15,11 @@ import "./Customization.scss";
 // TYPES
 // ============================================================
 
-export type CustomizationPricingType = "FIXED" | "TIERED" | "QUANTITY_BASED";
+export type CustomizationPricingType =
+  | "FIXED"
+  | "TIERED"
+  | "QUANTITY_BASED"
+  | "FIXED_QUANTITY";
 
 export interface CustomizationPricingTier {
   id: number;
@@ -73,6 +77,13 @@ export const getValuePriceInfo = (value: CustomizationOptionValue): ValuePriceIn
       : Number(value.fixed_price);
 
   const isFixed = value.pricing_type === "FIXED" || (!value.pricing_type && !tiers.length);
+
+  // Fixed quantity: one total, charged once, so never "each".
+  if (value.pricing_type === "FIXED_QUANTITY") {
+    return Number.isFinite(fixed)
+      ? { priced: true, label: `${formatMoney(fixed)} total` }
+      : { priced: false, label: "No price" };
+  }
 
   if (isFixed) {
     return Number.isFinite(fixed)

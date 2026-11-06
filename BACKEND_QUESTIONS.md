@@ -16,6 +16,8 @@ API=https://node.hashtagbillionaire.com/api/v1
 TOKEN=$(curl -s -X POST "$API/admin/auth/login" -F email="$EMAIL" -F password="$PASSWORD" | jq -r .data.token)
 ```
 
+> **Update (panel, 2026-11-06):** F26 asks for a new customization pricing type, `FIXED_QUANTITY`. The panel can't save it until the backend accepts it. F26 and F27 also hold two open pricing questions.
+
 > **Update (panel, 2026-11-04):** E7 lists what the panel changed for the 4 November releases. Section F, at the end of this file, lists what the panel needs from the backend, in priority order. Please answer those under their IDs.
 
 > **Update (backend, 2026-10-16):** backend changes for the panel are now listed release by release in the backend repo's `docs/admin-panel-changes.md`. The latest release (`aba0065`) adds variant status markers (`status`, `is_discontinued`, `discontinued_at`, `restored_at`), a `?status=` filter on `product/get/variant`, and a new SAGE stock rule. It also removes supplier cost from shopper endpoints; admin endpoints keep it.
@@ -741,6 +743,44 @@ The variant list has only `id, sku, color, stock, price` (`sage.service.js:463`)
 The includes at `checkout.service.js:863-875` have no `paranoid: false`, and Product has no `attachments`, unlike `getAdminOrders` (`order.service.js:1119,1151`). Paid lines for items a sync later removed show no name, SKU or colour. `customized_image` also has no `getCustomizationArtwork` fallback here (`:1032`).
 
 A4 is still open too: `subQuery: false` with `limit` (`:909`) gives short pages and cut-off items. That's also why the panel's search filters only the current page, and it doesn't send `search` to this route because of the `Op` bug (`docs/deployment.md`, Known lint errors).
+
+### Customization pricing (2026-11-06)
+
+#### F26. New pricing type `FIXED_QUANTITY` (High)
+
+The customization form has a fourth pricing choice, **Fixed quantity**: one total that doesn't change with quantity. At $50.00, a cart line of 1 and a cart line of 1,000 both add $50.00.
+
+**What the panel sends:** `pricing_type: "FIXED_QUANTITY"` with the total in `fixed_price`, on `POST customization-option/:optionId/value` and `PUT customization-option/customization-option-value/:id`. It sends no pricing rows. `fixed_price` can hold the total, so no new column is needed.
+
+**What has to change** (line numbers are at `32cc62e`):
+
+- **Schema:** add the value to the `customization_option_values.pricing_type` ENUM in a `_before_deploy` migration, and to `customizationOptionValue.model.js:28`. The rollback has to archive rows using the type and make them inactive first. They can't stay live as `FIXED`, because a $50.00 total would become $50.00 per item.
+- **`customization.service.js`:** accept the type at `:409` and `:494`, and treat `fixed_price` as `FIXED` does at `:418` and `:525`. If `:525` is missed, switching a `TIERED` value saves without an error but leaves `fixed_price` null, and the cart then charges $0. `createPricing` (`:724`) and `updatePricing` (`:860`) should refuse the type as they refuse `FIXED`.
+- **`cartWishlist.service.js`, `buildManualPricingSnapshot`:** read `fixed_price` at `:750`, don't multiply by quantity at `:903`, and store `unit_price: null` at `:928`, as `QUANTITY_BASED` does. `POST product/cart`, `PUT product/cart`, `PUT product/cart/increment` and `PUT product/cart/decrement` all price through this function, and orders copy its `total_price`, so they need no changes of their own.
+- **`docs/frontend-changes.md`:** the customer site gets the type from `GET customization-option/product/:productId/customizations`. It has to show the price as a total and not multiply it by quantity.
+
+**`FIXED` (One price) stays as it is:** `fixed_price × quantity`, which `cartWishlist.service.js:903` already does. At $10.00, 1 item adds $10.00 and 100 items add $1,000.00. `FIXED_QUANTITY` at $100.00 adds $100.00 at both quantities.
+
+**Open question: once per cart line, or once per order?** Please build once per cart line for now. `addToCart` creates one row per variant, so a customer who picks three colours at $100.00 pays $300.00. Once per order would need logic across cart rows.
+
+**Not `quantity_fixed`.** That's a variant `pricing_mode`, with a price for each exact quantity. This one is a customization type with one price for every quantity.
+
+**Panel meanwhile:** the backend refuses the type with a `400`. The panel shows that message and keeps the admin's changes on the page, and no price is stored. On orders, the panel reads this line's `total`, so it needs nothing further.
+
+#### F27. Question: is a Set quantities price per item or a total? (High)
+
+The customization form and the cart disagree about `QUANTITY_BASED`, in two ways:
+
+| | Customization form | Cart (`cartWishlist.service.js`) |
+|---|---|---|
+| **Price** | "Price per item": 25 at $4.25 shows as adding $106.25 | A total for the line: it adds $4.25 (`:903`) |
+| **Quantities** | "Only these exact quantities get a price" | The highest listed quantity at or below the cart's, so 49 items pay the 25-item price (`:833`, audit M28) |
+
+The panel's Orders page already reads it as a total ("Package · 25 units for $4.25"). An admin who trusts the form can set a price far too low, and the customer is undercharged.
+
+If it's a total, the panel changes the form's wording. If it's per item, the cart has to multiply by quantity. Either way, please say whether quantities in between should get a price.
+
+**Panel meanwhile:** the form is unchanged until this is answered.
 
 ### Still open from earlier
 

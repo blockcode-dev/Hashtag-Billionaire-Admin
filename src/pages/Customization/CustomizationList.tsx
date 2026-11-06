@@ -29,6 +29,7 @@ import {
 } from "@/services/Api/CustomizationApi";
 
 import { isValuePriced } from "./CustomizationPicker";
+import type { CustomizationPricingType } from "./CustomizationPicker";
 
 import "./Customization.scss";
 
@@ -61,9 +62,9 @@ interface CustomizationValue {
   id: number;
   customization_option_id: number;
   name: string;
-  // FIXED values store their price in fixed_price (pricing is empty);
-  // TIERED values store their prices in pricing.
-  pricing_type?: "FIXED" | "TIERED" | null;
+  // FIXED and FIXED_QUANTITY values store their price in fixed_price (pricing
+  // is empty); TIERED and QUANTITY_BASED values store theirs in pricing.
+  pricing_type?: CustomizationPricingType | null;
   fixed_price?: number | string | null;
   pricing?: PricingTier[];
 }
@@ -105,7 +106,7 @@ const getPricingStatus = (
     };
   }
 
-  // Works for both One price (FIXED) and Price by quantity (TIERED).
+  // Works for every pricing type.
   const priced = values.filter(isValuePriced).length;
 
   if (priced === values.length) {
