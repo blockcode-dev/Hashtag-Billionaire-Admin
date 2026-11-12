@@ -58,6 +58,8 @@ export const GetAllProductsAdminAPI = async (params: {
   max_price?: string;
   tier?: string;
   use_case_id?: string;
+  /** "true": only products with no parent category. Ignored until the backend supports it (F28). */
+  no_parent_category?: string;
 }) => {
   return axios.get(`${API_BASE_URL}product/admin/get/all`, {
     params,

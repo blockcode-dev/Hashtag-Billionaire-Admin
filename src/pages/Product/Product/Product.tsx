@@ -137,7 +137,9 @@ const ProductsPage = () => {
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [activeTier, setActiveTier] = useState(""); // "" = no tier filter, "all" = union, or a tier key
 
-  // Client-side filter — only ever looks at the current page's rows.
+  // Sent to the API as no_parent_category=true. Until the backend filters
+  // on it (BACKEND_QUESTIONS.md F28), the API ignores it, so rows are also
+  // checked here and the page says when only this page was checked.
   const [noParentOnly, setNoParentOnly] = useState(false);
 
   // Server-side radio filters (sync status)
@@ -328,6 +330,16 @@ const ProductsPage = () => {
     setPage(1);
   };
 
+  const toggleNoParentOnly = () => {
+    setNoParentOnly((v) => !v);
+    setPage(1);
+  };
+
+  const clearNoParentOnly = () => {
+    setNoParentOnly(false);
+    setPage(1);
+  };
+
   const clearAllFilters = () => {
     setFilters(EMPTY_FILTERS);
     clearCategoryFilter();
@@ -388,6 +400,7 @@ const ProductsPage = () => {
         ...categoryParams,
         ...priceParams,
         ...useCaseParams,
+        no_parent_category: noParentOnly ? "true" : undefined,
       });
       if (thisRequestId !== requestIdRef.current) return;
       const payload = res.data.data;
@@ -426,6 +439,7 @@ const ProductsPage = () => {
     selectedParentIds,
     debouncedPriceRange.min,
     debouncedPriceRange.max,
+    noParentOnly,
   ]);
 
   const loadStats = async () => {
@@ -492,25 +506,33 @@ const ProductsPage = () => {
     });
   };
 
-  const getCategoryHierarchy = (product: any) => {
-    if (!product.categories?.length)
-      return { main: null, sub: null, supplier: null };
-    const cat = product.categories[0];
-    let main = null,
-      sub = null;
-    const supplier = cat.title;
-    for (const parent of cat.parent_categories || []) {
-      if (parent.grand_categories?.length) {
-        main = parent.grand_categories[0].title;
-        sub = parent.title;
-        break;
+  // The chain in the Categories column: one category, its parent and the
+  // parent's grand category. Prefers a full chain, and still shows a parent
+  // that has no grand category.
+  const getCategoryHierarchy = (
+    product: any,
+  ): { main: string | null; sub: string | null; supplier: string | null } => {
+    const categories = product.categories || [];
+    let partial: { main: null; sub: string; supplier: string } | null = null;
+
+    for (const cat of categories) {
+      for (const parent of cat.parent_categories || []) {
+        if (parent.grand_categories?.length) {
+          return {
+            main: parent.grand_categories[0].title,
+            sub: parent.title,
+            supplier: cat.title,
+          };
+        }
+        if (!partial) partial = { main: null, sub: parent.title, supplier: cat.title };
       }
     }
-    return { main, sub, supplier };
+
+    return partial ?? { main: null, sub: null, supplier: categories[0]?.title ?? null };
   };
 
-  // A product "has no parent category" when none of its categories carry
-  // any parent_categories at all — client-side only, current page only.
+  // No parent category: no categories at all, or none of them has a parent.
+  // The backend is asked to use the same rule (F28).
   const hasNoParentCategory = (product: any) => {
     if (!product.categories?.length) return true;
     return product.categories.every(
@@ -522,6 +544,11 @@ const ProductsPage = () => {
     if (!noParentOnly) return products;
     return products.filter(hasNoParentCategory);
   }, [products, noParentOnly]);
+
+  // A backend that filters sends only matching rows. Rows dropped here mean
+  // it ignored no_parent_category, so only this page was checked.
+  const noParentCheckedHereOnly =
+    noParentOnly && visibleProducts.length < products.length;
 
   return (
     <div className="products-root">
@@ -969,7 +996,7 @@ const ProductsPage = () => {
                 <div className="filter-group filter-group--last">
                   <button
                     className="filter-checkbox-row"
-                    onClick={() => setNoParentOnly((v) => !v)}
+                    onClick={toggleNoParentOnly}
                   >
                     <span
                       className={`filter-option-check ${
@@ -980,7 +1007,6 @@ const ProductsPage = () => {
                     </span>
                     <FolderX size={13} />
                     No Parent Category only
-                    <span className="filter-checkbox-hint">this page</span>
                   </button>
                 </div>
               </div>
@@ -1061,7 +1087,7 @@ const ProductsPage = () => {
           {noParentOnly && (
             <span className="filter-chip">
               No Parent Category
-              <button onClick={() => setNoParentOnly(false)}>
+              <button onClick={clearNoParentOnly}>
                 <X size={12} />
               </button>
             </span>
@@ -1073,6 +1099,12 @@ const ProductsPage = () => {
       <div className="result-count-row">
         {tableLoading ? (
           <span className="result-count-loading">Loading products…</span>
+        ) : noParentCheckedHereOnly ? (
+          <span>
+            <strong>{visibleProducts.length.toLocaleString()}</strong> without a
+            parent category on this page. The server can't filter by this yet,
+            so other pages may have more.
+          </span>
         ) : (
           <span>
             <strong>{totalItems.toLocaleString()}</strong>{" "}
@@ -1149,18 +1181,21 @@ const ProductsPage = () => {
                       {main && <span className="cat main">{main}</span>}
                       {sub && (
                         <>
-                          <span className="cat-sep">›</span>
+                          {main && <span className="cat-sep">›</span>}
                           <span className="cat sub">{sub}</span>
                         </>
                       )}
                       {catSupplier && (
                         <>
-                          <span className="cat-sep">›</span>
+                          {(main || sub) && <span className="cat-sep">›</span>}
                           <span className="cat supplier">{catSupplier}</span>
                         </>
                       )}
-                      {!main && !sub && catSupplier && (
+                      {p.categories?.length > 0 && hasNoParentCategory(p) && (
                         <span className="cat-no-parent-tag">No parent</span>
+                      )}
+                      {!p.categories?.length && (
+                        <span className="cat-no-parent-tag">No category</span>
                       )}
                     </div>
                   </td>
@@ -1237,7 +1272,7 @@ const ProductsPage = () => {
           <div className="no-data">
             <Package size={32} style={{ marginBottom: 12, opacity: 0.2 }} />
             <p>
-              {noParentOnly
+              {noParentCheckedHereOnly
                 ? "No products without a parent category on this page"
                 : activeFilterCount > 0
                   ? "No products match the selected filters"

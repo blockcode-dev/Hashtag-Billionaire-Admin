@@ -16,7 +16,9 @@ API=https://node.hashtagbillionaire.com/api/v1
 TOKEN=$(curl -s -X POST "$API/admin/auth/login" -F email="$EMAIL" -F password="$PASSWORD" | jq -r .data.token)
 ```
 
-> **Update (panel, 2026-11-06):** F26 asks for a new customization pricing type, `FIXED_QUANTITY`. The panel can't save it until the backend accepts it. F26 and F27 also hold two open pricing questions.
+> **Update (panel, 2026-11-12):** F28 asks for a `no_parent_category` filter on `GET product/admin/get/all`, so the Products page can list every product with no parent category.
+
+> **Update (panel, 2026-11-06):** F26 asks for a new customization pricing type, `FIXED_QUANTITY`. It has been live since 6 November (backend `a8cb702`). F27 still holds an open pricing question.
 
 > **Update (panel, 2026-11-04):** E7 lists what the panel changed for the 4 November releases. Section F, at the end of this file, lists what the panel needs from the backend, in priority order. Please answer those under their IDs.
 
@@ -748,6 +750,8 @@ A4 is still open too: `subQuery: false` with `limit` (`:909`) gives short pages 
 
 #### F26. New pricing type `FIXED_QUANTITY` (High)
 
+**Done:** live since 6 November (backend `a8cb702`), charged once per cart line, and tested from the live panel.
+
 The customization form has a fourth pricing choice, **Fixed quantity**: one total that doesn't change with quantity. At $50.00, a cart line of 1 and a cart line of 1,000 both add $50.00.
 
 **What the panel sends:** `pricing_type: "FIXED_QUANTITY"` with the total in `fixed_price`, on `POST customization-option/:optionId/value` and `PUT customization-option/customization-option-value/:id`. It sends no pricing rows. `fixed_price` can hold the total, so no new column is needed.
@@ -781,6 +785,22 @@ The panel's Orders page already reads it as a total ("Package · 25 units for $4
 If it's a total, the panel changes the form's wording. If it's per item, the cart has to multiply by quantity. Either way, please say whether quantities in between should get a price.
 
 **Panel meanwhile:** the form is unchanged until this is answered.
+
+### Products list (2026-11-12)
+
+#### F28. A `no_parent_category` filter on `GET product/admin/get/all` (Medium)
+
+The Products page's "No Parent Category only" filter can only check the 100 products the page has loaded, because `getAllProductsAdmin` (`product.service.js:4261` at `98a783f`) has no parameter for it. Admins see a few matches or none, and the count and page numbers are for the whole catalog.
+
+**What the panel sends:** `no_parent_category=true`, alongside the other filters. Today the backend ignores it.
+
+**Please return only products with no parent category:** products with no categories, or whose categories have no parent category. Use the same rule that fills `categories[].parent_categories` in this response, soft deletes included, so a returned row never shows a parent. `total` and `totalPages` should count only these products.
+
+- Combine it with every other filter (AND), as the category, price and search filters do.
+- With `grand_category_id` or `parent_category_id` nothing can match, so return an empty page.
+- The catalog is large, so use a `NOT EXISTS` subquery or a join, not a `NOT IN` list of every product that has a parent.
+
+**Panel meanwhile:** it sends the parameter and also checks each row itself. While the backend ignores it, the page says only the current page was checked. Once the backend filters, the count and page numbers are right with no further panel change.
 
 ### Still open from earlier
 
