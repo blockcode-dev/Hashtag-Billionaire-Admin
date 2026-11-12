@@ -24,6 +24,7 @@ import { Spinner } from "@/components/common/Spinner";
 import { Thumbnail } from "@/components/common/Thumbnail";
 import { VariantStatusTag } from "@/components/common/VariantStatusTag";
 import { UNREPORTED_STOCK_HINT, VARIANT_STATUS_FILTERS, isStockUnreported, stockLabel } from "@/lib/variants";
+import { PRICING_STYLE_LABELS, formatPrice, variantPricingView } from "@/lib/quantityPricing";
 import "./Variant.scss";
 
 const PAGE_SIZE = 100;
@@ -48,6 +49,36 @@ const money = (value: unknown) => {
 // For supplier products `price` is the supplier's cost (the shop adds the supplier's
 // markup); for manual products it is the selling price.
 const isManual = (v: any) => (v.supplier ?? v.product?.supplier ?? "").toUpperCase() === "MANUAL";
+
+// A manual variant priced by quantity saves its first range's price, or its
+// smallest quantity's total, as `price`. Show its lowest price per item instead.
+const PriceCell = ({ v }: { v: any }) => {
+  if (!isManual(v)) {
+    return (
+      <>
+        {money(v.price)}
+        <div className="text-xs text-muted-foreground">Supplier cost</div>
+      </>
+    );
+  }
+  const pricing = variantPricingView(v, "MANUAL");
+  if (pricing.style !== "tiered" && pricing.style !== "quantity_fixed") {
+    return (
+      <>
+        {money(v.price)}
+        <div className="text-xs text-muted-foreground">Price</div>
+      </>
+    );
+  }
+  return (
+    <>
+      {pricing.price === null ? "Not set" : `From ${formatPrice(pricing.price)}`}
+      <div className="text-xs text-muted-foreground">
+        Per item · {PRICING_STYLE_LABELS[pricing.style]}
+      </div>
+    </>
+  );
+};
 
 const VariantPage = () => {
   const [variants, setVariants] = useState<any[]>([]);
@@ -197,10 +228,7 @@ const VariantPage = () => {
                 <td>{v.color || "—"}</td>
                 <td>{v.size || "—"}</td>
                 <td>
-                  {money(v.price)}
-                  <div className="text-xs text-muted-foreground">
-                    {isManual(v) ? "Price" : "Supplier cost"}
-                  </div>
+                  <PriceCell v={v} />
                 </td>
                 <td title={isStockUnreported(v) ? UNREPORTED_STOCK_HINT : undefined}>
                   {stockLabel(v, { short: true })}

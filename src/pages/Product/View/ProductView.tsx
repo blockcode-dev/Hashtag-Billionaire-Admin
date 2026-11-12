@@ -6,8 +6,10 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/common/Spinner";
 import { VariantStatusTag } from "@/components/common/VariantStatusTag";
+import { PriceTables } from "@/components/common/PriceTables";
 import { GetVariantByIdAdminAPI } from "@/services/Api/ProductApi";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { PRICING_STYLE_LABELS, formatPrice, variantPricingView } from "@/lib/quantityPricing";
 import {
   describeShippingWeight,
   formatShortDate,
@@ -86,6 +88,10 @@ const ProductView = () => {
   // markup (Pricing Markup). sale_price and retail_price are the supplier's reference
   // prices and aren't used for pricing.
   const manual = (variant.supplier ?? variant.product?.supplier ?? "").toUpperCase() === "MANUAL";
+  // Quantity pricing, as on the product page: a manual variant's ranges or fixed
+  // quantities, SAGE tiers, or OTTOCAP's price breaks for reference.
+  const pricing = variantPricingView(variant, variant.supplier ?? variant.product?.supplier);
+  const byQuantity = pricing.style === "tiered" || pricing.style === "quantity_fixed";
   const removed = variant.status === "removed";
   const unreported = isStockUnreported(variant);
   const supplier = supplierWeight(variant);
@@ -165,7 +171,16 @@ const ProductView = () => {
 
             <div>
               <span>{manual ? "Price" : "Supplier cost"}</span>
-              <strong className="price">$ {variant.price}</strong>
+              {byQuantity ? (
+                <>
+                  <strong className="price">
+                    {pricing.price === null ? "Not set" : `From ${formatPrice(pricing.price)}`}
+                  </strong>
+                  <span>Per item · {PRICING_STYLE_LABELS[pricing.style]}</span>
+                </>
+              ) : (
+                <strong className="price">$ {variant.price}</strong>
+              )}
             </div>
 
             {!manual && (
@@ -225,6 +240,14 @@ const ProductView = () => {
           </div>
         </div>
       </div>
+
+      {(pricing.tables.length > 0 || pricing.missing) && (
+        <div className="desc-card">
+          <h3 className="mb-3">Quantity pricing</h3>
+          {pricing.missing && <p className="text-sm text-muted-foreground">{pricing.missing}</p>}
+          <PriceTables tables={pricing.tables} headingLevel={4} />
+        </div>
+      )}
 
       {/* SHIPPING WEIGHT: saved on its own, so supplier updates keep running. */}
       {!removed && (

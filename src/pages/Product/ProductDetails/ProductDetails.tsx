@@ -8,7 +8,15 @@ import { GetProductByIdAPI } from "@/services/Api/ProductApi";
 import "./ProductDetail.scss";
 import { Thumbnail } from "@/components/common/Thumbnail";
 import { VariantStatusTag } from "@/components/common/VariantStatusTag";
+import { PriceTables } from "@/components/common/PriceTables";
 import { sanitizeHtml } from "@/lib/sanitize";
+import {
+  PRICING_STYLE_LABELS,
+  formatPrice,
+  groupByPricing,
+  variantPricingView,
+  type VariantPricingView,
+} from "@/lib/quantityPricing";
 import {
   UNREPORTED_STOCK_HINT,
   describeShippingWeight,
@@ -115,66 +123,6 @@ function buildCategoryChains(categories: any[]): CategoryChain[] {
   return chains;
 }
 
-/* ─── quantity-tier pricing (legacy client-side fallback) ────────────────
-   Two known tiered shapes so far:
-   - SAGE: meta.priceTiers / meta.qtyTiers / meta.netTiers (parallel arrays)
-   - OTTOCAP: meta.price_1 / price_144 / price_288 / price_576 / price_1296
-   Both get normalized into the same {qty, price, net?} row shape.
-
-   NOTE: for SAGE variants, the backend now sends pre-computed
-   `pricing_tiers` (raw) and `pricing_tiers_customer` (with markup)
-   directly on the variant object — those are used in preference to this
-   client-side computation wherever available (see the variant detail
-   render below). This function remains as the fallback for suppliers
-   that don't yet have server-computed tiers (e.g. OTTOCAP).
-------------------------------------------------------------------------- */
-type TierRow = { qty: string; price: string; net?: string };
-
-function getSageTiers(meta: any): TierRow[] {
-  const priceTiers = meta?.priceTiers || [];
-  const qtyTiers = meta?.qtyTiers || [];
-  const netTiers = meta?.netTiers || [];
-  const rows: TierRow[] = [];
-  for (let i = 0; i < priceTiers.length; i++) {
-    const p = Number(priceTiers[i]);
-    if (!p || p <= 0) continue;
-    const q = qtyTiers[i];
-    const net = Number(netTiers[i]);
-    rows.push({
-      qty: q ? `${q}+` : "—",
-      price: `$${p.toFixed(2)}`,
-      net: net > 0 ? `$${net.toFixed(2)}` : undefined,
-    });
-  }
-  return rows;
-}
-
-const OTTO_TIER_KEYS = [
-  { key: "price_1", qty: "1" },
-  { key: "price_144", qty: "144" },
-  { key: "price_288", qty: "288" },
-  { key: "price_576", qty: "576" },
-  { key: "price_1296", qty: "1296" },
-];
-
-function getOttoTiers(meta: any): TierRow[] {
-  if (!meta) return [];
-  const rows: TierRow[] = [];
-  for (const { key, qty } of OTTO_TIER_KEYS) {
-    const p = Number(meta[key]);
-    if (!p || p <= 0) continue;
-    rows.push({ qty: `${qty}+`, price: `$${p.toFixed(2)}` });
-  }
-  return rows;
-}
-
-function getTierRows(meta: any): TierRow[] {
-  if (!meta) return [];
-  if (meta.priceTiers?.length) return getSageTiers(meta);
-  if (OTTO_TIER_KEYS.some(({ key }) => meta[key] != null)) return getOttoTiers(meta);
-  return [];
-}
-
 /* ─── warehouse / regional stock breakdown ──────────────────────────────
    OTTOCAP: flat meta.ca_stock / tx_stock / ga_stock
    S&S: meta.supplier_raw.warehouses = [{ warehouseAbbr, qty }, ...]
@@ -237,67 +185,45 @@ function getExtraFields(meta: any): { label: string; value: string; link?: boole
   return rows;
 }
 
-/* ─── variant pricing (fixed vs tiered) ─────────────────────────────────── */
-type VariantPricing =
-  | { mode: "fixed"; price: string; retail: string | null; casePrice: string | null; salePrice: string | null; mapPrice: string | null }
-  | { mode: "tiered"; tiers: TierRow[] }
-  | { mode: "request" }
-  | { mode: "unavailable" };
+/* ─── variant pricing ─────────────────────────────────────────────────────
+   Read by @/lib/quantityPricing: one price, a manual product's quantity
+   pricing, or a supplier's price tiers. */
 
-function getVariantPricing(variant: any): VariantPricing {
-  const meta = safeParseJSON(variant.meta) || {};
-  const tiers = getTierRows(meta);
-
-  const fixedPrice = formatMoney(variant.price);
-  if (fixedPrice && !tiers.length) {
-    return {
-      mode: "fixed",
-      price: fixedPrice,
-      retail: formatMoney(variant.retail_price),
-      casePrice: formatMoney(variant.case_price),
-      salePrice: formatMoney(variant.sale_price),
-      mapPrice: formatMoney(variant.map_price),
-    };
-  }
-
-  if (tiers.length) return { mode: "tiered", tiers };
-  if (meta.priceOnRequest) return { mode: "request" };
-  if (fixedPrice) {
-    return {
-      mode: "fixed",
-      price: fixedPrice,
-      retail: formatMoney(variant.retail_price),
-      casePrice: formatMoney(variant.case_price),
-      salePrice: formatMoney(variant.sale_price),
-      mapPrice: formatMoney(variant.map_price),
-    };
-  }
-  return { mode: "unavailable" };
-}
-
-// Product-level price range, tier-aware: if a variant relies on tiers,
-// fall back to its lowest tier price rather than reading a 0.
-function getProductPriceRange(variants: any[]): { min: number; max: number } | null {
-  const effectivePrices: number[] = [];
-  for (const v of variants) {
-    const fixed = Number(v.price);
-    const meta = safeParseJSON(v.meta) || {};
-    const tiers = getTierRows(meta);
-    if (tiers.length) {
-      const lowest = Math.min(...tiers.map((t) => Number(t.price.replace("$", ""))));
-      effectivePrices.push(lowest);
-    } else if (fixed > 0) {
-      effectivePrices.push(fixed);
-    }
-  }
-  if (!effectivePrices.length) return null;
-  return { min: Math.min(...effectivePrices), max: Math.max(...effectivePrices) };
-}
-
-// Requirement: if the product itself has no usable price, always fall back
-// to the 0th variant's effective price/pricing mode.
+// Supplier cost and retail cards read the first variant.
 function getFallbackVariant(variants: any[]): any | null {
   return variants?.[0] || null;
+}
+
+function variantName(v: any): string {
+  return [v.color, v.size].filter(Boolean).join(" / ") || v.sku || `#${v.id}`;
+}
+
+// "3 variants: Red / S, Red / M, Red / L", naming at most six.
+function describeVariants(list: any[]): string {
+  const names = list.map(variantName);
+  const shown = names.length > 6 ? `${names.slice(0, 6).join(", ")} and ${names.length - 6} more` : names.join(", ");
+  return `${list.length === 1 ? "1 variant" : `${list.length} variants`}: ${shown}`;
+}
+
+// The Price column: one price, "From $X" over the pricing style for a manual
+// product's quantity pricing, or a tag for supplier tiers.
+function PriceCell({ view }: { view: VariantPricingView }) {
+  if (view.style === "fixed") {
+    return view.price === null ? <span className="pd-muted">—</span> : <>{formatPrice(view.price)}</>;
+  }
+  if (view.style === "supplier_tiers" || view.style === "request") {
+    return <span className="pd-tier-tag">{PRICING_STYLE_LABELS[view.style]}</span>;
+  }
+  return (
+    <div className="pd-price-stack">
+      {view.price === null ? (
+        <span className="pd-muted">Not set</span>
+      ) : (
+        <span>From {formatPrice(view.price)}</span>
+      )}
+      <span className="pd-tier-tag">{PRICING_STYLE_LABELS[view.style]}</span>
+    </div>
+  );
 }
 
 /* ─── raw data viewer (collapsible, so nothing in meta is ever hidden) ── */
@@ -539,8 +465,37 @@ const ProductDetails = () => {
   const productMeta = safeParseJSON(product.meta) || {};
   const fallbackVariant = getFallbackVariant(variants);
 
-  const priceRange = getProductPriceRange(variants);
-  const fallbackPricing = !priceRange && fallbackVariant ? getVariantPricing(fallbackVariant) : null;
+  // Manual products have no supplier cost or retail price, and can be priced
+  // by quantity (Variable ranges or Fixed quantities).
+  const isManual = String(product.supplier || "").toUpperCase() === "MANUAL";
+  const pricingViews = variants.map((v: any) => variantPricingView(v, v.supplier || product.supplier));
+  const pricingGroups = groupByPricing(variants, pricingViews);
+  const samePricingForAll = variants.length > 0 && new Set(pricingViews.map((p) => p.key)).size === 1;
+
+  // The header's price per item, lowest to highest. For supplier products it's
+  // each variant's lowest supplier price, as before.
+  const priced = pricingViews.filter((p) => p.price !== null);
+  const lowestPrice = priced.length ? Math.min(...priced.map((p) => p.price as number)) : null;
+  const highestPrice = priced.length
+    ? Math.max(...priced.map((p) => (isManual && p.maxPrice !== null ? p.maxPrice : (p.price as number))))
+    : null;
+  const priceSummary =
+    lowestPrice === null || highestPrice === null
+      ? pricingViews.some((p) => p.style === "request")
+        ? "On request"
+        : "—"
+      : lowestPrice === highestPrice
+        ? formatPrice(lowestPrice)
+        : `${formatPrice(lowestPrice)} – ${formatPrice(highestPrice)}`;
+  const pricedByQuantity =
+    isManual && pricingViews.some((p) => p.style === "tiered" || p.style === "quantity_fixed");
+  const pricingStyles = [...new Set(pricingViews.map((p) => p.style))];
+  const pricingStyleLabel =
+    pricingStyles.length === 1
+      ? PRICING_STYLE_LABELS[pricingStyles[0]]
+      : pricingStyles.length
+        ? "Varies by variant"
+        : "—";
 
   // Stock a supplier doesn't report (SAGE) isn't counted, but it is in stock, as in the shop.
   const totalStock = variants.reduce(
@@ -571,16 +526,12 @@ const ProductDetails = () => {
   ].filter((v, i, a) => a.indexOf(v) === i);
 
   const activeVariantMeta = activeVariant ? safeParseJSON(activeVariant.meta) || {} : null;
-  const activeVariantPricing = activeVariant ? getVariantPricing(activeVariant) : null;
+  const activePricing = activeVariant
+    ? variantPricingView(activeVariant, activeVariant.supplier || product.supplier)
+    : null;
+  const activeCasePrice = Number(activeVariant?.case_price) > 0 ? Number(activeVariant.case_price) : null;
   const activeVariantExtras = activeVariantMeta ? getExtraFields(activeVariantMeta) : [];
   const activeVariantWarehouses = activeVariantMeta ? getWarehouseStock(activeVariantMeta) : [];
-
-  // Server-computed tiers (currently populated for SAGE variants only —
-  // see pricing.util.js buildPricingTiers on the backend). When present,
-  // these are preferred over the client-side getTierRows() computation
-  // below, since they're guaranteed to match exactly what the live site
-  // and cart/checkout will actually use.
-  const hasServerPricingTiers = Array.isArray(activeVariant?.pricing_tiers);
 
   const productExtraFields = getExtraFields(productMeta);
 
@@ -751,36 +702,38 @@ const ProductDetails = () => {
         <div className="pd-info-col">
 
           {/* STATS ROW */}
-          <div className="pd-stats-row">
+          <div className={`pd-stats-row${isManual ? " pd-stats-row--3" : ""}`}>
             <div className="pd-stat-card">
               <span className="pd-stat-label">Price</span>
-              <span className="pd-stat-value price">
-                {priceRange
-                  ? priceRange.min === priceRange.max
-                    ? `$${priceRange.min.toFixed(2)}`
-                    : `$${priceRange.min.toFixed(2)} – $${priceRange.max.toFixed(2)}`
-                  : fallbackPricing?.mode === "fixed"
-                    ? fallbackPricing.price
-                    : fallbackPricing?.mode === "tiered"
-                      ? `From ${fallbackPricing.tiers[0]?.price ?? "—"}`
-                      : "On request"}
-              </span>
-              {!priceRange && fallbackVariant && (
-                <span className="pd-stat-note">from variant #{fallbackVariant.id}</span>
-              )}
+              <span className="pd-stat-value price">{priceSummary}</span>
+              {pricedByQuantity && <span className="pd-stat-note">Per item, by quantity</span>}
             </div>
-            <div className="pd-stat-card">
-              <span className="pd-stat-label">Cost Price</span>
-              <span className="pd-stat-value">
-                {formatMoney(fallbackVariant?.cost_price) || "—"}
-              </span>
-            </div>
-            <div className="pd-stat-card">
-              <span className="pd-stat-label">Retail Price</span>
-              <span className="pd-stat-value">
-                {formatMoney(fallbackVariant?.retail_price) || "—"}
-              </span>
-            </div>
+            {isManual ? (
+              <div className="pd-stat-card">
+                <span className="pd-stat-label">Pricing</span>
+                <span className="pd-stat-value pd-stat-value--text">{pricingStyleLabel}</span>
+                {variants.length > 1 && (
+                  <span className="pd-stat-note">
+                    {samePricingForAll ? "Same for every variant" : "Differs by variant"}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="pd-stat-card">
+                  <span className="pd-stat-label">Cost Price</span>
+                  <span className="pd-stat-value">
+                    {formatMoney(fallbackVariant?.cost_price) || "—"}
+                  </span>
+                </div>
+                <div className="pd-stat-card">
+                  <span className="pd-stat-label">Retail Price</span>
+                  <span className="pd-stat-value">
+                    {formatMoney(fallbackVariant?.retail_price) || "—"}
+                  </span>
+                </div>
+              </>
+            )}
             <div className="pd-stat-card">
               <span className="pd-stat-label">Total Stock</span>
               <span className="pd-stat-value">
@@ -860,6 +813,35 @@ const ProductDetails = () => {
         </div>
       </div>
 
+      {/* QUANTITY PRICING — each set of tables once, with the variants it's for */}
+      {pricingGroups.length > 0 && (
+        <div className="pd-image-section">
+          <div className="pd-section-header">
+            <h2>Quantity Pricing</h2>
+            <span className="pd-section-subtext">
+              {samePricingForAll
+                ? variants.length > 1
+                  ? `Same for all ${variants.length} variants`
+                  : null
+                : "Differs by variant"}
+            </span>
+          </div>
+          <div className="pd-image-section-body">
+            {pricingGroups.map((group) => (
+              <div key={group.view.key} className="pd-pricing-group">
+                {!samePricingForAll && (
+                  <p className="pd-pricing-group-label">{describeVariants(group.variants)}</p>
+                )}
+                {group.view.missing && (
+                  <p className="pd-empty pd-pricing-missing">{group.view.missing}</p>
+                )}
+                <PriceTables tables={group.view.tables} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* PRODUCT ATTACHMENTS — the product-level photos only (not per-variant) */}
       <div className="pd-image-section">
         <div className="pd-section-header">
@@ -930,17 +912,31 @@ const ProductDetails = () => {
                 x-axis scrollbar on any supplier, including OTTOCAP's long
                 multi-word color names. Overflowing text truncates with an
                 ellipsis and a title tooltip instead of forcing scroll. */}
-            <colgroup>
-              <col style={{ width: "64px" }} />
-              <col style={{ width: "14%" }} />
-              <col style={{ width: "19%" }} />
-              <col style={{ width: "9%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "12%" }} />
-              <col style={{ width: "10%" }} />
-              <col style={{ width: "10%" }} />
-              <col style={{ width: "10%" }} />
-            </colgroup>
+            {/* Manual products have no cost or retail price, so Price takes
+                their room. */}
+            {isManual ? (
+              <colgroup>
+                <col style={{ width: "64px" }} />
+                <col style={{ width: "16%" }} />
+                <col style={{ width: "19%" }} />
+                <col style={{ width: "11%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "12%" }} />
+                <col />
+              </colgroup>
+            ) : (
+              <colgroup>
+                <col style={{ width: "64px" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "19%" }} />
+                <col style={{ width: "9%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "10%" }} />
+                <col style={{ width: "10%" }} />
+                <col style={{ width: "10%" }} />
+              </colgroup>
+            )}
             <thead>
               <tr>
                 <th>Image</th>
@@ -950,13 +946,13 @@ const ProductDetails = () => {
                 <th>Status</th>
                 <th>Stock</th>
                 <th>Price</th>
-                <th>Cost</th>
-                <th>Retail</th>
+                {!isManual && <th>Cost</th>}
+                {!isManual && <th>Retail</th>}
               </tr>
             </thead>
             <tbody>
-              {variants.map((v: any) => {
-                const pricing = getVariantPricing(v);
+              {variants.map((v: any, index: number) => {
+                const pricing = pricingViews[index];
                 return (
                   <tr
                     key={v.id}
@@ -1001,19 +997,10 @@ const ProductDetails = () => {
                       </span>
                     </td>
                     <td className="pd-price">
-                      {pricing.mode === "fixed" && pricing.price}
-                      {pricing.mode === "tiered" && (
-                        <span className="pd-tier-tag">Qty pricing</span>
-                      )}
-                      {pricing.mode === "request" && (
-                        <span className="pd-tier-tag">On request</span>
-                      )}
-                      {pricing.mode === "unavailable" && (
-                        <span className="pd-muted">—</span>
-                      )}
+                      <PriceCell view={pricing} />
                     </td>
-                    <td className="pd-muted">{formatMoney(v.cost_price) || "—"}</td>
-                    <td className="pd-muted">{formatMoney(v.retail_price) || "—"}</td>
+                    {!isManual && <td className="pd-muted">{formatMoney(v.cost_price) || "—"}</td>}
+                    {!isManual && <td className="pd-muted">{formatMoney(v.retail_price) || "—"}</td>}
                   </tr>
                 );
               })}
@@ -1098,105 +1085,50 @@ const ProductDetails = () => {
               </div>
             </div>
 
-            {/* FULL PRICE BREAKDOWN — not just the summary column shown in the table */}
-            <div className="pd-price-breakdown">
-              <label>Pricing (as provided by supplier)</label>
-              <div className="pd-price-breakdown-grid">
-                <div><span>Price</span><strong>{formatMoney(activeVariant.price) || "—"}</strong></div>
-                <div><span>Cost Price</span><strong>{formatMoney(activeVariant.cost_price) || "—"}</strong></div>
-                <div><span>Retail Price</span><strong>{formatMoney(activeVariant.retail_price) || "—"}</strong></div>
-                <div><span>Sale Price</span><strong>{formatMoney(activeVariant.sale_price) || "—"}</strong></div>
-                <div><span>Case Price</span><strong>{formatMoney(activeVariant.case_price) || "—"}</strong></div>
-                <div><span>MAP Price</span><strong>{formatMoney(activeVariant.map_price) || "—"}</strong></div>
+            {/* PRICING — a manual product's own prices, or everything the
+                supplier sent, then the quantity tables for this variant. */}
+            {isManual ? (
+              <div className="pd-price-breakdown">
+                <label>Pricing</label>
+                <div className="pd-price-breakdown-grid">
+                  <div>
+                    <span>Style</span>
+                    <strong>{activePricing ? PRICING_STYLE_LABELS[activePricing.style] : "—"}</strong>
+                  </div>
+                  {activePricing?.style === "fixed" && (
+                    <div>
+                      <span>Price per item</span>
+                      <strong>{formatPrice(activePricing.price)}</strong>
+                    </div>
+                  )}
+                  {activeCasePrice !== null && (
+                    <div>
+                      <span>Case price</span>
+                      <strong>{formatPrice(activeCasePrice)}</strong>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-
-            {/* QUANTITY PRICING — two tables when the backend provides
-                server-computed tiers (currently SAGE): the raw supplier
-                numbers side by side with what the customer actually pays
-                after markup. Falls back to the old single client-computed
-                table for suppliers that don't have server tiers yet. */}
-            {hasServerPricingTiers ? (
-              activeVariant.pricing_tiers.length > 0 ? (
-                <div className="pd-tier-pair">
-                  <div className="pd-tier-block">
-                    <label>Supplier Pricing (as provided, no markup)</label>
-                    <table className="pd-tier-table">
-                      <thead>
-                        <tr>
-                          <th>Qty</th>
-                          <th>List Price</th>
-                          <th>Net Price</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {activeVariant.pricing_tiers.map((t: any, i: number) => (
-                          <tr key={i}>
-                            <td>{t.quantity}+</td>
-                            <td>{formatMoney(t.list_price) || "—"}</td>
-                            <td>{formatMoney(t.net_price) || "—"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="pd-tier-block">
-                    <label>Our Pricing (with markup applied)</label>
-                    <table className="pd-tier-table">
-                      <thead>
-                        <tr>
-                          <th>Qty</th>
-                          <th>Price</th>
-                          <th>Net</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(activeVariant.pricing_tiers_customer || []).map((t: any, i: number) => (
-                          <tr key={i}>
-                            <td>{t.quantity}+</td>
-                            <td>{formatMoney(t.price) || "—"}</td>
-                            <td>{formatMoney(t.net) || "—"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ) : (
-                <div className="pd-tier-block">
-                  <span className="pd-empty">
-                    No quantity pricing provided by supplier for this variant
-                  </span>
-                </div>
-              )
             ) : (
-              activeVariantPricing?.mode === "tiered" && (
-                <div className="pd-tier-block">
-                  <label>Quantity pricing</label>
-                  <table className="pd-tier-table">
-                    <thead>
-                      <tr>
-                        <th>Qty</th>
-                        <th>Price</th>
-                        {activeVariantPricing.tiers.some((t) => t.net) && <th>Net</th>}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {activeVariantPricing.tiers.map((t, i) => (
-                        <tr key={i}>
-                          <td>{t.qty}</td>
-                          <td>{t.price}</td>
-                          {t.net && <td>{t.net}</td>}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              <div className="pd-price-breakdown">
+                <label>Pricing (as provided by supplier)</label>
+                <div className="pd-price-breakdown-grid">
+                  <div><span>Price</span><strong>{formatMoney(activeVariant.price) || "—"}</strong></div>
+                  <div><span>Cost Price</span><strong>{formatMoney(activeVariant.cost_price) || "—"}</strong></div>
+                  <div><span>Retail Price</span><strong>{formatMoney(activeVariant.retail_price) || "—"}</strong></div>
+                  <div><span>Sale Price</span><strong>{formatMoney(activeVariant.sale_price) || "—"}</strong></div>
+                  <div><span>Case Price</span><strong>{formatMoney(activeVariant.case_price) || "—"}</strong></div>
+                  <div><span>MAP Price</span><strong>{formatMoney(activeVariant.map_price) || "—"}</strong></div>
                 </div>
-              )
+              </div>
             )}
 
-            {!hasServerPricingTiers && activeVariantPricing?.mode === "request" && (
+            {activePricing?.missing && (
+              <p className="pd-empty pd-pricing-missing">{activePricing.missing}</p>
+            )}
+            {activePricing && <PriceTables tables={activePricing.tables} className="mb-4" />}
+
+            {activePricing?.style === "request" && (
               <span className="pd-empty">Pricing available on request from supplier</span>
             )}
 

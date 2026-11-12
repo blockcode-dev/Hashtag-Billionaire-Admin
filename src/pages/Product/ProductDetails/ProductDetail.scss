@@ -610,6 +610,15 @@
     @media (max-width: 700px) {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    // Manual products: Price, Pricing and Total Stock.
+    &.pd-stats-row--3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+
+      @media (max-width: 700px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
   }
 
   .pd-stat-card {
@@ -636,6 +645,12 @@
 
       &.price {
         color: var(--success-soft-foreground);
+      }
+
+      // Words, like a pricing style, rather than a number.
+      &.pd-stat-value--text {
+        font-size: 16px;
+        line-height: 1.35;
       }
     }
   }
@@ -849,15 +864,15 @@
   }
 
   .pd-table-wrap {
-    // No horizontal scrollbar: table-layout: fixed forces every row to fit
-    // exactly within the container width (columns are sized via <colgroup>
-    // in the component), so long SKUs/color names truncate instead of
-    // pushing the table wider. Vertical scroll for the page itself is
-    // untouched — this only affects the table's own x-axis.
-    overflow-x: hidden;
+    // table-layout: fixed sizes the columns from the <colgroup> in the
+    // component, so long SKUs and color names truncate instead of widening
+    // the table. Below 760px wide (phones), the table scrolls sideways
+    // rather than squeezing every column too narrow to read.
+    overflow-x: auto;
 
     table {
       width: 100%;
+      min-width: 760px;
       table-layout: fixed;
       border-collapse: collapse;
     }
@@ -1011,6 +1026,15 @@
     font-weight: 700;
     padding: 3px 8px;
     border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  // A manual product's quantity pricing: "From $X" over its style.
+  .pd-price-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 
   // NO DATA
@@ -1134,51 +1158,23 @@
     }
   }
 
-  .pd-tier-block {
-    margin-bottom: 14px;
-
-    label {
-      display: block;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--muted-foreground);
-      margin-bottom: 8px;
-      font-weight: 500;
-    }
+  // QUANTITY PRICING — one block per set of tables (components/common/PriceTables)
+  .pd-pricing-group + .pd-pricing-group {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
   }
 
-  .pd-tier-pair {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 14px;
- 
-    @media (max-width: 700px) {
-      grid-template-columns: 1fr;
-    }
+  .pd-pricing-group-label {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--foreground);
   }
 
-  .pd-tier-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--background);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    font-size: 12.5px;
-
-    th {
-      text-align: left;
-      padding: 6px 10px;
-      background: var(--muted);
-    }
-
-    td {
-      padding: 6px 10px;
-      border-top: 1px solid var(--border);
-      color: var(--foreground);
-    }
+  .pd-pricing-missing {
+    display: block;
+    margin: 0 0 14px;
   }
 
   // WAREHOUSE STOCK

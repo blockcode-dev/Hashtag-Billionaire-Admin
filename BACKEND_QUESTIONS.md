@@ -16,7 +16,7 @@ API=https://node.hashtagbillionaire.com/api/v1
 TOKEN=$(curl -s -X POST "$API/admin/auth/login" -F email="$EMAIL" -F password="$PASSWORD" | jq -r .data.token)
 ```
 
-> **Update (panel, 2026-11-12):** F28 asks for a `no_parent_category` filter on `GET product/admin/get/all`, so the Products page can list every product with no parent category. It's live (backend `20ebba1`). F29 asks for endpoints to save and load pricing templates.
+> **Update (panel, 2026-11-12):** F28 asks for a `no_parent_category` filter on `GET product/admin/get/all`, so the Products page can list every product with no parent category. It's live (backend `20ebba1`). F29 asks for endpoints to save and load pricing templates. They're live too (backend `adeb71f`).
 
 > **Update (panel, 2026-11-06):** F26 asks for a new customization pricing type, `FIXED_QUANTITY`. It has been live since 6 November (backend `a8cb702`). F27 still holds an open pricing question.
 
@@ -807,6 +807,8 @@ The Products page's "No Parent Category only" filter can only check the 100 prod
 ### Pricing templates (2026-11-12)
 
 #### F29. Endpoints to save and load pricing templates (Medium)
+
+**Done:** live since 12 November (backend `adeb71f`, with its migration). The panel's calls match it (`008d6da`).
 
 Admins keep named quantity pricing on a new **Pricing Templates** page (add, edit, delete), and while creating a product they can load one into a variant or save the variant's pricing as a new one. Every admin shares the same templates, so they have to live on the backend. None of these endpoints exist yet.
 
