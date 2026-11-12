@@ -110,7 +110,7 @@ const toNumber = (v: unknown): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-function normalizeBulkTiers(raw: unknown): BulkTier[] {
+export function normalizeBulkTiers(raw: unknown): BulkTier[] {
   if (!Array.isArray(raw)) return [];
   return raw.map((t) => {
     const tier = (t ?? {}) as Record<string, unknown>;
@@ -125,7 +125,7 @@ function normalizeBulkTiers(raw: unknown): BulkTier[] {
   });
 }
 
-function normalizeQuantityPricing(raw: unknown): QuantityPrice[] {
+export function normalizeQuantityPricing(raw: unknown): QuantityPrice[] {
   if (!Array.isArray(raw)) return [];
   return raw.map((q) => {
     const row = (q ?? {}) as Record<string, unknown>;
@@ -274,6 +274,44 @@ export function getPricingSummary(p: VariantPricing): string {
   return rows.length
     ? rows.map((q) => `${q.quantity} for $${formatMoney(q.price)}`).join(", ")
     : "$0";
+}
+
+// True when the active quantity pricing holds more than the starting empty
+// row, so loading a pricing template would replace what was typed.
+export function hasEnteredQuantityPricing(p: VariantPricing): boolean {
+  if (p.pricing_mode === "tiered") {
+    return (
+      p.bulk_pricing.length > 1 ||
+      p.bulk_pricing.some(
+        (t) => t.price > 0 || t.max_qty !== null || t.min_qty !== 1,
+      )
+    );
+  }
+  if (p.pricing_mode === "quantity_fixed") {
+    return p.quantity_pricing.some((q) => q.quantity > 0 || q.price > 0);
+  }
+  return false;
+}
+
+// Every row in words: "1–10: $20 · 11+: $18" or "25 for $100 · 50 for $180".
+export function describeQuantityRows(
+  mode: QuantityPricingMode,
+  tiers: BulkTier[],
+  quantities: QuantityPrice[],
+): string {
+  if (mode === "tiered") {
+    return tiers
+      .map((t) => {
+        const range =
+          t.max_qty === null ? `${t.min_qty}+` : `${t.min_qty}–${t.max_qty}`;
+        return `${range}: $${formatMoney(t.price)}`;
+      })
+      .join(" · ");
+  }
+  return [...quantities]
+    .sort((a, b) => a.quantity - b.quantity)
+    .map((q) => `${q.quantity} for $${formatMoney(q.price)}`)
+    .join(" · ");
 }
 
 // Next "From" for a new variable-range tier: continues right after the

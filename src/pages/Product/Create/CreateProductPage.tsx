@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Plus, Trash2, Copy as CopyIcon, Pencil, X, ArrowLeft, ArrowRight, Check, Info, List as ListIcon, Palette, SquareCheck, Tags, ChevronDown, Lightbulb , Ruler, SquareDashed } from "lucide-react";
+import { Plus, Trash2, Copy as CopyIcon, Pencil, X, ArrowLeft, ArrowRight, Check, Info, List as ListIcon, Palette, SquareCheck, Tags, ChevronDown, Lightbulb , Ruler, SquareDashed, FolderOpen, Save } from "lucide-react";
 import { AutoComplete } from "@/components/common/AutoComplete";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Combobox } from "@/components/common/Combobox";
@@ -36,8 +36,17 @@ import {
   clonePricing,
   getPricingError,
   getPricingSummary,
+  hasEnteredQuantityPricing,
   nextTierMin,
 } from "@/utils/variantPricing";
+import {
+  usePricingTemplates,
+  type PricingTemplate,
+} from "@/pages/PricingTemplates/usePricingTemplates";
+import {
+  LoadPricingTemplateDialog,
+  SavePricingTemplateDialog,
+} from "@/pages/PricingTemplates/PricingTemplateDialogs";
 
 import styles from "./CreateProductPage.module.scss";
 import { useNavigate } from "react-router";
@@ -499,6 +508,18 @@ const CreateProductPage: React.FC = () => {
   // inherits the current shared pricing.
   const [samePriceForAll, setSamePriceForAll] = useState(false);
 
+  // Saved quantity pricing to reuse across products, managed on the Pricing
+  // Templates page. Until the backend has the routes (BACKEND_QUESTIONS.md
+  // F29), the dialogs say templates aren't available yet.
+  const pricingTemplates = usePricingTemplates();
+  const [templateDialog, setTemplateDialog] = useState<{
+    kind: "save" | "load";
+    variant: number;
+  } | null>(null);
+  const templateVariant = templateDialog
+    ? variants[templateDialog.variant]
+    : undefined;
+
   const catSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep every variant's option_selections array the same length as
@@ -922,6 +943,37 @@ const CreateProductPage: React.FC = () => {
         prev.map((v) => ({ ...v, ...clonePricing(source) })),
       );
     }
+  };
+
+  // Save as template opens only once the variant's pricing is valid.
+  const openSaveTemplate = (i: number) => {
+    const error = getPricingError(variants[i], "Pricing");
+    if (error) {
+      toast.error("Fix the pricing before saving it as a template", {
+        description: error,
+      });
+      return;
+    }
+    setTemplateDialog({ kind: "save", variant: i });
+  };
+
+  // Loads a template's rows into variant i, or into every variant when
+  // "same price for all" is on. The other style's rows stay, as they do
+  // when switching styles by hand.
+  const applyPricingTemplate = (i: number, template: PricingTemplate) => {
+    updateVariantPricingFields(
+      i,
+      template.pricing_mode === "tiered"
+        ? {
+            pricing_mode: "tiered",
+            bulk_pricing: template.bulk_pricing.map((t) => ({ ...t })),
+          }
+        : {
+            pricing_mode: "quantity_fixed",
+            quantity_pricing: template.quantity_pricing.map((q) => ({ ...q })),
+          },
+    );
+    toast.success(`Loaded "${template.name}"`);
   };
 
   // Selecting a value for ANY option updates option_selections. If that
@@ -1871,6 +1923,36 @@ const CreateProductPage: React.FC = () => {
           </div>
         ) : (
           <div className={styles.bulkPricing}>
+            <div className={styles.templateBar}>
+              <div className={styles.templateBarText}>
+                <strong>Pricing templates</strong>
+                <span className={styles.fieldHint}>
+                  Load pricing you saved before, or save this pricing to
+                  reuse it.
+                </span>
+              </div>
+              <div className={styles.templateBarActions}>
+                <button
+                  type="button"
+                  className={styles.btnOutline}
+                  onClick={() => {
+                    setTemplateDialog({ kind: "load", variant: i });
+                    // Picks up templates added since the page opened.
+                    void pricingTemplates.reload();
+                  }}
+                >
+                  <FolderOpen size="1em" /> Load template
+                </button>
+                <button
+                  type="button"
+                  className={styles.btnOutline}
+                  onClick={() => openSaveTemplate(i)}
+                >
+                  <Save size="1em" /> Save as template
+                </button>
+              </div>
+            </div>
+
             <div
               className={styles.quantityModeOptions}
               role="radiogroup"
@@ -2457,6 +2539,26 @@ const CreateProductPage: React.FC = () => {
           </button>
         )}
       </div>
+
+      <SavePricingTemplateDialog
+        open={templateDialog?.kind === "save"}
+        pricing={templateVariant ?? null}
+        state={pricingTemplates}
+        onClose={() => setTemplateDialog(null)}
+      />
+      <LoadPricingTemplateDialog
+        open={templateDialog?.kind === "load"}
+        state={pricingTemplates}
+        replacesEntered={
+          templateVariant ? hasEnteredQuantityPricing(templateVariant) : false
+        }
+        appliesToAll={samePriceForAll && variants.length > 1}
+        onUse={(template) => {
+          if (templateDialog) applyPricingTemplate(templateDialog.variant, template);
+          setTemplateDialog(null);
+        }}
+        onClose={() => setTemplateDialog(null)}
+      />
     </div>
   );
 };

@@ -51,6 +51,7 @@ import AddOnForm from "./pages/AddOns/AddOnForm";
 import CustomizationList from "./pages/Customization/CustomizationList";
 import CustomizationForm from "./pages/Customization/CustomizationForm";
 import GalleryPage from "./pages/Gallery/GalleryPage";
+import PricingTemplatesPage from "./pages/PricingTemplates/PricingTemplatesPage";
 
 const App = () => (
   <TooltipProvider>
@@ -445,6 +446,15 @@ const App = () => (
             element={
               <AdminLayout>
                 <CustomizationForm />
+              </AdminLayout>
+            }
+          />
+
+          <Route
+            path="/pricing-templates"
+            element={
+              <AdminLayout>
+                <PricingTemplatesPage />
               </AdminLayout>
             }
           />

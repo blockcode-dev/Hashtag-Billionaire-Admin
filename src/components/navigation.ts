@@ -18,6 +18,7 @@ import {
   Settings2,
   ShoppingBag,
   SlidersHorizontal,
+  TableProperties,
   Tags,
   UserCog,
   Users,
@@ -62,6 +63,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { title: "Variants", url: "/variants", icon: Layers },
       { title: "Add-on Products", url: "/add-ons", icon: PackagePlus },
       { title: "Customizations", url: "/customizations", icon: SlidersHorizontal },
+      { title: "Pricing Templates", url: "/pricing-templates", icon: TableProperties },
       {
         title: "Categories",
         icon: FolderTree,

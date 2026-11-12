@@ -866,6 +866,46 @@
   }
 }
 
+/* Pricing templates: load or save the quantity pricing above it */
+.templateBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 12px 14px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--muted);
+  margin-bottom: 4px;
+}
+
+.templateBarText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 220px;
+
+  strong {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+}
+
+.templateBarActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  .btnOutline {
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+}
+
 .bulkPricingHeader {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 40px;

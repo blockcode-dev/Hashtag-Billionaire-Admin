@@ -30,6 +30,8 @@ export interface NumberFieldProps {
   emptyValue?: number | null;
   placeholder?: string;
   ariaLabel?: string;
+  // Pages styled with CSS modules leave it unset and style the bare input.
+  className?: string;
 }
 
 const NumberField: React.FC<NumberFieldProps> = ({
@@ -39,6 +41,7 @@ const NumberField: React.FC<NumberFieldProps> = ({
   emptyValue = 0,
   placeholder,
   ariaLabel,
+  className,
 }) => {
   const [text, setText] = useState(() => formatNumberText(value));
 
@@ -70,6 +73,7 @@ const NumberField: React.FC<NumberFieldProps> = ({
       autoComplete="off"
       placeholder={placeholder}
       aria-label={ariaLabel}
+      className={className}
       value={text}
       onChange={handleChange}
     />

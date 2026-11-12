@@ -16,7 +16,7 @@ API=https://node.hashtagbillionaire.com/api/v1
 TOKEN=$(curl -s -X POST "$API/admin/auth/login" -F email="$EMAIL" -F password="$PASSWORD" | jq -r .data.token)
 ```
 
-> **Update (panel, 2026-11-12):** F28 asks for a `no_parent_category` filter on `GET product/admin/get/all`, so the Products page can list every product with no parent category.
+> **Update (panel, 2026-11-12):** F28 asks for a `no_parent_category` filter on `GET product/admin/get/all`, so the Products page can list every product with no parent category. It's live (backend `20ebba1`). F29 asks for endpoints to save and load pricing templates.
 
 > **Update (panel, 2026-11-06):** F26 asks for a new customization pricing type, `FIXED_QUANTITY`. It has been live since 6 November (backend `a8cb702`). F27 still holds an open pricing question.
 
@@ -790,6 +790,8 @@ If it's a total, the panel changes the form's wording. If it's per item, the car
 
 #### F28. A `no_parent_category` filter on `GET product/admin/get/all` (Medium)
 
+**Done:** live since 12 November (backend `20ebba1`).
+
 The Products page's "No Parent Category only" filter can only check the 100 products the page has loaded, because `getAllProductsAdmin` (`product.service.js:4261` at `98a783f`) has no parameter for it. Admins see a few matches or none, and the count and page numbers are for the whole catalog.
 
 **What the panel sends:** `no_parent_category=true`, alongside the other filters. Today the backend ignores it.
@@ -801,6 +803,34 @@ The Products page's "No Parent Category only" filter can only check the 100 prod
 - The catalog is large, so use a `NOT EXISTS` subquery or a join, not a `NOT IN` list of every product that has a parent.
 
 **Panel meanwhile:** it sends the parameter and also checks each row itself. While the backend ignores it, the page says only the current page was checked. Once the backend filters, the count and page numbers are right with no further panel change.
+
+### Pricing templates (2026-11-12)
+
+#### F29. Endpoints to save and load pricing templates (Medium)
+
+Admins keep named quantity pricing on a new **Pricing Templates** page (add, edit, delete), and while creating a product they can load one into a variant or save the variant's pricing as a new one. Every admin shares the same templates, so they have to live on the backend. None of these endpoints exist yet.
+
+**What the panel calls** (admin only, under `/api/v1/`):
+
+| Endpoint | Body | Answer |
+|---|---|---|
+| `GET pricing-template` | | `{ data: [template, ...] }`, newest `updated_at` first |
+| `POST pricing-template` | `{ name, pricing_mode, bulk_pricing, quantity_pricing }` | `{ data: template }` |
+| `PUT pricing-template/:id` | the same | `{ data: template }`, or `404` |
+| `DELETE pricing-template/:id` | | soft delete, or `404` |
+
+A template is `{ id, name, pricing_mode, bulk_pricing, quantity_pricing, created_at, updated_at }`. The rows use the `ProductVariant.meta` shape: `pricing_mode` is `"tiered"` with `bulk_pricing: [{ min_qty, max_qty, price }]`, or `"quantity_fixed"` with `quantity_pricing: [{ quantity, price }]`. The other list is `null`, and `"fixed"` isn't allowed.
+
+**Please check, on POST and PUT:**
+
+- `name`: trimmed, 1 to 100 characters, and unique among templates that aren't deleted, ignoring case. Answer `409` when it's taken.
+- Tiered rows: `min_qty` a whole number above 0, `price` above 0, and `max_qty` blank on the last row only, otherwise above `min_qty`. Each row starts after the previous one ends. `resolveVariantPricing` (`product.service.js:140` at `606cb47`) checks quantity rows but not these.
+- Quantity rows: whole numbers above 0, each listed once, `price` above 0, saved in order.
+- At most 50 rows. Errors are `400`, with a `message` the panel shows as it is.
+
+**Storage:** a new table (name, style, the rows as JSON, the admin who saved it, timestamps, soft delete), with a `_before_deploy` migration and its rollback.
+
+**Panel meanwhile:** it asks for the list when a page opens. While the backend answers `404`, the page and the Save and Load dialogs say templates aren't available yet, and nothing can be saved.
 
 ### Still open from earlier
 
