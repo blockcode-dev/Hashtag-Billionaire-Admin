@@ -78,6 +78,7 @@ import {
   pricingFromVariant,
 } from "@/utils/variantPricing";
 
+import { useVariantPricingTemplates } from "@/pages/PricingTemplates/VariantPricingTemplates";
 import styles from "./EditManualProduct.module.scss";
 import ProductAddOnsStep from "@/pages/AddOns/ProductAddOnsStep";
 import ProductCustomizationsStep from "@/pages/Customization/ProductCustomizationsStep";
@@ -544,6 +545,15 @@ const EditManualProduct: React.FC = () => {
   const [options, setOptions] = useState<OptionDraft[]>([]);
   const [variants, setVariants] = useState<VariantDraft[]>([]);
   const [samePriceForAll, setSamePriceForAll] = useState(false);
+
+  // Load template and Save as template on each variant's quantity pricing,
+  // new variants included, as on Create Product. The pricing handler is
+  // defined further down, so it's called through a wrapper.
+  const pricingTemplates = useVariantPricingTemplates({
+    variants,
+    samePriceForAll,
+    applyPricing: (i, fields) => updateVariantPricingFields(i, fields),
+  });
 
   /* Categories */
   const [categories, setCategories] = useState<CategoryRef[]>([]);
@@ -2404,6 +2414,8 @@ const EditManualProduct: React.FC = () => {
           </div>
         ) : (
           <div className={styles.bulkPricing}>
+            {pricingTemplates.bar(i)}
+
             <div
               className={styles.quantityModeOptions}
               role="radiogroup"
@@ -3059,6 +3071,8 @@ const EditManualProduct: React.FC = () => {
           </button>
         )}
       </div>
+
+      {pricingTemplates.dialogs}
     </div>
   );
 };
