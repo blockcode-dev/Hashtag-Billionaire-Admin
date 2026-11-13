@@ -473,6 +473,19 @@ MODAL
         color: var(--foreground);
       }
     }
+
+    // Not part of the total, e.g. what the label cost.
+    &.aside {
+      border-top: 1px dashed var(--border);
+      margin-top: 6px;
+
+      span,
+      strong {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--muted-foreground);
+      }
+    }
   }
 
   .order-total-divider {

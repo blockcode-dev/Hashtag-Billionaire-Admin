@@ -31,6 +31,7 @@ import {
   type Setting,
   type SettingsPage as SettingsData,
 } from "@/services/Api/SettingsApi";
+import { HandlingFeeSummary } from "./HandlingFeeControl";
 import { SettingControl } from "./SettingControl";
 import { SettingsKeyDialog } from "./SettingsKeyDialog";
 
@@ -150,6 +151,7 @@ function SourceBadge({ setting }: { setting: Setting }) {
 function ReadValue({ setting }: { setting: Setting }) {
   if (setting.value == null) return <span className="text-sm text-muted-foreground">—</span>;
   if (setting.type === "boolean") return <span className="text-sm">{setting.value === "true" ? "On" : "Off"}</span>;
+  if (setting.type === "handling_fee") return <HandlingFeeSummary value={setting.value} />;
   if (setting.type === "color" && HEX.test(setting.value)) {
     return (
       <span className="inline-flex items-center gap-2 font-mono text-sm">

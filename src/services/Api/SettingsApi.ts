@@ -18,7 +18,9 @@ export type SettingType =
   | "enum"
   | "color"
   | "code2"
-  | "hosts";
+  | "hosts"
+  // JSON text: { amount, label, category_ids, suppliers } (HANDLING_FEE_RULE).
+  | "handling_fee";
 
 export interface Setting {
   key: string;
@@ -73,6 +75,17 @@ export const SaveSettingsAPI = async (master_key: string, values: Record<string,
     master_key,
     values,
   });
+};
+
+export interface HandlingFeeOptions {
+  categories: { id: number; title: string; supplier: string | null }[];
+  // value: SS, SANMAR, OTTOCAP, MANUAL, SAGE (every SAGE supplier) or SAGE:<supplier number>.
+  suppliers: { value: string; label: string }[];
+}
+
+// What the handling fee can be limited to: about 1,340 categories and a few hundred suppliers.
+export const GetHandlingFeeOptionsAPI = async () => {
+  return axios.get<{ data: HandlingFeeOptions }>(`${API_BASE_URL}admin/settings/handling-fee-options`);
 };
 
 // Sends a test email to the signed-in admin with the saved mail settings.

@@ -3,6 +3,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PasswordInput } from "@/components/common/PasswordInput";
 import type { Setting } from "@/services/Api/SettingsApi";
+import { HandlingFeeControl } from "./HandlingFeeControl";
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
@@ -40,6 +41,18 @@ export function SettingControl({ setting, value, onChange, id, invalid, describe
   }
 
   switch (setting.type) {
+    case "handling_fee":
+      return (
+        <HandlingFeeControl
+          id={id}
+          value={value}
+          onChange={onChange}
+          invalid={invalid}
+          describedBy={describedBy}
+          explain={!setting.description}
+        />
+      );
+
     case "boolean":
       return (
         <div className="flex h-9 items-center gap-2">

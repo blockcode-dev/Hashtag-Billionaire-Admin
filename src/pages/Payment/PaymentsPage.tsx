@@ -12,19 +12,27 @@ import { SearchInput } from "@/components/common/SearchInput";
 import { StatusTag } from "@/components/common/StatusTag";
 
 import { toastApiError } from "@/lib/api-errors";
+import { paymentModeLabel } from "@/lib/payments";
 import { GetAllPaymentsAPI } from "@/services/Api/PaymentApi";
 
 import "./Payments.scss";
 
-// Payment status values from the backend schema (BACKEND_QUESTIONS.md, B9).
+// Payment status values from the go-live API contract: PENDING (in progress), SUCCESS, REJECTED.
 const PAYMENT_TAG: Record<string, { color: string; label: string }> = {
   SUCCESS: { color: "success", label: "Paid" },
   PENDING: { color: "warning", label: "Pending" },
-  REJECTED: { color: "error", label: "Rejected" },
+  REJECTED: { color: "error", label: "Failed" },
 };
 
 const paymentTag = (status?: string) =>
-  PAYMENT_TAG[status ?? ""] ?? { color: "default", label: status || "--" };
+  PAYMENT_TAG[status?.toUpperCase() ?? ""] ?? { color: "default", label: status || "--" };
+
+// How it was paid: CARD, GOOGLE_PAY, CASH_APP, PAYPAL… The list sends payment_method, which should
+// carry the payment's payment_mode (BACKEND_QUESTIONS.md, F4); either is read.
+const paymentMode = (row: any): string | null => row?.payment_method || row?.payment_mode || null;
+
+const money = (n: unknown) =>
+  `$${Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const PaymentsPage = () => {
   const [payments, setPayments] = useState<any[]>([]);
@@ -188,7 +196,9 @@ const PaymentsPage = () => {
             {row.transaction_id || "--"}
           </div>
 
-          <span className="text-sm text-muted-foreground">{row.payment_method}</span>
+          {paymentMode(row) && (
+            <span className="text-sm text-muted-foreground">{paymentModeLabel(paymentMode(row))}</span>
+          )}
         </div>
       ),
     },
@@ -333,7 +343,7 @@ const PaymentsPage = () => {
                     </DialogDescription>
                   </div>
                   <div className="text-right">
-                    <span className="modal-label">Amount Paid</span>
+                    <span className="modal-label">Amount</span>
                     <div className="modal-total-amount">
                       $
                       {Number(selectedPayment.amount || 0).toLocaleString(
@@ -374,6 +384,8 @@ const PaymentsPage = () => {
                       <dd>
                         <strong>{selectedPayment.order?.order_number}</strong>
                       </dd>
+                      <dt>Method</dt>
+                      <dd>{paymentModeLabel(paymentMode(selectedPayment))}</dd>
                       <dt>Tracking</dt>
                       <dd>{selectedPayment.order?.tracking_number || "N/A"}</dd>
                       <dt>Date</dt>
@@ -601,35 +613,45 @@ const PaymentsPage = () => {
 
                     <div className="order-total-row">
                       <span>Order subtotal</span>
-                      <strong>
-                        ${Number(selectedPayment.order.subtotal_amount || 0).toFixed(2)}
-                      </strong>
+                      <strong>{money(selectedPayment.order.subtotal_amount)}</strong>
                     </div>
 
-                    {selectedPayment.order.tax_amount != null && (
+                    {Number(selectedPayment.order.handling_amount) > 0 && (
                       <div className="order-total-row">
-                        <span>Tax</span>
-                        <strong>
-                          ${Number(selectedPayment.order.tax_amount).toFixed(2)}
-                        </strong>
+                        <span>Handling fee</span>
+                        <strong>{money(selectedPayment.order.handling_amount)}</strong>
                       </div>
                     )}
 
+                    {selectedPayment.order.tax_amount != null && (
+                      <div className="order-total-row">
+                        <span>
+                          Tax
+                          {Number(selectedPayment.order.tax_rate) > 0 && ` (${Number(selectedPayment.order.tax_rate)}%)`}
+                        </span>
+                        <strong>{money(selectedPayment.order.tax_amount)}</strong>
+                      </div>
+                    )}
+
+                    {/* What the customer paid for shipping; the label's cost is below. */}
                     <div className="order-total-row">
                       <span>Shipping</span>
-                      <strong>
-                        ${Number(selectedPayment.order.shipping_amount || 0).toFixed(2)}
-                      </strong>
+                      <strong>{money(selectedPayment.order.shipping_amount)}</strong>
                     </div>
 
                     <div className="order-total-divider" />
 
                     <div className="order-total-row grand">
                       <span>Grand Total</span>
-                      <strong>
-                        ${Number(selectedPayment.order.total_amount || 0).toFixed(2)}
-                      </strong>
+                      <strong>{money(selectedPayment.order.total_amount)}</strong>
                     </div>
+
+                    {Number(selectedPayment.order.actual_shipping_cost) > 0 && (
+                      <div className="order-total-row aside">
+                        <span>Label cost (paid to the carrier, not part of the total)</span>
+                        <strong>{money(selectedPayment.order.actual_shipping_cost)}</strong>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

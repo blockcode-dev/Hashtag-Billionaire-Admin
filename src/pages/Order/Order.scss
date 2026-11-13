@@ -242,6 +242,15 @@ $info-tx:   var(--info-soft-foreground);
   border-radius: $radius-xl;
   box-shadow: var(--shadow-lg);
 
+  // Never taller than the window: the tab panel gives up height first, so the hero, notices and
+  // action buttons stay in view on short screens.
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+
+  > .om-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+
   [data-slot="dialog-close"] {
     top: 16px;
     right: 16px;
@@ -312,10 +321,72 @@ $info-tx:   var(--info-soft-foreground);
     }
   }
 
+  // ── Notices and actions (under the hero, on every tab) ──
+  .om-notices {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 24px;
+  }
+
+  .om-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    border: 1px solid;
+    border-radius: $radius-md;
+    padding: 10px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+
+    svg { flex-shrink: 0; margin-top: 2px; }
+    p { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+    strong { font-weight: 700; }
+
+    &.om-notice-warning { background: $warn-bg; border-color: $warn-bd; color: $warn-tx; }
+
+    &.om-notice-muted {
+      background: $surface2;
+      border-color: $border;
+      color: $text-2;
+      strong { color: $text-1; }
+    }
+  }
+
+  .om-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    padding: 14px 24px;
+    border-bottom: 1px solid $border;
+
+    .om-actions-note {
+      flex: 1 1 240px;
+      min-width: 0;
+      margin: 0;
+      font-size: 13px;
+      color: $text-2;
+      overflow-wrap: anywhere;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .om-actions-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+  }
+
+  .om-notices + .om-actions { padding-top: 0; }
+
   // ── Tabs ─────────────────────
   .om-body { padding: 0; }
 
   .om-tabs {
+    flex: 1 1 auto;
+    min-height: 0;
+
     .om-tabs-nav {
       width: 100%;
       height: auto;
@@ -340,6 +411,7 @@ $info-tx:   var(--info-soft-foreground);
 
     .om-tab-panel {
       max-height: 64vh;
+      min-height: 0;
       overflow-y: auto;
     }
   }
@@ -928,6 +1000,22 @@ $info-tx:   var(--info-soft-foreground);
 
     &.ok   { background: var(--success-soft); color: var(--success-soft-foreground); }
     &.warn { background: var(--warning-soft); color: var(--warning-soft-foreground); }
+  }
+
+  // An order with an attention_note; the note is its tooltip.
+  .attention-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 9px;
+    border: 1px solid var(--warning-border);
+    border-radius: 999px;
+    background: var(--warning-soft);
+    color: var(--warning-soft-foreground);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: help;
   }
 
   .muted { color: $text-3; }

@@ -1,21 +1,33 @@
 /** @format */
 
-import { useEffect, useState, useCallback, useMemo } from "react";
-import { ArrowUpRight, Download, Eye } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { ArrowUpRight, Ban, Download, Eye, TriangleAlert } from "lucide-react";
+import type { FormEvent, ReactNode } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { Combobox } from "@/components/common/Combobox";
+import { confirm } from "@/components/common/ConfirmDialog";
 import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
 import { EmptyState } from "@/components/common/EmptyState";
 import { SearchInput } from "@/components/common/SearchInput";
 import { Spinner } from "@/components/common/Spinner";
 import { IMAGE_BASE_URL } from "@/config/env";
+import { apiErrorMessage, toastApiError } from "@/lib/api-errors";
+import { paymentModeLabel, refundPlace } from "@/lib/payments";
 import "./Order.scss";
-import { GetAdminOrdersAPI, RetryOrderLabelAPI } from "@/services/Api/OrderApi";
+import { CancelOrderAPI, DeleteOrderAPI, GetAdminOrdersAPI, RetryOrderLabelAPI } from "@/services/Api/OrderApi";
 
 // ─────────────────────────────────────────────
 // Types
@@ -133,22 +145,41 @@ interface OrderItem {
   pricing_breakdown?: PricingBreakdown;
 }
 
+/** What the admin may do now. The panel shows buttons from these only; the backend checks the same rules. */
+interface OrderActions {
+  can_buy_label: boolean;
+  can_cancel: boolean;
+  can_delete: boolean;
+}
+
 interface Order {
   id: number;
   order_number: string;
   created_at: string;
+  /** The products (cart line totals). */
   subtotal_amount: number;
+  /** The order handling fee (Settings, Order fees), once per order. Usually 0. */
+  handling_amount?: number;
+  /** 8.25 today. Taxes subtotal + handling. */
+  tax_rate?: number | null;
+  tax_amount?: number | null;
   /** What the customer paid. What the label cost is actual_shipping_cost. */
   shipping_amount: number;
   actual_shipping_cost?: number;
   /** shipping_amount − actual_shipping_cost; negative when the label cost more. */
   shipping_profit?: number;
+  /** subtotal + handling + tax + shipping. */
   total_amount: number;
   status: string;
   payment_status: string;
   shipment_status: string;
   /** ShipStation's reason when shipment_status is FAILED. */
   shipment_error?: string | null;
+  /** Something the team must look at, e.g. stock ran out after payment. */
+  attention_note?: string | null;
+  cancelled_at?: string | null;
+  cancel_reason?: string | null;
+  actions?: OrderActions;
   payment_method: string;
   carrier: string;
   service_code?: string | null;
@@ -184,44 +215,65 @@ interface BadgeConfig {
 // ─────────────────────────────────────────────
 // Status / Payment configs
 // ─────────────────────────────────────────────
-// Values come from the backend schema (BACKEND_QUESTIONS.md, B9). An order has three
-// separate fields: its own status, its payment status and its shipment status.
+// Values and meanings from the go-live API contract, section 1. An order has three separate
+// fields: its own status, its payment status and its shipment status.
+const AWAITING_PAYMENT: BadgeConfig = {
+  color: "var(--warning-soft-foreground)",
+  bg: "var(--warning-soft)",
+  dot: "var(--warning)",
+  label: "Awaiting payment",
+  desc: "Created at checkout. Not paid yet.",
+};
+
 const ORDER_STATUS: Record<string, BadgeConfig> = {
-  PENDING: { color: "var(--warning-soft-foreground)", bg: "var(--warning-soft)", dot: "var(--warning)", label: "Pending" },
-  PENDING_PAYMENT: { color: "var(--warning-soft-foreground)", bg: "var(--warning-soft)", dot: "var(--warning)", label: "Awaiting payment" },
-  CONFIRMED: { color: "var(--info-soft-foreground)", bg: "var(--info-soft)", dot: "var(--info)", label: "Confirmed" },
-  SHIPPED: { color: "var(--primary-soft-foreground)", bg: "var(--primary-soft)", dot: "var(--primary)", label: "Shipped" },
-  DELIVERED: { color: "var(--success-soft-foreground)", bg: "var(--success-soft)", dot: "var(--success)", label: "Delivered" },
-  CANCELLED: { color: "var(--muted-foreground)", bg: "var(--muted)", dot: "var(--placeholder)", label: "Cancelled" },
-  FAILED: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Failed" },
+  PENDING_PAYMENT: AWAITING_PAYMENT,
+  // The old value for the same thing; new orders don't get it.
+  PENDING: AWAITING_PAYMENT,
+  FAILED: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Payment failed", desc: "The last payment attempt failed. The customer can still pay." },
+  CONFIRMED: { color: "var(--info-soft-foreground)", bg: "var(--info-soft)", dot: "var(--info)", label: "Confirmed", desc: "Paid. Being made or waiting to ship." },
+  SHIPPED: { color: "var(--primary-soft-foreground)", bg: "var(--primary-soft)", dot: "var(--primary)", label: "Shipped", desc: "The carrier has it." },
+  DELIVERED: { color: "var(--success-soft-foreground)", bg: "var(--success-soft)", dot: "var(--success)", label: "Delivered", desc: "Tracking says delivered." },
+  CANCELLED: { color: "var(--muted-foreground)", bg: "var(--muted)", dot: "var(--placeholder)", label: "Cancelled", desc: "Cancelled by an admin." },
+};
+
+// The status filter's choices, in order. PENDING is left out: it's the old name for PENDING_PAYMENT.
+const ORDER_STATUS_FILTERS = ["PENDING_PAYMENT", "FAILED", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"];
+
+const LABEL_BOUGHT: BadgeConfig & { desc: string } = {
+  color: "var(--info-soft-foreground)",
+  bg: "var(--info-soft)",
+  dot: "var(--info)",
+  label: "Label bought",
+  desc: "The label and tracking number are ready. Waiting for the carrier's first scan.",
 };
 
 const SHIPMENT_STATUS: Record<string, BadgeConfig & { desc: string }> = {
-  PENDING: { color: "var(--muted-foreground)", bg: "var(--muted)", dot: "var(--placeholder)", label: "Not shipped", desc: "No shipping label yet." },
-  LABEL_CREATED: { color: "var(--info-soft-foreground)", bg: "var(--info-soft)", dot: "var(--info)", label: "Label created", desc: "Label printed; waiting for the carrier's first scan." },
-  SUCCESS: { color: "var(--primary-soft-foreground)", bg: "var(--primary-soft)", dot: "var(--primary)", label: "Shipment created", desc: "Label and tracking number assigned." },
-  IN_TRANSIT: { color: "var(--primary-soft-foreground)", bg: "var(--primary-soft)", dot: "var(--primary)", label: "In transit", desc: "Moving through the carrier network." },
-  OUT_FOR_DELIVERY: { color: "var(--violet-soft-foreground)", bg: "var(--violet-soft)", dot: "var(--violet)", label: "Out for delivery", desc: "On the delivery vehicle, expected today." },
+  PENDING: { color: "var(--muted-foreground)", bg: "var(--muted)", dot: "var(--placeholder)", label: "No label yet", desc: "No shipping label has been bought yet." },
+  LABEL_CREATED: LABEL_BOUGHT,
+  // The old value for LABEL_CREATED.
+  SUCCESS: LABEL_BOUGHT,
+  FAILED: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Label failed", desc: "ShipStation couldn't buy the label. The order stays paid, and the label can be bought again." },
+  IN_TRANSIT: { color: "var(--primary-soft-foreground)", bg: "var(--primary-soft)", dot: "var(--primary)", label: "In transit", desc: "The carrier has the parcel." },
+  OUT_FOR_DELIVERY: { color: "var(--violet-soft-foreground)", bg: "var(--violet-soft)", dot: "var(--violet)", label: "Out for delivery", desc: "On the delivery vehicle." },
   DELIVERED: { color: "var(--success-soft-foreground)", bg: "var(--success-soft)", dot: "var(--success)", label: "Delivered", desc: "The carrier confirmed delivery." },
-  RETURNED: { color: "var(--warning-soft-foreground)", bg: "var(--warning-soft)", dot: "var(--warning)", label: "Returned", desc: "Coming back to the sender. Refund or reship needed." },
-  EXCEPTION: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Exception", desc: "Delivery problem: bad address, customs hold or missed delivery." },
-  FAILED: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Label failed", desc: "ShipStation couldn't buy the label. The order stays paid, and the label can be tried again." },
-  CANCELLED: { color: "var(--muted-foreground)", bg: "var(--muted)", dot: "var(--placeholder)", label: "Cancelled", desc: "The shipment was cancelled." },
+  EXCEPTION: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Delivery problem", desc: "The carrier reported a problem, such as a bad address or a missed delivery. Check the tracking." },
+  RETURNED: { color: "var(--warning-soft-foreground)", bg: "var(--warning-soft)", dot: "var(--warning)", label: "Returned", desc: "Going back to the sender. Refund or reship it." },
+  CANCELLED: { color: "var(--muted-foreground)", bg: "var(--muted)", dot: "var(--placeholder)", label: "Cancelled", desc: "The order was cancelled, and an unused label was voided." },
 };
 
 const PAYMENT_STATUS: Record<string, BadgeConfig> = {
   SUCCESS: { color: "var(--success-soft-foreground)", bg: "var(--success-soft)", dot: "var(--success)", label: "Paid" },
-  PENDING: { color: "var(--warning-soft-foreground)", bg: "var(--warning-soft)", dot: "var(--warning)", label: "Pending" },
-  REJECTED: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Rejected" },
+  PENDING: { color: "var(--warning-soft-foreground)", bg: "var(--warning-soft)", dot: "var(--warning)", label: "Unpaid", desc: "Not paid yet, or a payment is still being processed." },
+  REJECTED: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Failed", desc: "The last payment attempt failed." },
 };
 
 // The backend lists only paid orders unless payment_status is sent, so the filter always
 // sends one. "ALL" lists every payment status.
 const PAYMENT_FILTERS = [
-  { value: "ALL", label: "All payments", stat: "Orders" },
   { value: "SUCCESS", label: "Paid", stat: "Paid orders" },
-  { value: "PENDING", label: "Payment pending", stat: "Awaiting payment" },
-  { value: "REJECTED", label: "Payment rejected", stat: "Payment rejected" },
+  { value: "PENDING", label: "Unpaid", stat: "Unpaid orders" },
+  { value: "REJECTED", label: "Failed", stat: "Failed payments" },
+  { value: "ALL", label: "All", stat: "Orders" },
 ];
 
 const KIND_META: Record<ItemKind, { label: string; className: string; artworkCaption: string }> = {
@@ -263,6 +315,9 @@ const fmt$ = (n: number | null | undefined) => {
   });
   return `${v < 0 ? "−" : ""}$${abs}`;
 };
+
+/** 8.25 → "8.25%" */
+const fmtRate = (rate: number) => `${round2(rate).toLocaleString("en-US", { maximumFractionDigits: 2 })}%`;
 
 const fmtDate = (date: string) => {
   if (!date) return "--";
@@ -472,9 +527,11 @@ interface OrderCalc {
   itemsTotal: number;
   units: number;
   subtotal: number;
+  handling: number;
   shipping: number;
-  /** API does not return tax, so it is derived: total − subtotal − shipping. */
+  /** tax_amount; worked out as total − subtotal − handling − shipping when the API leaves it out. */
   tax: number;
+  taxRecorded: boolean;
   taxRate: number;
   grandTotal: number;
   cautions: Caution[];
@@ -673,14 +730,25 @@ const calcOrder = (order: Order): OrderCalc => {
   const itemsTotal = sum(items.map((i) => i.reportedTotal));
   const units = items.reduce((acc, i) => acc + i.quantity, 0);
   const subtotal = toNum(order.subtotal_amount);
+  const handling = toNum(order.handling_amount);
   const shipping = toNum(order.shipping_amount);
   const grandTotal = toNum(order.total_amount);
-  const tax = round2(grandTotal - subtotal - shipping);
+  // total = subtotal + handling + tax + shipping, and tax = tax_rate% of (subtotal + handling).
+  const taxBase = subtotal + handling;
+  const taxRecorded = order.tax_amount != null;
+  const tax = taxRecorded ? round2(toNum(order.tax_amount)) : round2(grandTotal - taxBase - shipping);
+  const rateRecorded = order.tax_rate != null && toNum(order.tax_rate) > 0;
+  const taxRate = rateRecorded ? toNum(order.tax_rate) : taxBase > 0 ? round2((tax / taxBase) * 100) : 0;
   const cautions: Caution[] = [];
 
   pushMismatch(cautions, "Subtotal (sum of line totals)", itemsTotal, subtotal);
-  if (tax < -TOLERANCE) {
-    cautions.push({ level: "warning", message: `Grand total is ${fmt$(-tax)} less than subtotal + shipping. Check discounts or refunds.` });
+  if (taxRecorded) {
+    pushMismatch(cautions, "Total (subtotal + handling + tax + shipping)", taxBase + tax + shipping, grandTotal);
+    if (rateRecorded) {
+      pushMismatch(cautions, `Tax (${fmtRate(taxRate)} of subtotal + handling)`, (taxRate / 100) * taxBase, tax);
+    }
+  } else if (tax < -TOLERANCE) {
+    cautions.push({ level: "warning", message: `Total is ${fmt$(-tax)} less than subtotal + handling + shipping. Check discounts or refunds.` });
   }
   if (order.preview?.total_items != null && order.preview.total_items !== units) {
     cautions.push({ level: "info", message: `Order header reports ${order.preview.total_items} units, line items add up to ${units}.` });
@@ -693,9 +761,11 @@ const calcOrder = (order: Order): OrderCalc => {
     itemsTotal,
     units,
     subtotal,
+    handling,
     shipping,
     tax,
-    taxRate: subtotal > 0 ? round2((tax / subtotal) * 100) : 0,
+    taxRecorded,
+    taxRate,
     grandTotal,
     cautions,
     warningCount,
@@ -814,12 +884,20 @@ const StatusBadge = ({ value, map }: { value: string; map: Record<string, BadgeC
     label: humanize(value),
   };
   return (
-    <span className="status-badge" style={{ background: cfg.bg, color: cfg.color }}>
+    <span className="status-badge" style={{ background: cfg.bg, color: cfg.color }} title={cfg.desc}>
       <span className="status-dot" style={{ background: cfg.dot }} />
       {cfg.label || humanize(value)}
     </span>
   );
 };
+
+/** The list's marker for an order with an attention_note; the note shows on hover and in the order. */
+const AttentionPill = ({ note }: { note: string }) => (
+  <span className="attention-pill" title={note}>
+    <TriangleAlert size={12} aria-hidden />
+    Needs attention
+  </span>
+);
 
 const KindBadge = ({ kind }: { kind: ItemKind }) => (
   <span className={`kind-badge ${KIND_META[kind].className}`}>{KIND_META[kind].label}</span>
@@ -904,18 +982,232 @@ const OrderTabs: React.FC<{
   </Tabs>
 );
 
+// ── Actions ──────────────────────────────────
+type OrderAction = "label" | "cancel" | "delete";
+
+interface OrderActionProps {
+  /** The action running for this order, for its spinner. */
+  busyAction: OrderAction | null;
+  /** Any action is running: every action button waits. */
+  locked: boolean;
+  onBuyLabel: (order: Order) => void;
+}
+
+/** "buy" for a paid order with no label yet, "retry" when buying it failed. From actions.can_buy_label only. */
+const labelActionOf = (o: Order): "buy" | "retry" | null => {
+  if (!o.actions?.can_buy_label) return null;
+  if (o.shipment_status === "FAILED") return "retry";
+  return o.shipment_status === "PENDING" ? "buy" : null;
+};
+
+const LabelButton = ({ order, busyAction, locked, onBuyLabel }: OrderActionProps & { order: Order }) => {
+  const kind = labelActionOf(order);
+  if (!kind) return null;
+  const running = busyAction === "label";
+  return (
+    <Button type="button" size="sm" disabled={locked} onClick={() => onBuyLabel(order)}>
+      {running && <Spinner size="small" className="text-current" label="Buying the label" />}
+      {kind === "retry" ? (running ? "Trying again…" : "Try again") : running ? "Buying label…" : "Buy label"}
+    </Button>
+  );
+};
+
+/** Under the hero, on every tab: what the team must look at, and the cancellation. */
+const OrderNotices = ({ order: o }: { order: Order }) => {
+  const cancelled = Boolean(o.cancelled_at || o.cancel_reason);
+  if (!o.attention_note && !cancelled) return null;
+  return (
+    <div className="om-notices">
+      {o.attention_note && (
+        <div className="om-notice om-notice-warning">
+          <TriangleAlert size={16} aria-hidden />
+          <p>
+            <strong>Needs attention:</strong> {o.attention_note}
+          </p>
+        </div>
+      )}
+      {cancelled && (
+        <div className="om-notice om-notice-muted">
+          <Ban size={16} aria-hidden />
+          <p>
+            <strong>Cancelled{o.cancelled_at ? ` on ${fmtDate(o.cancelled_at)}` : ""}.</strong>{" "}
+            {o.cancel_reason ? `Reason: ${o.cancel_reason}` : "No reason was given."}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const OrderActionBar = ({
+  order: o,
+  busyAction,
+  locked,
+  onBuyLabel,
+  onCancel,
+  onDelete,
+}: OrderActionProps & { order: Order; onCancel: (order: Order) => void; onDelete: (order: Order) => void }) => {
+  const label = labelActionOf(o);
+  const canCancel = Boolean(o.actions?.can_cancel);
+  const canDelete = Boolean(o.actions?.can_delete);
+  if (!label && !canCancel && !canDelete) return null;
+
+  return (
+    <div className="om-actions">
+      <p className="om-actions-note" title={label === "retry" ? o.shipment_error ?? undefined : undefined}>
+        {label === "buy" && "Paid. No shipping label yet."}
+        {label === "retry" && `The label wasn't bought: ${o.shipment_error || "ShipStation didn't give a reason."}`}
+      </p>
+      <div className="om-actions-buttons">
+        <LabelButton order={o} busyAction={busyAction} locked={locked} onBuyLabel={onBuyLabel} />
+        {canCancel && (
+          <Button type="button" size="sm" variant="outline" disabled={locked} onClick={() => onCancel(o)}>
+            {busyAction === "cancel" && <Spinner size="small" className="text-current" label="Cancelling the order" />}
+            Cancel order
+          </Button>
+        )}
+        {canDelete && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="text-destructive hover:text-destructive"
+            disabled={locked}
+            onClick={() => onDelete(o)}
+          >
+            {busyAction === "delete" && <Spinner size="small" className="text-current" label="Deleting the order" />}
+            Delete order
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/** Opens from "Cancel order". Shows the backend's warnings after a cancel, when there are any. */
+const CancelOrderDialog = ({
+  order,
+  busy,
+  onConfirm,
+  onClose,
+}: {
+  order: Order | null;
+  busy: boolean;
+  /** The backend's warnings once cancelled; null when it failed (the toast says why) or didn't run. */
+  onConfirm: (order: Order, reason: string) => Promise<string[] | null>;
+  onClose: () => void;
+}) => {
+  const [openFor, setOpenFor] = useState<number | null>(order?.id ?? null);
+  const [reason, setReason] = useState("");
+  const [warnings, setWarnings] = useState<string[] | null>(null);
+
+  // A fresh form whenever it opens.
+  if ((order?.id ?? null) !== openFor) {
+    setOpenFor(order?.id ?? null);
+    setReason("");
+    setWarnings(null);
+  }
+
+  const paid = order?.payment_status === "SUCCESS";
+  const hasLabel = Boolean(order?.label_url || order?.tracking_number);
+  const refundNote = paid && (
+    <p className="rounded-md border border-warning-border bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
+      <strong>The customer is not refunded automatically.</strong> Refund them in {refundPlace(order?.payment_method)}.
+    </p>
+  );
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!order || busy) return;
+    const result = await onConfirm(order, reason.trim());
+    if (result === null) return;
+    if (result.length) setWarnings(result);
+    else onClose();
+  };
+
+  return (
+    <Dialog open={!!order} onOpenChange={(next) => !next && !busy && onClose()}>
+      {order && (
+        <DialogContent className="sm:max-w-md" showCloseButton={!busy}>
+          {warnings ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>Order {order.order_number} is cancelled</DialogTitle>
+                <DialogDescription>Some of it has to be done by hand:</DialogDescription>
+              </DialogHeader>
+              <ul className="list-disc space-y-1 pl-5 text-sm">
+                {warnings.map((warning, i) => (
+                  <li key={i}>{warning}</li>
+                ))}
+              </ul>
+              {refundNote}
+              <DialogFooter>
+                <Button type="button" onClick={onClose}>
+                  Done
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <form onSubmit={submit} className="grid gap-4">
+              <DialogHeader>
+                <DialogTitle>Cancel order {order.order_number}?</DialogTitle>
+                <DialogDescription asChild>
+                  <ul className="list-disc space-y-1 pl-5">
+                    {hasLabel && <li>Its unused shipping label is voided.</li>}
+                    {paid && <li>Its stock goes back.</li>}
+                    <li>The order is marked cancelled. This can't be undone.</li>
+                  </ul>
+                </DialogDescription>
+              </DialogHeader>
+              {refundNote}
+              <div className="grid gap-2">
+                <Label htmlFor="cancel-order-reason">Reason (optional)</Label>
+                <Textarea
+                  id="cancel-order-reason"
+                  value={reason}
+                  maxLength={255}
+                  rows={3}
+                  disabled={busy}
+                  placeholder="For example: the customer asked to cancel."
+                  aria-describedby="cancel-order-reason-count"
+                  onChange={(e) => setReason(e.target.value)}
+                />
+                <p id="cancel-order-reason-count" className="text-right text-xs text-muted-foreground">
+                  {reason.length}/255
+                </p>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" disabled={busy} onClick={onClose}>
+                  Keep order
+                </Button>
+                <Button type="submit" variant="destructive" disabled={busy}>
+                  {busy && <Spinner size="small" className="text-current" />}
+                  {busy ? "Cancelling…" : "Cancel order"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      )}
+    </Dialog>
+  );
+};
+
 const OrderDetailModal = ({
   order,
   open,
   onClose,
-  retrying,
-  onRetryLabel,
-}: {
+  busyAction,
+  locked,
+  onBuyLabel,
+  onCancel,
+  onDelete,
+}: OrderActionProps & {
   order: Order | null;
   open: boolean;
   onClose: () => void;
-  retrying: boolean;
-  onRetryLabel: (order: Order) => void;
+  onCancel: (order: Order) => void;
+  onDelete: (order: Order) => void;
 }) => {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [lightboxLabel, setLightboxLabel] = useState("");
@@ -962,6 +1254,16 @@ const OrderDetailModal = ({
           </div>
         </div>
 
+        <OrderNotices order={order} />
+        <OrderActionBar
+          order={order}
+          busyAction={busyAction}
+          locked={locked}
+          onBuyLabel={onBuyLabel}
+          onCancel={onCancel}
+          onDelete={onDelete}
+        />
+
         {/* ── Tabs ── */}
         <div className="om-body">
           <OrderTabs
@@ -986,7 +1288,7 @@ const OrderDetailModal = ({
                     {order.shipment_status === "FAILED" && <span className="tab-dot" aria-label="The label failed" />}
                   </span>
                 ),
-                children: <TabShipping order={order} retrying={retrying} onRetryLabel={onRetryLabel} />,
+                children: <TabShipping order={order} busyAction={busyAction} locked={locked} onBuyLabel={onBuyLabel} />,
               },
             ]}
           />
@@ -1075,7 +1377,7 @@ const TabOverview = ({ order: o, calc, onImageClick }: TabProps) => (
       <section className="section-card">
         <div className="section-title">Payment</div>
         <div className="kv-grid">
-          <KV label="Method" value={humanize(o.payment_method)} />
+          <KV label="Method" value={paymentModeLabel(o.payment_method)} />
           <KV label="Status">
             <StatusBadge value={o.payment_status} map={PAYMENT_STATUS} />
           </KV>
@@ -1364,16 +1666,26 @@ const TabPricing = ({ order: o, calc }: { order: Order; calc: OrderCalc }) => (
         ))}
         <div className="price-divider" />
         <PriceRow label="Subtotal" value={calc.subtotal} tone="bold" />
-        <PriceRow label="Shipping" detail={formatCarrier(o.carrier)} value={calc.shipping} tone="muted" />
-        {Math.abs(calc.tax) >= 0.005 && (
+        {calc.handling > 0 && <PriceRow label="Handling fee" detail="Once per order" value={calc.handling} tone="muted" />}
+        {(calc.taxRecorded || Math.abs(calc.tax) >= 0.005) && (
           <PriceRow
-            label="Tax & fees"
-            detail={`Derived: total − subtotal − shipping (${calc.taxRate.toFixed(2)}% of subtotal)`}
+            label="Tax"
+            detail={
+              calc.taxRecorded
+                ? `${fmtRate(calc.taxRate)} of subtotal${calc.handling > 0 ? " + handling" : ""}`
+                : `Not recorded. Worked out as total − subtotal − handling − shipping (${fmtRate(calc.taxRate)})`
+            }
             value={calc.tax}
             tone="muted"
           />
         )}
-        <PriceRow label="Grand Total" value={calc.grandTotal} tone="total" />
+        <PriceRow
+          label="Shipping"
+          detail={`What the customer paid · ${formatCarrier(o.carrier)}`}
+          value={calc.shipping}
+          tone="muted"
+        />
+        <PriceRow label="Total" value={calc.grandTotal} tone="total" />
       </div>
       <CautionList cautions={calc.cautions} />
     </section>
@@ -1408,18 +1720,8 @@ const TabPricing = ({ order: o, calc }: { order: Order; calc: OrderCalc }) => (
 );
 
 // ── Tab: Shipping ────────────────────────────
-const TabShipping = ({
-  order: o,
-  retrying,
-  onRetryLabel,
-}: {
-  order: Order;
-  retrying: boolean;
-  onRetryLabel: (order: Order) => void;
-}) => {
+const TabShipping = ({ order: o, busyAction, locked, onBuyLabel }: OrderActionProps & { order: Order }) => {
   const labelFailed = o.shipment_status === "FAILED";
-  // The backend refuses the rest: an unpaid or cancelled order, or one that has its label.
-  const canRetry = labelFailed && o.payment_status === "SUCCESS" && o.status !== "CANCELLED" && !o.label_url;
   const labelCost = toNum(o.actual_shipping_cost);
   const difference = toNum(o.shipping_profit);
 
@@ -1430,12 +1732,8 @@ const TabShipping = ({
           <div className="section-title">The label wasn't bought</div>
           <p className="label-failed-reason">{o.shipment_error || "ShipStation didn't give a reason."}</p>
           <p className="label-failed-note">The payment stands and the order stays paid.</p>
-          {canRetry && (
-            <Button type="button" size="sm" disabled={retrying} onClick={() => onRetryLabel(o)}>
-              {retrying && <Spinner size="small" className="text-current" label="Buying the label" />}
-              {retrying ? "Trying again…" : "Try again"}
-            </Button>
-          )}
+          {/* Shown only when actions.can_buy_label allows it. */}
+          <LabelButton order={o} busyAction={busyAction} locked={locked} onBuyLabel={onBuyLabel} />
         </section>
       )}
 
@@ -1480,7 +1778,8 @@ const TabShipping = ({
       <section className="section-card">
         <div className="section-title">Shipment statuses</div>
         <div className="status-guide-grid">
-          {Object.entries(SHIPMENT_STATUS).map(([key, cfg]) => (
+          {/* SUCCESS is the old name for LABEL_CREATED. */}
+          {Object.entries(SHIPMENT_STATUS).filter(([key]) => key !== "SUCCESS").map(([key, cfg]) => (
             <div className="status-guide-item" key={key}>
               <StatusBadge value={key} map={SHIPMENT_STATUS} />
               <div className="status-guide-desc">{cfg.desc}</div>
@@ -1508,7 +1807,11 @@ const OrdersPage = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  const [retryingId, setRetryingId] = useState<number | null>(null);
+  // The order action running now. One at a time: every action button waits for it.
+  const [busy, setBusy] = useState<{ id: number; action: OrderAction } | null>(null);
+  // Set at once, so a double click can't send a second request before the buttons disable.
+  const busyRef = useRef(false);
+  const [cancelTarget, setCancelTarget] = useState<Order | null>(null);
 
   // Debounce search so we don't hit the API on every keystroke
   useEffect(() => {
@@ -1563,27 +1866,103 @@ const OrdersPage = () => {
     setSelectedOrder((current) => current && apply(current));
   }, []);
 
-  const retryLabel = useCallback(
-    async (order: Order) => {
-      setRetryingId(order.id);
+  const refresh = useCallback(() => setReloadKey((key) => key + 1), []);
+
+  // Runs one order action; returns undefined without running when another is under way. The list
+  // reloads afterwards, whatever the outcome: the order may have changed, here or elsewhere.
+  const runAction = useCallback(
+    async <T,>(order: Order, action: OrderAction, run: () => Promise<T>): Promise<T | undefined> => {
+      if (busyRef.current) return undefined;
+      busyRef.current = true;
+      setBusy({ id: order.id, action });
       try {
-        const res = await RetryOrderLabelAPI(order.id);
-        patchOrder(order.id, { ...res.data.data, shipment_error: null });
-        toast.success("Label created", { description: `${order.order_number} is in ShipStation with its label.` });
-      } catch (err) {
-        const status = axios.isAxiosError(err) ? err.response?.status : undefined;
-        const message =
-          (axios.isAxiosError(err) && err.response?.data?.message) || "Check your connection and try again.";
-        toast.error("The label wasn't bought", { description: message });
-        // 502 is ShipStation refusing again, with its new reason. Anything else means the order
-        // changed under us: another admin bought the label, or is buying it now.
-        if (status === 502) patchOrder(order.id, { shipment_error: message });
-        else if (status) setReloadKey((key) => key + 1);
+        return await run();
       } finally {
-        setRetryingId(null);
+        busyRef.current = false;
+        setBusy(null);
+        refresh();
       }
     },
-    [patchOrder],
+    [refresh],
+  );
+
+  // "Buy label" (shipment PENDING) and "Try again" (FAILED).
+  const buyLabel = useCallback(
+    (order: Order) =>
+      runAction(order, "label", async () => {
+        try {
+          const res = await RetryOrderLabelAPI(order.id);
+          const label = (res.data?.data ?? {}) as Partial<Order>;
+          patchOrder(order.id, { ...label, shipment_error: null });
+          toast.success("Label bought", {
+            description: label.tracking_number
+              ? `${order.order_number}: tracking number ${label.tracking_number}.`
+              : `${order.order_number} has its label.`,
+          });
+        } catch (err) {
+          toastApiError("The label wasn't bought", err, "Check your connection and try again.");
+          // 502 is ShipStation refusing, with its reason. 400 and 409 mean the order changed
+          // elsewhere (it has a label, or one is being bought); the reload shows it.
+          if (axios.isAxiosError(err) && err.response?.status === 502) {
+            patchOrder(order.id, { shipment_error: apiErrorMessage(err, "ShipStation didn't give a reason.") });
+          }
+        }
+      }),
+    [runAction, patchOrder],
+  );
+
+  // From the cancel dialog. Resolves with the backend's warnings, or null when it didn't cancel.
+  const cancelOrder = useCallback(
+    async (order: Order, reason: string): Promise<string[] | null> => {
+      const warnings = await runAction(order, "cancel", async () => {
+        try {
+          const res = await CancelOrderAPI(order.id, reason || undefined);
+          const data = (res.data?.data ?? {}) as { order?: Order; warnings?: string[] };
+          patchOrder(order.id, { status: "CANCELLED", shipment_status: "CANCELLED", ...data.order });
+          toast.success(`Order ${order.order_number} cancelled`, {
+            description:
+              order.payment_status === "SUCCESS"
+                ? `Refund the customer in ${refundPlace(order.payment_method)}. It isn't automatic.`
+                : undefined,
+          });
+          return data.warnings ?? [];
+        } catch (err) {
+          const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+          // 409: ShipStation wouldn't void the label, or a label is being bought right now. The
+          // backend's message, shown under this title, says which.
+          if (status === 409) toastApiError("The order wasn't cancelled. Nothing changed.", err);
+          else toastApiError("The order wasn't cancelled", err);
+          // 400 and 404: it can't be cancelled any more, so trying again won't help.
+          if (status === 400 || status === 404) setCancelTarget(null);
+          return null;
+        }
+      });
+      return warnings ?? null;
+    },
+    [runAction, patchOrder],
+  );
+
+  const deleteOrder = useCallback(
+    (order: Order) =>
+      confirm({
+        title: `Delete order ${order.order_number}?`,
+        content: "This hides the order from the panel and the customer's account. It can't be undone here.",
+        okText: "Delete order",
+        okType: "danger",
+        cancelText: "Keep order",
+        onOk: () =>
+          runAction(order, "delete", async () => {
+            try {
+              await DeleteOrderAPI(order.id);
+              setModalOpen(false);
+              setOrders((rows) => rows.filter((row) => row.id !== order.id));
+              toast.success(`Order ${order.order_number} deleted`);
+            } catch (err) {
+              toastApiError("The order wasn't deleted", err);
+            }
+          }),
+      }),
+    [runAction],
   );
 
   const columns: DataTableColumn<Order>[] = useMemo(
@@ -1662,6 +2041,7 @@ const OrdersPage = () => {
           <div className="cell-statuses">
             <StatusBadge value={row.status} map={ORDER_STATUS} />
             {row.shipment_status === "FAILED" && <StatusBadge value="FAILED" map={SHIPMENT_STATUS} />}
+            {row.attention_note && <AttentionPill note={row.attention_note} />}
           </div>
         ),
       },
@@ -1739,7 +2119,7 @@ const OrdersPage = () => {
             setStatusFilter(v || "");
             setPage(1);
           }}
-          options={Object.entries(ORDER_STATUS).map(([value, cfg]) => ({ label: cfg.label, value }))}
+          options={ORDER_STATUS_FILTERS.map((value) => ({ label: ORDER_STATUS[value].label, value }))}
         />
       </div>
 
@@ -1773,8 +2153,18 @@ const OrdersPage = () => {
         order={selectedOrder}
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        retrying={retryingId !== null && retryingId === selectedOrder?.id}
-        onRetryLabel={retryLabel}
+        busyAction={busy && busy.id === selectedOrder?.id ? busy.action : null}
+        locked={busy !== null}
+        onBuyLabel={buyLabel}
+        onCancel={setCancelTarget}
+        onDelete={deleteOrder}
+      />
+
+      <CancelOrderDialog
+        order={cancelTarget}
+        busy={busy?.action === "cancel"}
+        onConfirm={cancelOrder}
+        onClose={() => setCancelTarget(null)}
       />
     </div>
   );
