@@ -34,6 +34,9 @@ const paymentMode = (row: any): string | null => row?.payment_method || row?.pay
 const money = (n: unknown) =>
   `$${Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+// Joined rows to ask for, so every payment arrives in one request (see loadPayments).
+const ALL_PAYMENT_ROWS = 100000;
+
 const PaymentsPage = () => {
   const [payments, setPayments] = useState<any[]>([]);
 
@@ -45,9 +48,10 @@ const PaymentsPage = () => {
 
   const [page, setPage] = useState(1);
 
-  const [total, setTotal] = useState(0);
+  // How many payments the server says there are. Fewer can arrive: see loadPayments.
+  const [serverTotal, setServerTotal] = useState(0);
 
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(50);
 
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
 
@@ -59,13 +63,18 @@ const PaymentsPage = () => {
    |--------------------------------------------------------------------------
    */
 
+  // payment/admin/all applies `limit` to joined database rows (a payment with
+  // its order and items), not to payments, so a page of 10 can hold 2 payments
+  // (BACKEND_QUESTIONS.md A4 and F30). Until it pages by payment, as orders do,
+  // ask for every row at once and page here. The database returns only the
+  // rows there are, so the large limit costs nothing extra.
   const loadPayments = async () => {
     try {
       setLoading(true);
 
       const res = await GetAllPaymentsAPI({
-        page,
-        limit,
+        page: 1,
+        limit: ALL_PAYMENT_ROWS,
       });
 
       const payload = res.data.data;
@@ -76,7 +85,7 @@ const PaymentsPage = () => {
 
       setFilteredPayments(paymentData);
 
-      setTotal(payload.total || 0);
+      setServerTotal(payload.total || 0);
     } catch (err) {
       console.error("Failed to load payments", err);
       toastApiError("Couldn't load the payments", err);
@@ -87,7 +96,7 @@ const PaymentsPage = () => {
 
   useEffect(() => {
     loadPayments();
-  }, [page, limit]);
+  }, []);
 
   /*
    |--------------------------------------------------------------------------
@@ -116,6 +125,8 @@ const PaymentsPage = () => {
 
     setFilteredPayments(filtered);
   }, [search, payments]);
+
+  const pagePayments = filteredPayments.slice((page - 1) * limit, page * limit);
 
   /*
    |--------------------------------------------------------------------------
@@ -293,13 +304,24 @@ const PaymentsPage = () => {
         <SearchInput
           allowClear
           size="large"
-          placeholder="Search this page by transaction, order, customer..."
+          placeholder="Search by transaction, order, customer..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            // A new search starts on the first page.
+            setPage(1);
+          }}
           wrapperClassName="payment-search"
           aria-label="Search payments"
         />
       </div>
+
+      {!loading && payments.length < serverTotal && (
+        <p className="mb-4 rounded-md border border-warning-border bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
+          Showing {payments.length} of {serverTotal} payments: the server didn't
+          send the rest.
+        </p>
+      )}
 
       {/* TABLE */}
       <div className="payments-card">
@@ -307,15 +329,18 @@ const PaymentsPage = () => {
           rowKey="payment_id"
           loading={loading}
           columns={columns}
-          dataSource={filteredPayments}
+          dataSource={pagePayments}
           onRowClick={openPayment}
           className="payments-table"
           pagination={{
             current: page,
             pageSize: limit,
-            total,
+            total: filteredPayments.length,
             showSizeChanger: true,
-            showTotal: (total) => `Total ${total} payments`,
+            showTotal: (total) =>
+              search.trim()
+                ? `${total} of ${payments.length} payments`
+                : `Total ${total} payments`,
             onChange: (current, pageSize) => {
               setPage(current);
               setLimit(pageSize);

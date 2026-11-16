@@ -16,6 +16,8 @@ API=https://node.hashtagbillionaire.com/api/v1
 TOKEN=$(curl -s -X POST "$API/admin/auth/login" -F email="$EMAIL" -F password="$PASSWORD" | jq -r .data.token)
 ```
 
+> **Update (panel, 2026-11-16):** F30 asks for `payment/admin/all` to page by payment, as orders do (A4). Until then the Payments page loads every payment at once and pages them itself.
+
 > **Update (panel, 2026-11-12):** F28 asks for a `no_parent_category` filter on `GET product/admin/get/all`, so the Products page can list every product with no parent category. It's live (backend `20ebba1`). F29 asks for endpoints to save and load pricing templates. They're live too (backend `adeb71f`).
 
 > **Update (panel, 2026-11-06):** F26 asks for a new customization pricing type, `FIXED_QUANTITY`. It has been live since 6 November (backend `a8cb702`). F27 still holds an open pricing question.
@@ -833,6 +835,16 @@ A template is `{ id, name, pricing_mode, bulk_pricing, quantity_pricing, created
 **Storage:** a new table (name, style, the rows as JSON, the admin who saved it, timestamps, soft delete), with a `_before_deploy` migration and its rollback.
 
 **Panel meanwhile:** it asks for the list when a page opens. While the backend answers `404`, the page and the Save and Load dialogs say templates aren't available yet, and nothing can be saved.
+
+### Payments list (2026-11-16)
+
+#### F30. Page `payment/admin/all` by payment, as orders are (Medium)
+
+With real payments, the Payments page said "Total 17 payments" but showed 2 on a page of 10. This is A4, still open on `main` at `18d8b43`. `getAllPayments` (`checkout.service.js:666`) applies `limit` and `offset` to joined rows (`subQuery: false`, `:829`). A page of 10 rows held 2 payments, pages can overlap, and the last payment on a page can lose items. `total` counts payments (`distinct: true`), so it doesn't match the pages.
+
+**Fix:** pick the page of payment ids first, then load those payments with their includes, as `getAdminOrders` now does ("Pick the page of order ids first", `order.service.js`). Keep the response as it is: `{ payments, total }`.
+
+**Panel meanwhile:** it asks for page 1 with `limit=100000`, so every row arrives in one request, then pages and searches the payments itself, 50 to a page. If fewer payments arrive than `total`, it says so above the table. Once this is fixed, the panel goes back to asking for one page at a time.
 
 ### Still open from earlier
 
