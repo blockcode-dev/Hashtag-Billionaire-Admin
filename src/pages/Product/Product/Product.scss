@@ -10,6 +10,17 @@
   }
 }
 
+@keyframes rowJustOpened {
+  from,
+  40% {
+    background: var(--primary-soft);
+  }
+
+  to {
+    background: transparent;
+  }
+}
+
 /* Scoped to this page so its class names can't leak into other pages. */
 .products-root {
   /** @format */
@@ -311,6 +322,18 @@
       td {
         padding: 12px 16px;
         border-bottom: 1px solid var(--border);
+      }
+
+      /* The product you came back from, marked for a moment. */
+      tr.just-opened td {
+        animation: rowJustOpened 2.6s ease-out;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        tr.just-opened td {
+          animation: none;
+          background: var(--primary-soft);
+        }
       }
     }
   }

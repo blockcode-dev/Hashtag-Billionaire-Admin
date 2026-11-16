@@ -119,41 +119,128 @@ const TIER_DOT_COLORS: Record<string, string> = {
   budget: "var(--success-soft-foreground)",
 };
 
+// ─── What the list was showing ──────────────────────────────────────────
+// Kept for this browser tab, so coming back from a product (View, Edit,
+// Duplicate, Back, or the Products link) shows the same search, filters and
+// page, with the product you opened in view.
+const LIST_STATE_KEY = "products-list";
+
+interface ListState {
+  search: string;
+  page: number;
+  activeTab: string;
+  activeTier: string;
+  noParentOnly: boolean;
+  filters: FilterState;
+  priceRange: { min: string; max: string };
+  selectedGrand: SimpleCategoryRef | null;
+  grandParents: SimpleCategoryRef[];
+  selectedParentIds: number[];
+  selectedUseCases: SimpleUseCaseRef[];
+  openedId: number | null;
+}
+
+const DEFAULT_LIST_STATE: ListState = {
+  search: "",
+  page: 1,
+  activeTab: "",
+  activeTier: "",
+  noParentOnly: false,
+  filters: EMPTY_FILTERS,
+  priceRange: { min: "", max: "" },
+  selectedGrand: null,
+  grandParents: [],
+  selectedParentIds: [],
+  selectedUseCases: [],
+  openedId: null,
+};
+
+// Anything missing or malformed falls back to the default.
+const readListState = (): ListState => {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(LIST_STATE_KEY) || "null");
+    if (!v || typeof v !== "object") return DEFAULT_LIST_STATE;
+    const text = (x: unknown) => (typeof x === "string" ? x : "");
+    const refs = <T extends SimpleCategoryRef>(x: unknown): T[] =>
+      Array.isArray(x)
+        ? x.filter((r) => r && typeof r.id === "number" && typeof r.title === "string")
+        : [];
+    return {
+      search: text(v.search),
+      page: Number.isInteger(v.page) && v.page > 0 ? v.page : 1,
+      activeTab: text(v.activeTab),
+      activeTier: text(v.activeTier),
+      noParentOnly: v.noParentOnly === true,
+      filters: Object.fromEntries(
+        Object.keys(EMPTY_FILTERS).map((k) => [k, text(v.filters?.[k])]),
+      ),
+      priceRange: { min: text(v.priceRange?.min), max: text(v.priceRange?.max) },
+      selectedGrand: refs<SimpleCategoryRef>([v.selectedGrand])[0] ?? null,
+      grandParents: refs<SimpleCategoryRef>(v.grandParents),
+      selectedParentIds: Array.isArray(v.selectedParentIds)
+        ? v.selectedParentIds.filter((n: unknown) => typeof n === "number")
+        : [],
+      selectedUseCases: refs<SimpleUseCaseRef>(v.selectedUseCases),
+      openedId: typeof v.openedId === "number" ? v.openedId : null,
+    };
+  } catch {
+    return DEFAULT_LIST_STATE;
+  }
+};
+
+const writeListState = (state: ListState) => {
+  try {
+    sessionStorage.setItem(LIST_STATE_KEY, JSON.stringify(state));
+  } catch {
+    // Storage is off: the list starts over next time, as before.
+  }
+};
+
 const ProductsPage = () => {
   const navigate = useNavigate();
+  // The search, filters and page from the last visit (see readListState).
+  const [saved] = useState(readListState);
   const [products, setProducts] = useState<any[]>([]);
   const [tableLoading, setTableLoading] = useState(false);
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState(saved.search);
+  const [debouncedSearch, setDebouncedSearch] = useState(saved.search);
+  const [page, setPage] = useState(saved.page);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [stats, setStats] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState("");
+  const [activeTab, setActiveTab] = useState(saved.activeTab);
 
   // ── Tier filter (Primary / Secondary / Budget / All) ───────────────
   // Only meaningful once at least one Use Case is selected — the tabs
   // themselves are only rendered in that state.
   const [tiers, setTiers] = useState<Tier[]>([]);
-  const [activeTier, setActiveTier] = useState(""); // "" = no tier filter, "all" = union, or a tier key
+  const [activeTier, setActiveTier] = useState(saved.activeTier); // "" = no tier filter, "all" = union, or a tier key
 
   // Sent to the API as no_parent_category=true. Until the backend filters
   // on it (BACKEND_QUESTIONS.md F28), the API ignores it, so rows are also
   // checked here and the page says when only this page was checked.
-  const [noParentOnly, setNoParentOnly] = useState(false);
+  const [noParentOnly, setNoParentOnly] = useState(saved.noParentOnly);
 
   // Server-side radio filters (sync status)
-  const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<FilterState>(saved.filters);
 
   // ── Price range filter ────────────────────────────────────────────
-  const [priceRange, setPriceRange] = useState({ min: "", max: "" });
-  const [debouncedPriceRange, setDebouncedPriceRange] = useState({
-    min: "",
-    max: "",
-  });
+  const [priceRange, setPriceRange] = useState(saved.priceRange);
+  const [debouncedPriceRange, setDebouncedPriceRange] = useState(
+    saved.priceRange,
+  );
 
+  // Goes back to page 1 only when the range really changed, so opening the
+  // page keeps the page it was on.
+  const pricedRef = useRef(saved.priceRange);
   useEffect(() => {
     const timer = setTimeout(() => {
+      if (
+        priceRange.min === pricedRef.current.min &&
+        priceRange.max === pricedRef.current.max
+      )
+        return;
+      pricedRef.current = priceRange;
       setDebouncedPriceRange(priceRange);
       setPage(1);
     }, 500);
@@ -165,11 +252,15 @@ const ProductsPage = () => {
     [],
   );
   const [selectedGrand, setSelectedGrand] = useState<SimpleCategoryRef | null>(
-    null,
+    saved.selectedGrand,
   );
-  const [grandParents, setGrandParents] = useState<SimpleCategoryRef[]>([]);
+  const [grandParents, setGrandParents] = useState<SimpleCategoryRef[]>(
+    saved.grandParents,
+  );
   const [grandParentsLoading, setGrandParentsLoading] = useState(false);
-  const [selectedParentIds, setSelectedParentIds] = useState<number[]>([]);
+  const [selectedParentIds, setSelectedParentIds] = useState<number[]>(
+    saved.selectedParentIds,
+  );
   const categoryFilterActive = !!selectedGrand;
 
   // ── Use Case filter (multi-select, searchable) — drives Tier
@@ -178,7 +269,7 @@ const ProductsPage = () => {
   const [useCasesLoading, setUseCasesLoading] = useState(false);
   const [useCaseSearch, setUseCaseSearch] = useState("");
   const [selectedUseCases, setSelectedUseCases] = useState<SimpleUseCaseRef[]>(
-    [],
+    saved.selectedUseCases,
   );
   const useCaseFilterActive = selectedUseCases.length > 0;
   const selectedUseCaseIds = useMemo(
@@ -325,6 +416,7 @@ const ProductsPage = () => {
   const clearFilter = (key: string) => setFilter(key, "");
 
   const clearPriceRange = () => {
+    pricedRef.current = { min: "", max: "" };
     setPriceRange({ min: "", max: "" });
     setDebouncedPriceRange({ min: "", max: "" });
     setPage(1);
@@ -351,8 +443,12 @@ const ProductsPage = () => {
 
   const requestIdRef = useRef(0);
 
+  // Like the price range: page 1 only for a new search.
+  const searchedRef = useRef(saved.search);
   useEffect(() => {
     const timer = setTimeout(() => {
+      if (search === searchedRef.current) return;
+      searchedRef.current = search;
       setDebouncedSearch(search);
       setPage(1);
     }, 400);
@@ -404,6 +500,11 @@ const ProductsPage = () => {
       });
       if (thisRequestId !== requestIdRef.current) return;
       const payload = res.data.data;
+      const lastPage = payload.totalPages || 1;
+      if (page > lastPage && !(payload.data || []).length) {
+        setPage(lastPage);
+        return;
+      }
       setProducts(payload.data || []);
       setTotalPages(payload.totalPages || 1);
       setTotalItems(payload.total ?? payload.data?.length ?? 0);
@@ -441,6 +542,59 @@ const ProductsPage = () => {
     debouncedPriceRange.max,
     noParentOnly,
   ]);
+
+  // Save what the list shows, for the next visit (see readListState).
+  const openedIdRef = useRef(saved.openedId);
+  useEffect(() => {
+    writeListState({
+      search: debouncedSearch,
+      page,
+      activeTab,
+      activeTier,
+      noParentOnly,
+      filters,
+      priceRange: debouncedPriceRange,
+      selectedGrand,
+      grandParents,
+      selectedParentIds,
+      selectedUseCases,
+      openedId: openedIdRef.current,
+    });
+  }, [
+    debouncedSearch,
+    page,
+    activeTab,
+    activeTier,
+    noParentOnly,
+    filters,
+    debouncedPriceRange,
+    selectedGrand,
+    grandParents,
+    selectedParentIds,
+    selectedUseCases,
+  ]);
+
+  // Opens a product and remembers it, so the list can show it again.
+  const openProduct = (id: number, path: string, state?: unknown) => {
+    openedIdRef.current = id;
+    writeListState({ ...readListState(), openedId: id });
+    navigate(path, state === undefined ? undefined : { state });
+  };
+
+  // Back on the list: once it has loaded, bring the product you opened into
+  // view and mark its row for a moment.
+  const returnToRef = useRef(saved.openedId);
+  useEffect(() => {
+    const id = returnToRef.current;
+    if (id === null || tableLoading || !products.length) return;
+    returnToRef.current = null;
+    const row = document.querySelector(`tr[data-product-id="${id}"]`);
+    if (!row) return;
+    row.scrollIntoView({ block: "center" });
+    row.classList.add("just-opened");
+    const timer = setTimeout(() => row.classList.remove("just-opened"), 2600);
+    return () => clearTimeout(timer);
+  }, [tableLoading, products]);
 
   const loadStats = async () => {
     try {
@@ -1140,7 +1294,7 @@ const ProductsPage = () => {
               } = getCategoryHierarchy(p);
               const isManual = p.supplier === "MANUAL";
               return (
-                <tr key={p.id}>
+                <tr key={p.id} data-product-id={p.id}>
                   <td>
                     <div className="product-cell">
                       <Thumbnail src={p.attachments?.[0]?.file_uri} alt={p.name} size={44} />
@@ -1211,8 +1365,8 @@ const ProductsPage = () => {
                           className="btn-view"
                           aria-label={`View ${p.name}`}
                           onClick={() =>
-                            navigate(`/products/${p.id}`, {
-                              state: { product: p },
+                            openProduct(p.id, `/products/${p.id}`, {
+                              product: p,
                             })
                           }
                         >
@@ -1225,7 +1379,8 @@ const ProductsPage = () => {
                           className="btn-edit"
                           aria-label={`Edit ${p.name}`}
                           onClick={() =>
-                            navigate(
+                            openProduct(
+                              p.id,
                               isManual
                                 ? `/products/${p.id}/edit-manual`
                                 : `/products/${p.id}/edit`,
@@ -1243,7 +1398,7 @@ const ProductsPage = () => {
                             className="btn-duplicate"
                             aria-label={`Duplicate ${p.name}`}
                             onClick={() =>
-                              navigate(`/products/${p.id}/duplicate`)
+                              openProduct(p.id, `/products/${p.id}/duplicate`)
                             }
                           >
                             <Copy size={14} />
