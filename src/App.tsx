@@ -28,6 +28,7 @@ import ParentCategoryPage from "./pages/ParentCategory/ParentCategoryPage";
 import AddParentCategoryPage from "./pages/ParentCategory/AddParentCategoryPage";
 import EditParentCategoryPage from "./pages/ParentCategory/EditParentCategoryPage";
 import CreateProductPage from "./pages/Product/Create/CreateProductPage";
+import ImportProductsPage from "./pages/Product/Import/ImportProductsPage";
 import AdminsPage from "./pages/Admin/AdminsPage";
 import AddEditAdmin from "./pages/Admin/AddEditAdmin";
 import BrandManagement from "./pages/BrandManagement";
@@ -192,6 +193,15 @@ const App = () => (
             element={
               <AdminLayout>
                 <CreateProductPage />
+              </AdminLayout>
+            }
+          />
+
+          <Route
+            path="/import-products"
+            element={
+              <AdminLayout>
+                <ImportProductsPage />
               </AdminLayout>
             }
           />

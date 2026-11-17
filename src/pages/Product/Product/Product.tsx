@@ -25,6 +25,7 @@ import {
   X,
   FolderTree,
   Plus,
+  FileUp,
 } from "lucide-react";
 import "./Product.scss";
 import { Thumbnail } from "@/components/common/Thumbnail";
@@ -711,13 +712,22 @@ const ProductsPage = () => {
           <h1>Product Catalog</h1>
           <p>Manage your inventory across multiple suppliers</p>
         </div>
-        <button
-          className="add-product-btn"
-          onClick={() => navigate("/create-product")}
-        >
-          <Plus size={16} aria-hidden />
-          Add Product
-        </button>
+        <div className="header-actions">
+          <button
+            className="add-product-btn secondary"
+            onClick={() => navigate("/import-products")}
+          >
+            <FileUp size={16} aria-hidden />
+            Import CSV
+          </button>
+          <button
+            className="add-product-btn"
+            onClick={() => navigate("/create-product")}
+          >
+            <Plus size={16} aria-hidden />
+            Add Product
+          </button>
+        </div>
       </div>
 
       {/* 📊 STATS GRID */}

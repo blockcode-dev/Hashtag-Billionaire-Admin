@@ -4,6 +4,7 @@ import {
   BadgeDollarSign,
   BriefcaseBusiness,
   CreditCard,
+  FileUp,
   FolderTree,
   Globe,
   Images,
@@ -60,6 +61,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Catalog",
     items: [
       { title: "Products", url: "/products", icon: Package },
+      { title: "Import from CSV", url: "/import-products", icon: FileUp },
       { title: "Variants", url: "/variants", icon: Layers },
       { title: "Add-on Products", url: "/add-ons", icon: PackagePlus },
       { title: "Customizations", url: "/customizations", icon: SlidersHorizontal },
