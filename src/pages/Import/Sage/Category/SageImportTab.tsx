@@ -45,7 +45,7 @@ type ImportStatus = "idle" | "importing" | "done" | "error";
 // ─── Step Bar ─────────────────────────────────────────────────────────────────
 
 const STEPS = [
-  { label: "Pick a Category" },
+  { label: "Pick a Supplier Category" },
   { label: "Choose a Supplier" },
   { label: "Review Products" },
   { label: "Import Complete" },
@@ -240,7 +240,7 @@ const getLowestPrice = (
   useEffect(() => {
     GetAllCategoriesAPI()
       .then((res) => setCategories(res?.data?.data?.rows || []))
-      .catch((err) => toastApiError("Couldn't load the categories", err));
+      .catch((err) => toastApiError("Couldn't load the supplier categories", err));
   }, []);
 
   const handleSelectCategory = async (cat: Category) => {
@@ -393,7 +393,7 @@ const getLowestPrice = (
         {/* Left Panel */}
         <div className="sage-panel">
           <div className="sage-panel__section">
-            <div className="sage-panel__label">Step 1 · Category Scope</div>
+            <div className="sage-panel__label">Step 1 · Supplier Category</div>
             <div className="sage-panel__search">
               <span className="sage-panel__search-icon">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -402,14 +402,14 @@ const getLowestPrice = (
                 </svg>
               </span>
               <input
-                placeholder="Filter categories..."
+                placeholder="Filter supplier categories..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
             <div className="sage-panel__list">
               {filteredCategories.length === 0 ? (
-                <div className="sage-panel__empty">No categories found</div>
+                <div className="sage-panel__empty">No supplier categories found</div>
               ) : (
                 filteredCategories.map((cat) => (
                   <div
@@ -509,7 +509,7 @@ const getLowestPrice = (
                 </svg>
               </div>
               <div className="sage-preview__placeholder-title">Awaiting Scope Definition</div>
-              <p>Select a category from the left panel to begin.</p>
+              <p>Select a supplier category from the left panel to begin.</p>
             </div>
           )}
 
@@ -568,7 +568,7 @@ const getLowestPrice = (
                     </svg>
                   </div>
                   <div className="sage-preview__placeholder-title">No Products Found</div>
-                  <p>This supplier has no products in this category.</p>
+                  <p>This supplier has no products in this supplier category.</p>
                 </div>
               ) : (
                 <>
@@ -864,10 +864,10 @@ const getLowestPrice = (
         <div className="sage-footer__info">
           {selectedCategory ? (
             <span className="sage-footer__tag">
-              Category: <strong>{selectedCategory.title}</strong>
+              Supplier category: <strong>{selectedCategory.title}</strong>
             </span>
           ) : (
-            <span className="sage-footer__tag muted">No category selected</span>
+            <span className="sage-footer__tag muted">No supplier category selected</span>
           )}
           {selectedSupplier && (
             <span className="sage-footer__tag">

@@ -337,7 +337,7 @@ const SageProductView = () => {
                 <strong>{supplier?.suppId || "—"}</strong>
               </div>
               <div>
-                <span>Category</span>
+                <span>Supplier Category</span>
                 <strong>{category || "—"}</strong>
               </div>
               <div>

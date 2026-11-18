@@ -13,7 +13,7 @@ const SageTabWrapper = () => {
           className={`sage-subtab ${mode === "category" ? "sage-subtab--active" : ""}`}
           onClick={() => setMode("category")}
         >
-          By Category
+          By Supplier Category
         </button>
         <button
           className={`sage-subtab ${mode === "supplier" ? "sage-subtab--active" : ""}`}

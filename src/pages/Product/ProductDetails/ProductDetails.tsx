@@ -631,7 +631,7 @@ const ProductDetails = () => {
           once instead of being shown twice in two different shapes. */}
       {hierarchicalChains.length > 0 && (
         <div className="pd-meta-card pd-category-card">
-          <label>Category Hierarchy ({hierarchicalChains.length})</label>
+          <label>Grand › Parent › Supplier Category ({hierarchicalChains.length})</label>
           <div className="pd-category-chains">
             {hierarchicalChains.map((chain, i) => (
               <div className="pd-category-chain" key={`${chain.category}-${chain.parent}-${chain.grand}-${i}`}>
@@ -671,7 +671,7 @@ const ProductDetails = () => {
         </div>
         <div className="pd-meta-card wide">
           <label>
-            {hierarchicalChains.length > 0 ? `Other Tags (${flatChains.length})` : `Categories (${flatChains.length})`}
+            {hierarchicalChains.length > 0 ? `Other Supplier Categories (${flatChains.length})` : `Supplier Categories (${flatChains.length})`}
           </label>
           {flatChains.length ? (
             <div className="pd-chip-row">
@@ -680,7 +680,7 @@ const ProductDetails = () => {
               ))}
             </div>
           ) : (
-            <span className="pd-empty">No categories assigned</span>
+            <span className="pd-empty">No supplier categories assigned</span>
           )}
         </div>
       </div>

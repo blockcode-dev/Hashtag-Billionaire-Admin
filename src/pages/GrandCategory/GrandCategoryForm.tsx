@@ -224,7 +224,7 @@ const GrandCategoryForm = ({ mode }: Props) => {
           disabled={loading}
         >
           <Save size={16} />
-          {loading ? "Saving..." : "Save Category"}
+          {loading ? "Saving..." : "Save Grand Category"}
         </button>
       </div>
 
@@ -252,7 +252,7 @@ const GrandCategoryForm = ({ mode }: Props) => {
           <div className="gcf__panel-header">
             <div className="gcf__panel-title">
               <Layers size={16} />
-              <span>All  Categories</span>
+              <span>All Parent Categories</span>
               {totalCount > 0 && (
                 <span className="gcf__badge">
                   {totalCount.toLocaleString()}
@@ -272,7 +272,7 @@ const GrandCategoryForm = ({ mode }: Props) => {
             <Search size={15} />
             <input
               type="text"
-              placeholder="Search all categories..."
+              placeholder="Search parent categories..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -291,12 +291,12 @@ const GrandCategoryForm = ({ mode }: Props) => {
             {searchLoading ? (
               <div className="gcf__list-empty">
                 <div className="gcf__spinner" />
-                <span>Loading categories...</span>
+                <span>Loading parent categories...</span>
               </div>
             ) : categories.length === 0 ? (
               <div className="gcf__list-empty">
                 <Search size={28} />
-                <span>No categories found</span>
+                <span>No parent categories found</span>
               </div>
             ) : (
               categories.map((cat) => {
@@ -479,8 +479,8 @@ const GrandCategoryForm = ({ mode }: Props) => {
             {selectedCategoriesData.length === 0 ? (
               <div className="gcf__selected-empty">
                 <Tag size={28} />
-                <span>No categories selected yet</span>
-                <p>Click categories on the left to add them here</p>
+                <span>No parent categories selected yet</span>
+                <p>Click parent categories on the left to add them here</p>
               </div>
             ) : filteredSelected.length === 0 ? (
               <div className="gcf__selected-empty">

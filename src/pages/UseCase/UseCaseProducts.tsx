@@ -86,7 +86,7 @@ const SourceBadge = ({ source }: { source?: "category" | "manual" }) => {
       className={`ucp__source ucp__source--${isManual ? "manual" : "category"}`}
     >
       {isManual ? <Hand size={12} /> : <Layers size={12} />}
-      {isManual ? "Manually added" : "From category"}
+      {isManual ? "Manually added" : "From parent category"}
     </span>
   );
 };
@@ -137,7 +137,7 @@ const CATEGORIES_PREVIEW = 2;
 
 const CategoryChips = ({ categories }: { categories: ParentCategoryRef[] }) => {
   if (!categories?.length) {
-    return <span className="ucp__none">Uncategorized</span>;
+    return <span className="ucp__none">No parent category</span>;
   }
 
   const visible = categories.slice(0, CATEGORIES_PREVIEW);
@@ -718,7 +718,7 @@ const UseCaseProducts = () => {
           <div>
             <h1>Products in "{useCaseTitle || "..."}"</h1>
             <p>
-             Products shown here come from linked categories, or were added
+             Products shown here come from linked parent categories, or were added
   directly.
   Tier assignments are specific to this use case, so the same product
   can have a different tier in another use case.
@@ -741,7 +741,7 @@ const UseCaseProducts = () => {
           <Search size={15} />
           <input
             type="text"
-            placeholder="Search by name or category..."
+            placeholder="Search by name, parent or supplier category..."
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -778,7 +778,7 @@ const UseCaseProducts = () => {
           <button
             className={`ucp__filter-btn ${sourceFilter === "manual" ? "ucp__filter-btn--active" : ""}`}
             onClick={() => setSourceFilter("manual")}
-            title="Products added directly, not via category"
+            title="Products added directly, not via a parent category"
           >
             <Hand size={12} />
             Manual
@@ -788,10 +788,10 @@ const UseCaseProducts = () => {
           <button
             className={`ucp__filter-btn ${sourceFilter === "category" ? "ucp__filter-btn--active" : ""}`}
             onClick={() => setSourceFilter("category")}
-            title="Products that belong here via category"
+            title="Products that belong here via a parent category"
           >
             <Layers size={12} />
-            Category
+            Parent Category
             <span className="ucp__filter-count">{categoryCount}</span>
           </button>
         </div>
@@ -870,7 +870,7 @@ const UseCaseProducts = () => {
               <th style={{ width: 60 }}>Image</th>
               <th>Product</th>
               <th style={{ width: 100 }}>Supplier</th>
-              <th style={{ width: 160 }}>Category</th>
+              <th style={{ width: 160 }}>Parent Category</th>
               <th style={{ width: 140 }}>Source</th>
               <th style={{ width: 150 }}>Tier</th>
               <th style={{ width: 110, textAlign: "right" }}>Actions</th>
@@ -894,7 +894,7 @@ const UseCaseProducts = () => {
                       ? "No products in this use case yet"
                       : sourceFilter === "manual"
                         ? "No manually added products on this page"
-                        : "No category-derived products on this page"}
+                        : "No products from parent categories on this page"}
                   </div>
                 </td>
               </tr>
@@ -1215,12 +1215,12 @@ const UseCaseProducts = () => {
                 <>
                   {" "}
                   This clears its manual assignment — it'll be gone from here
-                  unless it belongs by category too.
+                  unless it belongs by parent category too.
                 </>
               ) : (
                 <>
                   {" "}
-                  It belongs here via category — this will exclude it just from
+                  It belongs here via a parent category — this will exclude it just from
                   this use case, it stays visible everywhere else it belongs.
                 </>
               )}

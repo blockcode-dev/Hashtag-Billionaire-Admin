@@ -322,7 +322,7 @@ const ProductsPage = () => {
       const list = res?.data?.data?.data || [];
       setGrandCategories(list.map((g: any) => ({ id: g.id, title: g.title })));
     } catch {
-      toast.error("Failed to load categories");
+      toast.error("Failed to load grand categories");
     }
   };
 
@@ -371,7 +371,7 @@ const ProductsPage = () => {
       const parents = res?.data?.data?.parent_categories || [];
       setGrandParents(parents.map((p: any) => ({ id: p.id, title: p.title })));
     } catch {
-      toast.error("Failed to load sub-categories for this category");
+      toast.error("Failed to load parent categories for this grand category");
     } finally {
       setGrandParentsLoading(false);
     }
@@ -1086,7 +1086,7 @@ const ProductsPage = () => {
 
                   <div className="category-filter-body">
                     <div className="category-filter-col">
-                      <div className="category-filter-col-label">Category</div>
+                      <div className="category-filter-col-label">Grand Category</div>
                       <div className="category-filter-col-list">
                         {grandCategories.length === 0 && (
                           <div className="category-filter-empty">Loading…</div>
@@ -1107,7 +1107,7 @@ const ProductsPage = () => {
 
                     <div className="category-filter-col">
                       <div className="category-filter-col-label">
-                        Sub-Category
+                        Parent Category
                         <span className="category-filter-col-hint">
                           optional
                         </span>
@@ -1115,7 +1115,7 @@ const ProductsPage = () => {
                       <div className="category-filter-col-list">
                         {!selectedGrand && (
                           <div className="category-filter-empty">
-                            Pick a category first
+                            Pick a grand category first
                           </div>
                         )}
                         {selectedGrand && grandParentsLoading && (
@@ -1125,7 +1125,7 @@ const ProductsPage = () => {
                           !grandParentsLoading &&
                           grandParents.length === 0 && (
                             <div className="category-filter-empty">
-                              No sub-categories
+                              No parent categories
                             </div>
                           )}
                         {selectedGrand &&
@@ -1214,7 +1214,7 @@ const ProductsPage = () => {
               {selectedGrand!.title}
               {selectedParentIds.length > 0 && (
                 <span className="filter-chip-sub">
-                  › {selectedParentIds.length} sub-categor
+                  › {selectedParentIds.length} parent categor
                   {selectedParentIds.length === 1 ? "y" : "ies"}
                 </span>
               )}
@@ -1359,7 +1359,7 @@ const ProductsPage = () => {
                         <span className="cat-no-parent-tag">No parent</span>
                       )}
                       {!p.categories?.length && (
-                        <span className="cat-no-parent-tag">No category</span>
+                        <span className="cat-no-parent-tag">No supplier category</span>
                       )}
                     </div>
                   </td>

@@ -166,7 +166,7 @@ const ParentCategoryForm = ({ mode }: Props) => {
       setError("");
 
       if (!title.trim()) {
-        setError("Sub Category title is required");
+        setError("Parent Category title is required");
         return;
       }
 
@@ -232,7 +232,7 @@ const ParentCategoryForm = ({ mode }: Props) => {
           disabled={loading}
         >
           <Save size={16} />
-          {loading ? "Saving..." : "Save Category"}
+          {loading ? "Saving..." : "Save Parent Category"}
         </button>
       </div>
 
@@ -260,7 +260,7 @@ const ParentCategoryForm = ({ mode }: Props) => {
           <div className="pcf__panel-header">
             <div className="pcf__panel-title">
               <Layers size={16} />
-              <span>All Categories</span>
+              <span>All Supplier Categories</span>
               {totalCount > 0 && (
                 <span className="pcf__badge">
                   {totalCount.toLocaleString()}
@@ -280,7 +280,7 @@ const ParentCategoryForm = ({ mode }: Props) => {
             <Search size={15} />
             <input
               type="text"
-              placeholder="Search all categories..."
+              placeholder="Search supplier categories..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -318,12 +318,12 @@ const ParentCategoryForm = ({ mode }: Props) => {
             {searchLoading ? (
               <div className="pcf__list-empty">
                 <div className="pcf__spinner" />
-                <span>Loading categories...</span>
+                <span>Loading supplier categories...</span>
               </div>
             ) : categories.length === 0 ? (
               <div className="pcf__list-empty">
                 <Search size={28} />
-                <span>No categories found</span>
+                <span>No supplier categories found</span>
               </div>
             ) : (
               categories.map((cat) => {
@@ -511,8 +511,8 @@ const ParentCategoryForm = ({ mode }: Props) => {
             {selectedCategoriesData.length === 0 ? (
               <div className="pcf__selected-empty">
                 <Tag size={28} />
-                <span>No categories selected yet</span>
-                <p>Click categories on the left to add them here</p>
+                <span>No supplier categories selected yet</span>
+                <p>Click supplier categories on the left to add them here</p>
               </div>
             ) : filteredSelected.length === 0 ? (
               <div className="pcf__selected-empty">

@@ -84,7 +84,7 @@ const CategoryTags = ({ categories }: { categories: ParentCategory[] }) => {
   const [expanded, setExpanded] = useState(false);
 
   if (!categories?.length) {
-    return <span className="uc__none">No categories</span>;
+    return <span className="uc__none">No parent categories</span>;
   }
 
   const visible = expanded
@@ -585,7 +585,7 @@ const UseCaseList = () => {
       closeCategoryModal();
     } catch (err) {
       console.error(err);
-      toastApiError("Couldn't save the categories", err);
+      toastApiError("Couldn't save the parent categories", err);
     } finally {
       setCategorySaving(false);
     }
@@ -650,7 +650,7 @@ const UseCaseList = () => {
         <div>
           <h1>Use Cases</h1>
 
-          <p>Manage use cases, their industry, and categories</p>
+          <p>Manage use cases, their industry, and parent categories</p>
         </div>
 
         <div className="uc__header-right">
@@ -693,7 +693,7 @@ const UseCaseList = () => {
 
               <th style={{ width: 260 }}>Description</th>
 
-              <th>Categories</th>
+              <th>Parent Categories</th>
 
               <th style={{ width: 110, textAlign: "right" }}>Actions</th>
             </tr>
@@ -799,7 +799,7 @@ const UseCaseList = () => {
                               <button
                                 className="uc__btn-categories"
                                 onClick={() => openCategoryModal(item)}
-                                title="Manage categories"
+                                title="Manage parent categories"
                               >
                                 <Tags size={14} />
                               </button>
@@ -1076,7 +1076,7 @@ const UseCaseList = () => {
               <X size={16} />
             </button>
 
-            <h2>Manage Categories</h2>
+            <h2>Manage Parent Categories</h2>
 
             <p className="uc__modal-subtitle">
               Assign parent categories to{" "}
@@ -1088,7 +1088,7 @@ const UseCaseList = () => {
 
               <input
                 type="text"
-                placeholder="Search categories..."
+                placeholder="Search parent categories..."
                 value={categorySearch}
                 onChange={(e) => setCategorySearch(e.target.value)}
               />
@@ -1096,11 +1096,11 @@ const UseCaseList = () => {
 
             <div className="uc__cat-list">
               {categoryModalLoading && (
-                <div className="uc__cat-loading">Loading categories...</div>
+                <div className="uc__cat-loading">Loading parent categories...</div>
               )}
 
               {!categoryModalLoading && filteredCategories.length === 0 && (
-                <div className="uc__cat-loading">No categories found</div>
+                <div className="uc__cat-loading">No parent categories found</div>
               )}
 
               {!categoryModalLoading &&
@@ -1141,7 +1141,7 @@ const UseCaseList = () => {
                 onClick={handleCategorySave}
                 disabled={categorySaving || categoryModalLoading}
               >
-                {categorySaving ? "Saving..." : "Save Categories"}
+                {categorySaving ? "Saving..." : "Save Parent Categories"}
               </button>
             </div>
           </div>

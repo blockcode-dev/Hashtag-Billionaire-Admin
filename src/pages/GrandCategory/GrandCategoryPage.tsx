@@ -15,6 +15,7 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  Info,
 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Pagination } from "@/components/common/Pagination";
@@ -161,7 +162,7 @@ const GrandCategoryPage = () => {
       );
     } catch (err) {
       console.error(err);
-      toastApiError("Couldn't load the categories", err);
+      toastApiError("Couldn't load the grand categories", err);
     } finally {
       setLoading(false);
     }
@@ -193,7 +194,7 @@ const GrandCategoryPage = () => {
         setDeleteTarget(null);
       } catch (err) {
         console.error(err);
-        toastApiError("Couldn't delete the category", err);
+        toastApiError("Couldn't delete the grand category", err);
       } finally {
         setDeleteLoading(false);
       }
@@ -204,7 +205,7 @@ const GrandCategoryPage = () => {
       <div className="gcp__header">
         <div>
           <h1>
-            Categories
+            Grand Categories
           </h1>
 
           <p>
@@ -219,7 +220,7 @@ const GrandCategoryPage = () => {
 
             <input
               type="text"
-              placeholder="Search categories..."
+              placeholder="Search grand categories..."
               value={search}
               onChange={(e) => {
                 setSearch(
@@ -251,10 +252,19 @@ const GrandCategoryPage = () => {
             }
           >
             <Plus size={16} />
-            Add  Category
+            Add Grand Category
           </button>
         </div>
       </div>
+
+      <p className="gcp__note">
+        <Info size={14} />
+        <span>
+          <strong>Grand category</strong> = the Category shoppers see on the
+          website. Parent categories go inside it, and supplier categories go
+          inside parent categories.
+        </span>
+      </p>
 
       <div className="gcp__card">
         <table className="gcp__table">

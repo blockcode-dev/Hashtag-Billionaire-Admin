@@ -156,17 +156,17 @@ export function HandlingFeeControl({ id, value, onChange, invalid, describedBy, 
 
       <div className="space-y-1.5">
         <Label htmlFor={`${id}-categories`} className="text-xs text-muted-foreground">
-          Categories
+          Supplier categories
         </Label>
         <MultiCombobox
           id={`${id}-categories`}
           options={picker.categories}
           value={draft.category_ids}
           onChange={(ids) => change({ category_ids: ids })}
-          placeholder="Any category"
-          searchPlaceholder="Search categories…"
-          noun={["category", "categories"]}
-          missingLabel={(categoryId) => (options.data ? `Category ${categoryId} (not found)` : `Category ${categoryId}`)}
+          placeholder="Any supplier category"
+          searchPlaceholder="Search supplier categories…"
+          noun={["supplier category", "supplier categories"]}
+          missingLabel={(categoryId) => (options.data ? `Supplier category ${categoryId} (not found)` : `Supplier category ${categoryId}`)}
           loading={options.loading}
         />
       </div>
@@ -189,7 +189,7 @@ export function HandlingFeeControl({ id, value, onChange, invalid, describedBy, 
 
       {options.failed && !options.data && (
         <div role="alert" className="flex flex-wrap items-center gap-2 text-xs text-destructive">
-          <span>Couldn't load the categories and suppliers.</span>
+          <span>Couldn't load the supplier categories and suppliers.</span>
           <Button type="button" variant="outline" size="xs" onClick={() => loadHandlingFeeOptions()}>
             <RefreshCw />
             Try again
@@ -202,14 +202,14 @@ export function HandlingFeeControl({ id, value, onChange, invalid, describedBy, 
           {amountError && <p className="text-destructive">{amountError}</p>}
           {labelError && <p className="text-destructive">{labelError}</p>}
           {matchesNothing && (
-            <p className="text-warning-soft-foreground">No category or supplier is chosen, so no fee is charged.</p>
+            <p className="text-warning-soft-foreground">No supplier category or supplier is chosen, so no fee is charged.</p>
           )}
         </div>
       )}
 
       {explain && (
         <p className="text-xs text-muted-foreground">
-          Charged once per order when the order has at least one product in a chosen category and from a chosen
+          Charged once per order when the order has at least one product in a chosen supplier category and from a chosen
           supplier. Leave a list empty to match any. Amount 0, or both lists empty, turns it off.
         </p>
       )}

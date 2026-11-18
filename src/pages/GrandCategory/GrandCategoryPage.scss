@@ -80,6 +80,20 @@
   }
 
   // ── TABLE CARD ──────────────────────────────────────
+  // One line that says what a grand category is, above the table.
+  &__note {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: -12px 0 12px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--muted-foreground);
+
+    svg { flex-shrink: 0; margin-top: 2px; }
+    strong { color: var(--foreground); font-weight: 600; }
+  }
+
   &__card {
     background: var(--background);
     border: 1px solid var(--border);

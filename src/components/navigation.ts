@@ -70,8 +70,8 @@ export const NAV_GROUPS: NavGroup[] = [
         title: "Categories",
         icon: FolderTree,
         children: [
-          { title: "Categories", url: "/grand-category" },
-          { title: "Sub Categories", url: "/parent-category" },
+          { title: "Grand Categories", url: "/grand-category" },
+          { title: "Parent Categories", url: "/parent-category" },
         ],
       },
     ],

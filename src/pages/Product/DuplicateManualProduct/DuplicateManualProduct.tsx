@@ -530,7 +530,7 @@ const GuideCard: React.FC<{ open: boolean; onToggle: () => void }> = ({
           <span className={styles.guideStepNum}>1</span>
           <span>
             Everything from the original is filled in — name, description,
-            brand, categories, images, customizations, options, variants,
+            brand, supplier categories, images, customizations, options, variants,
             pricing and add-ons. Nothing is saved until you press{" "}
             <strong>Create copy</strong>.
           </span>
@@ -666,7 +666,7 @@ const DuplicateManualProduct: React.FC = () => {
       setCatTotal(total);
       setCatPage(page);
     } catch {
-      toast.error("Failed to fetch categories");
+      toast.error("Failed to fetch supplier categories");
     } finally {
       setCatLoading(false);
     }
@@ -774,7 +774,7 @@ const DuplicateManualProduct: React.FC = () => {
           (cid) =>
             sourceCategories.find((c) => c.id === cid) || {
               id: cid,
-              title: `Category #${cid}`,
+              title: `Supplier category #${cid}`,
             },
         ),
       );
@@ -868,7 +868,7 @@ const DuplicateManualProduct: React.FC = () => {
     try {
       const res = await CreateCategoryAPI({ title, supplier: "MANUAL" });
       const created: CategoryRef | undefined = res?.data?.data;
-      toast.success("Category created");
+      toast.success("Supplier category created");
       setNewCategoryName("");
       await fetchCategories(1, catSearch);
       if (created?.id) {
@@ -883,7 +883,7 @@ const DuplicateManualProduct: React.FC = () => {
       }
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || "Failed to create category",
+        err?.response?.data?.message || "Failed to create supplier category",
       );
     } finally {
       setCreatingCategory(false);
@@ -904,7 +904,7 @@ const DuplicateManualProduct: React.FC = () => {
     setSavingCategoryEdit(true);
     try {
       await UpdateCategoryAPI(catId, { title });
-      toast.success("Category updated");
+      toast.success("Supplier category updated");
       setCategories((prev) =>
         prev.map((c) => (c.id === catId ? { ...c, title } : c)),
       );
@@ -914,7 +914,7 @@ const DuplicateManualProduct: React.FC = () => {
       cancelEditCategory();
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || "Failed to update category",
+        err?.response?.data?.message || "Failed to update supplier category",
       );
     } finally {
       setSavingCategoryEdit(false);
@@ -922,7 +922,7 @@ const DuplicateManualProduct: React.FC = () => {
   };
   const handleDeleteCategory = (cat: CategoryRef) => {
     confirm({
-      title: "Delete category",
+      title: "Delete supplier category",
       content: (
         <span>
           Delete <strong>{cat.title}</strong>? This can't be undone.
@@ -934,13 +934,13 @@ const DuplicateManualProduct: React.FC = () => {
         setDeletingCategoryId(cat.id);
         try {
           await DeleteCategoryAPI(cat.id);
-          toast.success("Category deleted");
+          toast.success("Supplier category deleted");
           setCategories((prev) => prev.filter((c) => c.id !== cat.id));
           setAllLoadedCategories((prev) => prev.filter((c) => c.id !== cat.id));
           setSelectedCatIds((prev) => prev.filter((cid) => cid !== cat.id));
         } catch (err: any) {
           toast.error(
-            err?.response?.data?.message || "Failed to delete category",
+            err?.response?.data?.message || "Failed to delete supplier category",
           );
         } finally {
           setDeletingCategoryId(null);
@@ -1825,7 +1825,7 @@ const DuplicateManualProduct: React.FC = () => {
       <div className={styles.card}>
         <div className={styles.cardHeader}>
           <span className={styles.cardTitle}>
-            Categories
+            Supplier Categories
             {selectedCatIds.length > 0 && (
               <span className={styles.badge}>
                 {selectedCatIds.length} selected
@@ -1837,7 +1837,7 @@ const DuplicateManualProduct: React.FC = () => {
         <div className={styles.addCategoryRow}>
           <input
             type="text"
-            placeholder="New category name, e.g. Eco-Friendly"
+            placeholder="New supplier category name, e.g. Eco-Friendly"
             value={newCategoryName}
             onChange={(e) => setNewCategoryName(e.target.value)}
             onKeyDown={(e) => {
@@ -1852,7 +1852,7 @@ const DuplicateManualProduct: React.FC = () => {
             onClick={handleCreateCategory}
             disabled={creatingCategory || !newCategoryName.trim()}
           >
-            <Plus size={14} /> {creatingCategory ? "Adding…" : "Add category"}
+            <Plus size={14} /> {creatingCategory ? "Adding…" : "Add supplier category"}
           </button>
         </div>
 
@@ -1861,7 +1861,7 @@ const DuplicateManualProduct: React.FC = () => {
             <div className={styles.catSearchBar}>
               <input
                 type="text"
-                placeholder="Search categories..."
+                placeholder="Search supplier categories..."
                 value={catSearch}
                 onChange={(e) => handleCatSearch(e.target.value)}
               />
@@ -1871,7 +1871,7 @@ const DuplicateManualProduct: React.FC = () => {
                 <div className={styles.catLoadingRow}>Loading…</div>
               )}
               {!catLoading && categories.length === 0 && (
-                <div className={styles.catLoadingRow}>No categories found</div>
+                <div className={styles.catLoadingRow}>No supplier categories found</div>
               )}
               {categories.map((cat) => {
                 const selected = selectedCatIds.includes(cat.id);
@@ -1979,7 +1979,7 @@ const DuplicateManualProduct: React.FC = () => {
               )}
             </div>
             {selectedCategories.length === 0 ? (
-              <div className={styles.emptyState}>No categories yet</div>
+              <div className={styles.emptyState}>No supplier categories yet</div>
             ) : (
               <div className={styles.catBadgeList}>
                 {selectedCategories.map((cat) => (
@@ -2792,7 +2792,7 @@ const DuplicateManualProduct: React.FC = () => {
             {fromCategory.length > 0 && (
               <>
                 <div className={styles.dividerLabel}>
-                  Comes from the product's categories
+                  Comes from the product's parent categories
                 </div>
                 <div className={styles.ucChipList}>
                   {fromCategory.map((uc) => (
@@ -2812,7 +2812,7 @@ const DuplicateManualProduct: React.FC = () => {
                 </div>
                 <span className={styles.fieldHint}>
                   The copy gets these automatically as long as it keeps the same
-                  categories.
+                  supplier categories.
                 </span>
               </>
             )}

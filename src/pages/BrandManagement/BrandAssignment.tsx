@@ -397,7 +397,7 @@ const BrandAssignment: React.FC = () => {
         ),
     },
     {
-      title: "Category",
+      title: "Supplier Category",
       key: "categories",
       width: 130,
       render: (_: any, record: Product) => (

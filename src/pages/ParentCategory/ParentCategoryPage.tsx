@@ -72,7 +72,7 @@ const ParentCategoryPage = () => {
       setTotal(res.data.data.pagination?.total ?? 0);
     } catch (err) {
       console.error(err);
-      toastApiError("Couldn't load the sub categories", err);
+      toastApiError("Couldn't load the parent categories", err);
     } finally {
       setLoading(false);
     }
@@ -91,7 +91,7 @@ const ParentCategoryPage = () => {
       setDeleteTarget(null);
     } catch (err) {
       console.error(err);
-      toastApiError("Couldn't delete the sub category", err);
+      toastApiError("Couldn't delete the parent category", err);
     } finally {
       setDeleteLoading(false);
     }
@@ -102,7 +102,7 @@ const ParentCategoryPage = () => {
       {/* HEADER */}
       <div className="pcp__header">
         <div>
-          <h1>Sub-Categories</h1>
+          <h1>Parent Categories</h1>
           <p>Manage website category hierarchy</p>
         </div>
 
@@ -111,7 +111,7 @@ const ParentCategoryPage = () => {
             <Search size={15} />
             <input
               type="text"
-              placeholder="Search categories..."
+              placeholder="Search parent categories..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -136,7 +136,7 @@ const ParentCategoryPage = () => {
             onClick={() => navigate("/parent-category/create")}
           >
             <Plus size={16} />
-            Add Category
+            Add Parent Category
           </button>
         </div>
       </div>
@@ -147,8 +147,8 @@ const ParentCategoryPage = () => {
           <thead>
             <tr>
               <th style={{ width: 56 }}>#</th>
-              <th style={{ width: 200 }}>Category</th>
-              <th>Mapped Categories</th>
+              <th style={{ width: 200 }}>Parent Category</th>
+              <th>Mapped Supplier Categories</th>
               <th style={{ width: 96, textAlign: "right" }}>Actions</th>
             </tr>
           </thead>
@@ -164,7 +164,7 @@ const ParentCategoryPage = () => {
             {!loading && categories.length === 0 && (
               <tr>
                 <td colSpan={4}>
-                  <div className="pcp__empty">No categories found</div>
+                  <div className="pcp__empty">No parent categories found</div>
                 </td>
               </tr>
             )}
@@ -238,7 +238,7 @@ const ParentCategoryPage = () => {
             <div className="pcp__modal-warning">
               <strong>Warning:</strong> This will also permanently remove all{" "}
               <strong>
-                {deleteTarget.categories?.length || 0} sub-category mapping
+                {deleteTarget.categories?.length || 0} supplier category mapping
                 {deleteTarget.categories?.length !== 1 ? "s" : ""}
               </strong>{" "}
               linked to this parent. This action cannot be undone.

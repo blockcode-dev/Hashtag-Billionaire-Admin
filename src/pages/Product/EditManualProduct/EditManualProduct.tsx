@@ -821,7 +821,7 @@ const EditManualProduct: React.FC = () => {
         const catRef = allLoadedCategories.find((c) => c.id === catId);
         return {
           id: catId,
-          title: catRef?.title || `Category #${catId}`,
+          title: catRef?.title || `Supplier category #${catId}`,
           supplier: catRef?.supplier,
           parent_categories: [],
         };
@@ -854,7 +854,7 @@ const EditManualProduct: React.FC = () => {
       setCatTotal(total);
       setCatPage(page);
     } catch {
-      toast.error("Failed to fetch categories");
+      toast.error("Failed to fetch supplier categories");
     } finally {
       setCatLoading(false);
     }
@@ -885,7 +885,7 @@ const EditManualProduct: React.FC = () => {
     try {
       const res = await CreateCategoryAPI({ title, supplier: "MANUAL" });
       const created: CategoryRef | undefined = res?.data?.data;
-      toast.success("Category created");
+      toast.success("Supplier category created");
       setNewCategoryName("");
       await fetchCategories(1, catSearch);
       if (created?.id) {
@@ -900,7 +900,7 @@ const EditManualProduct: React.FC = () => {
       }
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || "Failed to create category",
+        err?.response?.data?.message || "Failed to create supplier category",
       );
     } finally {
       setCreatingCategory(false);
@@ -921,7 +921,7 @@ const EditManualProduct: React.FC = () => {
     setSavingCategoryEdit(true);
     try {
       await UpdateCategoryAPI(catId, { title });
-      toast.success("Category updated");
+      toast.success("Supplier category updated");
       setCategories((prev) =>
         prev.map((c) => (c.id === catId ? { ...c, title } : c)),
       );
@@ -931,7 +931,7 @@ const EditManualProduct: React.FC = () => {
       cancelEditCategory();
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || "Failed to update category",
+        err?.response?.data?.message || "Failed to update supplier category",
       );
     } finally {
       setSavingCategoryEdit(false);
@@ -939,7 +939,7 @@ const EditManualProduct: React.FC = () => {
   };
   const handleDeleteCategory = (cat: CategoryRef) => {
     confirm({
-      title: "Delete category",
+      title: "Delete supplier category",
       content: (
         <span>
           Delete <strong>{cat.title}</strong>? This can't be undone.
@@ -951,13 +951,13 @@ const EditManualProduct: React.FC = () => {
         setDeletingCategoryId(cat.id);
         try {
           await DeleteCategoryAPI(cat.id);
-          toast.success("Category deleted");
+          toast.success("Supplier category deleted");
           setCategories((prev) => prev.filter((c) => c.id !== cat.id));
           setAllLoadedCategories((prev) => prev.filter((c) => c.id !== cat.id));
           setSelectedCatIds((prev) => prev.filter((cid) => cid !== cat.id));
         } catch (err: any) {
           toast.error(
-            err?.response?.data?.message || "Failed to delete category",
+            err?.response?.data?.message || "Failed to delete supplier category",
           );
         } finally {
           setDeletingCategoryId(null);
@@ -1440,7 +1440,7 @@ const EditManualProduct: React.FC = () => {
       );
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || "Failed to add sub-category",
+        err?.response?.data?.message || "Failed to add parent category",
       );
     }
   };
@@ -1470,7 +1470,7 @@ const EditManualProduct: React.FC = () => {
       );
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || "Failed to remove sub-category",
+        err?.response?.data?.message || "Failed to remove parent category",
       );
     } finally {
       setRemovingChipId(null);
@@ -1505,7 +1505,7 @@ const EditManualProduct: React.FC = () => {
         })),
       );
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to add category");
+      toast.error(err?.response?.data?.message || "Failed to add grand category");
     }
   };
 
@@ -1537,7 +1537,7 @@ const EditManualProduct: React.FC = () => {
       );
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || "Failed to remove category",
+        err?.response?.data?.message || "Failed to remove grand category",
       );
     } finally {
       setRemovingChipId(null);
@@ -1870,7 +1870,7 @@ const EditManualProduct: React.FC = () => {
       <div className={styles.card}>
         <div className={styles.cardHeader}>
           <span className={styles.cardTitle}>
-            Categories
+            Supplier Categories
             {selectedCatIds.length > 0 && (
               <span className={styles.badge}>
                 {selectedCatIds.length} selected
@@ -1882,7 +1882,7 @@ const EditManualProduct: React.FC = () => {
         <div className={styles.addCategoryRow}>
           <input
             type="text"
-            placeholder="New category name, e.g. Eco-Friendly"
+            placeholder="New supplier category name, e.g. Eco-Friendly"
             value={newCategoryName}
             onChange={(e) => setNewCategoryName(e.target.value)}
             onKeyDown={(e) => {
@@ -1897,7 +1897,7 @@ const EditManualProduct: React.FC = () => {
             onClick={handleCreateCategory}
             disabled={creatingCategory || !newCategoryName.trim()}
           >
-            <Plus size={14} /> {creatingCategory ? "Adding…" : "Add category"}
+            <Plus size={14} /> {creatingCategory ? "Adding…" : "Add supplier category"}
           </button>
         </div>
 
@@ -1906,7 +1906,7 @@ const EditManualProduct: React.FC = () => {
             <div className={styles.catSearchBar}>
               <input
                 type="text"
-                placeholder="Search categories..."
+                placeholder="Search supplier categories..."
                 value={catSearch}
                 onChange={(e) => handleCatSearch(e.target.value)}
               />
@@ -1916,7 +1916,7 @@ const EditManualProduct: React.FC = () => {
                 <div className={styles.catLoadingRow}>Loading…</div>
               )}
               {!catLoading && categories.length === 0 && (
-                <div className={styles.catLoadingRow}>No categories found</div>
+                <div className={styles.catLoadingRow}>No supplier categories found</div>
               )}
               {categories.map((cat) => {
                 const manual = isManualCategory(cat);
@@ -2025,7 +2025,7 @@ const EditManualProduct: React.FC = () => {
               )}
             </div>
             {selectedCategories.length === 0 ? (
-              <div className={styles.emptyState}>No categories yet</div>
+              <div className={styles.emptyState}>No supplier categories yet</div>
             ) : (
               <div className={styles.catBadgeList}>
                 {selectedCategories.map((cat) => (
@@ -2771,15 +2771,15 @@ const EditManualProduct: React.FC = () => {
 
       {howToOpen && (
         <div className={styles.howToBox}>
-          Pick a Sub-Category for the product's category, then a Category for
-          that Sub-Category. Changes save immediately — no separate Save step
+          Pick a Parent Category for each supplier category, then a Grand
+          Category for that Parent Category. Changes save immediately — no separate Save step
           for this section.
         </div>
       )}
 
       {productCategoryHierarchy.length === 0 ? (
         <div className={styles.emptyState}>
-          Pick at least one category in Basic Info first
+          Pick at least one supplier category in Basic Info first
         </div>
       ) : (
         productCategoryHierarchy.map((cat) => (
@@ -2790,7 +2790,7 @@ const EditManualProduct: React.FC = () => {
             </div>
 
             <div className={styles.hierarchyRow}>
-              <div className={styles.hierarchyRowLabel}>Sub-Category</div>
+              <div className={styles.hierarchyRowLabel}>Parent Category</div>
               <div className={styles.hierarchyRowBody}>
                 {(cat.parent_categories || []).map((p) => {
                   const chipId = `parent-${cat.id}-${p.id}`;
@@ -2815,7 +2815,7 @@ const EditManualProduct: React.FC = () => {
                   );
                 })}
                 <CategoryAddSelect
-                  placeholder="+ Add a Sub-Category"
+                  placeholder="+ Add a Parent Category"
                   fetchAllFn={fetchAllParentCategoriesFn}
                   excludeIds={(cat.parent_categories || []).map((p) => p.id)}
                   onAdd={(pid, ptitle) =>
@@ -2831,7 +2831,7 @@ const EditManualProduct: React.FC = () => {
                 key={p.id}
               >
                 <div className={styles.hierarchyRowLabel}>
-                  Category
+                  Grand Category
                   <span className={styles.hierarchyRowLabelSub}>
                     for "{p.title}"
                   </span>
@@ -2860,7 +2860,7 @@ const EditManualProduct: React.FC = () => {
                     );
                   })}
                   <CategoryAddSelect
-                    placeholder="+ Add a Category"
+                    placeholder="+ Add a Grand Category"
                     fetchAllFn={fetchAllGrandCategoriesFn}
                     excludeIds={(p.grand_categories || []).map((g) => g.id)}
                     onAdd={(gid, gtitle) =>

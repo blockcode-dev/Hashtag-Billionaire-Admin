@@ -190,7 +190,7 @@ function ProductPreviewTable({ products }: { products: ImportPreviewProduct[] })
             <TableRow>
               <TableHead>Product</TableHead>
               <TableHead>Options</TableHead>
-              <TableHead>Supplier category › Sub-category</TableHead>
+              <TableHead>Supplier category › Parent category</TableHead>
               <TableHead>Price</TableHead>
               <TableHead className="text-right">Stock</TableHead>
             </TableRow>
@@ -235,7 +235,7 @@ function ProductPreviewTable({ products }: { products: ImportPreviewProduct[] })
                         {p.sub_categories.length > 0 && <span className="text-muted-foreground">› {p.sub_categories.join(", ")}</span>}
                       </div>
                     ) : (
-                      <span className="text-muted-foreground">Not in a category</span>
+                      <span className="text-muted-foreground">No supplier category</span>
                     )}
                   </TableCell>
                   <TableCell className="whitespace-normal text-sm">{pricing.join(" · ") || "—"}</TableCell>
@@ -409,7 +409,7 @@ const ImportProductsPage = () => {
                 ? `, ${plural(result.summary.new_supplier_categories, "new supplier category", "new supplier categories")}`
                 : ""}
               {result.summary.sub_category_links
-                ? `, ${plural(result.summary.sub_category_links, "supplier category", "supplier categories")} placed in a Sub-category`
+                ? `, ${plural(result.summary.sub_category_links, "supplier category", "supplier categories")} placed in a parent category`
                 : ""}
               . The CSV has no pictures: add them on each product's Edit page.
             </CardDescription>
@@ -508,8 +508,8 @@ const ImportProductsPage = () => {
                 <Rule title="Stock decides if it shows">
                   Blank stock means 0. The website shows a product only once one of its options has stock.
                 </Rule>
-                <Rule title="Place it in a Sub-category">
-                  Name an existing Sub-category so the product appears under it on the website.
+                <Rule title="Place it in a parent category">
+                  Name an existing parent category so the product appears under it on the website.
                 </Rule>
                 <Rule title="Pictures come later">
                   The CSV has no pictures. After importing, add them on each product's Edit page.
@@ -710,7 +710,7 @@ const ImportProductsPage = () => {
                 <Stat label="Products" value={report.summary.products} />
                 <Stat label="Options" value={report.summary.variants} />
                 <Stat label="New supplier categories" value={report.summary.new_supplier_categories} />
-                <Stat label="Placed in a Sub-category" value={report.summary.sub_category_links} />
+                <Stat label="Placed in a parent category" value={report.summary.sub_category_links} />
                 <Stat label="Problems" value={report.summary.errors} tone={report.summary.errors ? "bad" : "good"} />
                 <Stat label="Warnings" value={report.summary.warnings} tone={report.summary.warnings ? "warn" : undefined} />
               </div>
@@ -751,7 +751,7 @@ const ImportProductsPage = () => {
                   )}
                   {report.sub_category_links.length > 0 && (
                     <div className="rounded-lg border p-4">
-                      <p className="text-sm font-medium text-foreground">Placed in Sub-categories</p>
+                      <p className="text-sm font-medium text-foreground">Placed in parent categories</p>
                       <ul className="mt-1 space-y-0.5 text-sm text-muted-foreground">
                         {report.sub_category_links.map((l) => (
                           <li key={`${l.supplier_category}>${l.sub_category}`}>

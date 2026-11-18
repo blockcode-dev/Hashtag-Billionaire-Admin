@@ -399,7 +399,7 @@ const GuideCard: React.FC<{ open: boolean; onToggle: () => void }> = ({
           <span className={styles.guideStepNum}>1</span>
           <span>
             <strong>Product info</strong> — name, brand, description,
-            categories, and listing photos. Only the name is required.
+            supplier categories, and listing photos. Only the name is required.
           </span>
         </div>
         <div className={styles.guideStep}>
@@ -552,7 +552,7 @@ const CreateProductPage: React.FC = () => {
       setCatTotal(total);
       setCatPage(page);
     } catch {
-      toast.error("Failed to fetch categories");
+      toast.error("Failed to fetch supplier categories");
     } finally {
       setCatLoading(false);
     }
@@ -590,7 +590,7 @@ const CreateProductPage: React.FC = () => {
     try {
       const res = await CreateCategoryAPI({ title, supplier: "MANUAL" });
       const created: Category | undefined = res?.data?.data;
-      toast.success("Category created");
+      toast.success("Supplier category created");
       setNewCategoryName("");
       await fetchCategories(1, catSearch);
       if (created?.id) {
@@ -605,7 +605,7 @@ const CreateProductPage: React.FC = () => {
       }
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || "Failed to create category",
+        err?.response?.data?.message || "Failed to create supplier category",
       );
     } finally {
       setCreatingCategory(false);
@@ -628,7 +628,7 @@ const CreateProductPage: React.FC = () => {
     setSavingCategoryEdit(true);
     try {
       await UpdateCategoryAPI(catId, { title });
-      toast.success("Category updated");
+      toast.success("Supplier category updated");
       setCategories((prev) =>
         prev.map((c) => (c.id === catId ? { ...c, title } : c)),
       );
@@ -638,7 +638,7 @@ const CreateProductPage: React.FC = () => {
       cancelEditCategory();
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || "Failed to update category",
+        err?.response?.data?.message || "Failed to update supplier category",
       );
     } finally {
       setSavingCategoryEdit(false);
@@ -647,7 +647,7 @@ const CreateProductPage: React.FC = () => {
 
   const handleDeleteCategory = (cat: Category) => {
     confirm({
-      title: "Delete category",
+      title: "Delete supplier category",
       content: (
         <span>
           Delete <strong>{cat.title}</strong>? This can't be undone.
@@ -659,13 +659,13 @@ const CreateProductPage: React.FC = () => {
         setDeletingCategoryId(cat.id);
         try {
           await DeleteCategoryAPI(cat.id);
-          toast.success("Category deleted");
+          toast.success("Supplier category deleted");
           setCategories((prev) => prev.filter((c) => c.id !== cat.id));
           setAllLoadedCategories((prev) => prev.filter((c) => c.id !== cat.id));
           setSelectedCatIds((prev) => prev.filter((id) => id !== cat.id));
         } catch (err: any) {
           toast.error(
-            err?.response?.data?.message || "Failed to delete category",
+            err?.response?.data?.message || "Failed to delete supplier category",
           );
         } finally {
           setDeletingCategoryId(null);
@@ -1198,7 +1198,7 @@ const CreateProductPage: React.FC = () => {
       <div className={styles.card}>
         <div className={styles.cardHeader}>
           <span className={styles.cardTitle}>
-            Categories <span className={styles.fieldHint}>(optional)</span>
+            Supplier Categories <span className={styles.fieldHint}>(optional)</span>
             {selectedCatIds.length > 0 && (
               <span className={styles.badge}>
                 {selectedCatIds.length} selected
@@ -1206,7 +1206,7 @@ const CreateProductPage: React.FC = () => {
             )}
           </span>
           <span className={styles.cardHint}>
-            Pick every category this product should appear under
+            Pick every supplier category this product should appear under
           </span>
         </div>
 
@@ -1215,7 +1215,7 @@ const CreateProductPage: React.FC = () => {
         <div className={styles.addCategoryRow}>
           <input
             type="text"
-            placeholder="New category name, e.g. Eco-Friendly"
+            placeholder="New supplier category name, e.g. Eco-Friendly"
             value={newCategoryName}
             onChange={(e) => setNewCategoryName(e.target.value)}
             onKeyDown={(e) => {
@@ -1230,7 +1230,7 @@ const CreateProductPage: React.FC = () => {
             onClick={handleCreateCategory}
             disabled={creatingCategory || !newCategoryName.trim()}
           >
-            <Plus size="1em" /> {creatingCategory ? "Adding…" : "Add category"}
+            <Plus size="1em" /> {creatingCategory ? "Adding…" : "Add supplier category"}
           </button>
         </div>
 
@@ -1239,7 +1239,7 @@ const CreateProductPage: React.FC = () => {
             <div className={styles.catSearchBar}>
               <input
                 type="text"
-                placeholder="Search categories..."
+                placeholder="Search supplier categories..."
                 value={catSearch}
                 onChange={(e) => handleCatSearch(e.target.value)}
               />
@@ -1249,7 +1249,7 @@ const CreateProductPage: React.FC = () => {
                 <div className={styles.catLoadingRow}>Loading…</div>
               )}
               {!catLoading && categories.length === 0 && (
-                <div className={styles.catLoadingRow}>No categories found</div>
+                <div className={styles.catLoadingRow}>No supplier categories found</div>
               )}
               {categories.map((cat) => {
                 const manual = isManualCategory(cat);
@@ -1356,7 +1356,7 @@ const CreateProductPage: React.FC = () => {
             {selectedCategories.length === 0 ? (
               <div className={styles.emptyState}>
                 <div className={styles.emptyIcon}><SquareDashed size={28} strokeWidth={1.5} aria-hidden /></div>
-                <span>No categories yet</span>
+                <span>No supplier categories yet</span>
                 <span className={styles.emptyHint}>
                   Pick from the list on the left — this product will still be
                   created even if you skip it
@@ -2233,7 +2233,7 @@ const CreateProductPage: React.FC = () => {
           </div>
         </div>
         <div className={styles.reviewSection}>
-          <div className={styles.summaryLabel}>Categories</div>
+          <div className={styles.summaryLabel}>Supplier Categories</div>
           <div className={styles.summaryValue}>
             {selectedCategories.length
               ? selectedCategories.map((c) => (

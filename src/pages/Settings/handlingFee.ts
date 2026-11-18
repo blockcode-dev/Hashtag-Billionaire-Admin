@@ -94,7 +94,7 @@ export const summarizeHandlingFee = (text: string, options: HandlingFeeOptions |
   const amount = Number(rule.amount);
   if (!(amount > 0)) return "Off: the amount is $0.00";
   if (!rule.category_ids.length && !rule.suppliers.length) {
-    return `Off: no category or supplier is chosen (${formatUSD(amount)})`;
+    return `Off: no supplier category or supplier is chosen (${formatUSD(amount)})`;
   }
 
   const categories = new Map((options?.categories ?? []).map((category) => [category.id, category]));
@@ -102,7 +102,7 @@ export const summarizeHandlingFee = (text: string, options: HandlingFeeOptions |
 
   const categoryNames = rule.category_ids.map((id) => {
     const category = categories.get(id);
-    if (!category) return options ? `Category ${id} (not found)` : `Category ${id}`;
+    if (!category) return options ? `Supplier category ${id} (not found)` : `Supplier category ${id}`;
     return category.supplier ? `${decode(category.title)} (${category.supplier})` : decode(category.title);
   });
   const supplierNames = rule.suppliers.map((value) => {
@@ -112,7 +112,7 @@ export const summarizeHandlingFee = (text: string, options: HandlingFeeOptions |
 
   const parts = [
     formatUSD(amount),
-    categoryNames.length ? listNames(categoryNames) : "Any category",
+    categoryNames.length ? listNames(categoryNames) : "Any supplier category",
     supplierNames.length ? listNames(supplierNames) : "Any supplier",
   ];
   if (rule.label.trim() && rule.label.trim() !== DEFAULT_FEE_LABEL) parts.push(`shown as "${rule.label.trim()}"`);

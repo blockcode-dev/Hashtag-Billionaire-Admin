@@ -42,14 +42,14 @@ import {
   CreateCategoryAPI,
   UpdateCategoryAPI,
   DeleteCategoryAPI,
-  GetParentCategoriesAPI, // for the "add Sub-Category" dropdown list
+  GetParentCategoriesAPI, // for the "add Parent Category" dropdown list
   AddCategoryToParentAPI,
-  RemoveCategoryFromParentAPI, // NEW: undo a Sub-Category mapping
+  RemoveCategoryFromParentAPI, // NEW: undo a Parent Category mapping
 } from "@/services/Api/ParentCategoryApi";
 import {
-  GetGrandCategoriesAPI, // for the "add Category" dropdown list
+  GetGrandCategoriesAPI, // for the "add Grand Category" dropdown list
   AddParentToGrandAPI,
-  RemoveParentFromGrandAPI, // NEW: undo a Category mapping
+  RemoveParentFromGrandAPI, // NEW: undo a Grand Category mapping
 } from "@/services/Api/GrandCategoryApi";
 import { GetPublishedBrandsAPI } from "@/services/Api/BrandsApi";
 import "./EditProduct.scss";
@@ -430,8 +430,8 @@ const RichTextEditor: React.FC<{
 };
 
 /* ─── category hierarchy "add" select ──────────────────────────
-   One reusable dropdown for both "add Sub-Category" and "add
-   Category" actions. Unlike a pure search box, it loads the full
+   One reusable dropdown for both "add Parent Category" and "add
+   Grand Category" actions. Unlike a pure search box, it loads the full
    option list the first time it's opened and shows it right away
    — the person can scroll and pick, or type to filter the same
    list. It behaves as an "add" action (always shows its
@@ -608,7 +608,7 @@ const EditProduct: React.FC = () => {
       setCatTotal(total);
       setCatPage(page);
     } catch {
-      toast.error("Failed to fetch categories");
+      toast.error("Failed to fetch supplier categories");
     } finally {
       setCatLoading(false);
     }
@@ -641,7 +641,7 @@ const EditProduct: React.FC = () => {
     try {
       const res = await CreateCategoryAPI({ title, supplier: "MANUAL" });
       const created: CategoryRef | undefined = res?.data?.data;
-      toast.success("Category created");
+      toast.success("Supplier category created");
       setNewCategoryName("");
       await fetchCategories(1, catSearch);
       if (created?.id) {
@@ -656,7 +656,7 @@ const EditProduct: React.FC = () => {
       }
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || "Failed to create category",
+        err?.response?.data?.message || "Failed to create supplier category",
       );
     } finally {
       setCreatingCategory(false);
@@ -679,7 +679,7 @@ const EditProduct: React.FC = () => {
     setSavingCategoryEdit(true);
     try {
       await UpdateCategoryAPI(catId, { title });
-      toast.success("Category updated");
+      toast.success("Supplier category updated");
       setCategories((prev) =>
         prev.map((c) => (c.id === catId ? { ...c, title } : c)),
       );
@@ -689,7 +689,7 @@ const EditProduct: React.FC = () => {
       cancelEditCategory();
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || "Failed to update category",
+        err?.response?.data?.message || "Failed to update supplier category",
       );
     } finally {
       setSavingCategoryEdit(false);
@@ -698,7 +698,7 @@ const EditProduct: React.FC = () => {
 
   const handleDeleteCategory = (cat: CategoryRef) => {
     confirm({
-      title: "Delete category",
+      title: "Delete supplier category",
       content: (
         <span>
           Delete <strong>{cat.title}</strong>? This can't be undone.
@@ -710,13 +710,13 @@ const EditProduct: React.FC = () => {
         setDeletingCategoryId(cat.id);
         try {
           await DeleteCategoryAPI(cat.id);
-          toast.success("Category deleted");
+          toast.success("Supplier category deleted");
           setCategories((prev) => prev.filter((c) => c.id !== cat.id));
           setAllLoadedCategories((prev) => prev.filter((c) => c.id !== cat.id));
           setSelectedCatIds((prev) => prev.filter((cid) => cid !== cat.id));
         } catch (err: any) {
           toast.error(
-            err?.response?.data?.message || "Failed to delete category",
+            err?.response?.data?.message || "Failed to delete supplier category",
           );
         } finally {
           setDeletingCategoryId(null);
@@ -894,15 +894,14 @@ const EditProduct: React.FC = () => {
   }, [ucSearch]);
 
   /* ─── Category Hierarchy handlers ─────────────────────────────
-     "Sub-Category" here is the ParentCategory model, "Category" is
-     the GrandCategory model — renamed in the UI to match the plain
-     language non-technical admins already see in the left nav
-     (Categories / Sub Categories). Both add and remove are allowed:
+     The UI says Grand Category / Parent Category / Supplier Category,
+     the same names as the left nav and the category pages (18 Nov
+     2026). Both add and remove are allowed:
      these mapping tables are fully admin-managed (not something the
      nightly supplier sync touches), so undoing a mapping here is
-     safe the same way it's safe on the Sub-Category/Category
-     management pages. Multiple Sub-Categories per product category,
-     and multiple Categories per Sub-Category, are both allowed, so
+     safe the same way it's safe on the Parent/Grand Category
+     management pages. Multiple Parent Categories per supplier category,
+     and multiple Grand Categories per Parent Category, are both allowed, so
      the add control stays visible even when mappings already exist.
   ─────────────────────────────────────────────────────────────── */
   const [removingChipId, setRemovingChipId] = useState<string | null>(null);
@@ -931,7 +930,7 @@ const EditProduct: React.FC = () => {
       });
       toast.success(`Added to "${parentTitle}"`);
       // Use whatever the backend actually knows about this parent's
-      // existing Grand Category mappings — this Sub-Category may have
+      // existing Grand Category mappings — this Parent Category may have
       // already belonged to a Category before it was ever linked to
       // this product. Hardcoding an empty array here was the bug: it
       // showed "not mapped" until a refresh re-fetched the real data.
@@ -956,7 +955,7 @@ const EditProduct: React.FC = () => {
       );
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || "Failed to add sub-category",
+        err?.response?.data?.message || "Failed to add parent category",
       );
     }
   };
@@ -986,7 +985,7 @@ const EditProduct: React.FC = () => {
       );
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || "Failed to remove sub-category",
+        err?.response?.data?.message || "Failed to remove parent category",
       );
     } finally {
       setRemovingChipId(null);
@@ -1004,7 +1003,7 @@ const EditProduct: React.FC = () => {
         parent_category_id: parentId,
       });
       toast.success(`Added to "${grandTitle}"`);
-      // A sub-category could appear under more than one product category
+      // A parent category could appear under more than one supplier category
       // row — update every occurrence, not just the one that triggered this.
       setProductCategoryHierarchy((prev) =>
         prev.map((c) => ({
@@ -1023,7 +1022,7 @@ const EditProduct: React.FC = () => {
         })),
       );
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to add category");
+      toast.error(err?.response?.data?.message || "Failed to add grand category");
     }
   };
 
@@ -1055,7 +1054,7 @@ const EditProduct: React.FC = () => {
       );
     } catch (err: any) {
       toast.error(
-        err?.response?.data?.message || "Failed to remove category",
+        err?.response?.data?.message || "Failed to remove grand category",
       );
     } finally {
       setRemovingChipId(null);
@@ -1418,7 +1417,7 @@ const EditProduct: React.FC = () => {
       {isManual && (
         <div className="edit-card">
           <div className="edit-card-header">
-            <h2>Brand & Categories</h2>
+            <h2>Brand & Supplier Categories</h2>
             <span className="edit-card-hint">
               Editable for manual products only
             </span>
@@ -1441,7 +1440,7 @@ const EditProduct: React.FC = () => {
 
           <div className="field" style={{ marginBottom: 0 }}>
             <label>
-              Categories
+              Supplier Categories
               {selectedCatIds.length > 0 && (
                 <span className="cat-count-badge">
                   {selectedCatIds.length} selected
@@ -1454,7 +1453,7 @@ const EditProduct: React.FC = () => {
             <div className="add-category-row">
               <input
                 type="text"
-                placeholder="New category name, e.g. Eco-Friendly"
+                placeholder="New supplier category name, e.g. Eco-Friendly"
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 onKeyDown={(e) => {
@@ -1470,7 +1469,7 @@ const EditProduct: React.FC = () => {
                 disabled={creatingCategory || !newCategoryName.trim()}
               >
                 <Plus size={14} />
-                {creatingCategory ? "Adding…" : "Add category"}
+                {creatingCategory ? "Adding…" : "Add supplier category"}
               </button>
             </div>
 
@@ -1479,7 +1478,7 @@ const EditProduct: React.FC = () => {
                 <div className="cat-search-bar">
                   <input
                     type="text"
-                    placeholder="Search categories..."
+                    placeholder="Search supplier categories..."
                     value={catSearch}
                     onChange={(e) => handleCatSearch(e.target.value)}
                   />
@@ -1489,7 +1488,7 @@ const EditProduct: React.FC = () => {
                     <div className="cat-loading-row">Loading…</div>
                   )}
                   {!catLoading && categories.length === 0 && (
-                    <div className="cat-loading-row">No categories found</div>
+                    <div className="cat-loading-row">No supplier categories found</div>
                   )}
                   {categories.map((cat) => {
                     const manual = isManualCategory(cat);
@@ -1614,7 +1613,7 @@ const EditProduct: React.FC = () => {
                 </div>
                 {selectedCategories.length === 0 ? (
                   <div className="cat-empty-state">
-                    <span>No categories yet</span>
+                    <span>No supplier categories yet</span>
                   </div>
                 ) : (
                   <div className="cat-badge-list">
@@ -1644,11 +1643,9 @@ const EditProduct: React.FC = () => {
 
       {/* Category Hierarchy — shows the product category this product came
           in with (from the supplier or manual assignment), and lets admins
-          group it under one of the site's Sub-Categories, and that
-          Sub-Category under a top-level Category. Named "Sub-Category" /
-          "Category" here (not "Parent"/"Grand") to match the same wording
-          already used in the left nav, so non-technical admins recognize
-          it. Both levels support add AND remove — these mapping tables are
+          group it under one of the site's Parent Categories, and that
+          Parent Category under a Grand Category, the same names as the
+          left nav. Both levels support add AND remove — these mapping tables are
           fully admin-managed, the monthly supplier sync doesn't touch them.
           Runs for every product, not just MANUAL ones. */}
       <div className="edit-card">
@@ -1668,7 +1665,7 @@ const EditProduct: React.FC = () => {
             <li>
               <span className="cat-hierarchy-howto-num">1</span>
               <span>
-                Every product already has a <strong>Category</strong> (shown
+                Every product already has a <strong>Supplier Category</strong> (shown
                 below, e.g. "Bags") — this comes from the supplier or from
                 manual setup, and can't be changed on this screen.
               </span>
@@ -1676,18 +1673,18 @@ const EditProduct: React.FC = () => {
             <li>
               <span className="cat-hierarchy-howto-num">2</span>
               <span>
-                Click <strong>"+ Add a Sub-Category"</strong> and pick from
-                the list to group it under one of your site's Sub-Categories
-                (the same ones under "Sub Categories" in the sidebar). Click
+                Click <strong>"+ Add a Parent Category"</strong> and pick from
+                the list to group it under one of your site's Parent Categories
+                (the same ones under "Parent Categories" in the sidebar). Click
                 the <strong>×</strong> on a chip any time to remove it.
               </span>
             </li>
             <li>
               <span className="cat-hierarchy-howto-num">3</span>
               <span>
-                Once a Sub-Category is added, click{" "}
-                <strong>"+ Add a Category"</strong> underneath it to place
-                that Sub-Category under one of your top-level Categories.
+                Once a Parent Category is added, click{" "}
+                <strong>"+ Add a Grand Category"</strong> underneath it to place
+                that Parent Category under one of your Grand Categories.
                 Same rule — click <strong>×</strong> to remove it.
               </span>
             </li>
@@ -1704,7 +1701,7 @@ const EditProduct: React.FC = () => {
 
         {productCategoryHierarchy.length === 0 ? (
           <div className="uc-empty-state">
-            This product has no category assigned yet
+            This product has no supplier category assigned yet
           </div>
         ) : (
           <div className="cat-hierarchy-list">
@@ -1719,9 +1716,9 @@ const EditProduct: React.FC = () => {
                   <SupplierPill supplier={cat.supplier} />
                 </div>
 
-                {/* Level 1: Sub-Category (ParentCategory model) */}
+                {/* Level 1: Parent Category (ParentCategory model) */}
                 <div className="cat-hierarchy-row">
-                  <div className="cat-hierarchy-row-label">Sub-Category</div>
+                  <div className="cat-hierarchy-row-label">Parent Category</div>
                   <div className="cat-hierarchy-row-body">
                     {(cat.parent_categories || []).map((p) => {
                       const chipId = `parent-${cat.id}-${p.id}`;
@@ -1730,7 +1727,7 @@ const EditProduct: React.FC = () => {
                           {p.title}
                           <button
                             className="cat-hierarchy-chip-remove"
-                            title="Remove this Sub-Category"
+                            title="Remove this Parent Category"
                             disabled={removingChipId === chipId}
                             onClick={() =>
                               handleRemoveCategoryFromParent(cat.id, p.id)
@@ -1747,11 +1744,11 @@ const EditProduct: React.FC = () => {
                     })}
                     {(cat.parent_categories || []).length === 0 && (
                       <span className="cat-hierarchy-empty-hint">
-                        Not added to a Sub-Category yet
+                        Not added to a Parent Category yet
                       </span>
                     )}
                     <CategoryAddSelect
-                      placeholder="+ Add a Sub-Category"
+                      placeholder="+ Add a Parent Category"
                       fetchAllFn={fetchAllParentCategoriesFn}
                       excludeIds={(cat.parent_categories || []).map(
                         (p) => p.id,
@@ -1763,15 +1760,15 @@ const EditProduct: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Level 2: Category (GrandCategory model) — one row per
-                    mapped Sub-Category, since it's scoped to that one. */}
+                {/* Level 2: Grand Category (GrandCategory model) — one row per
+                    mapped Parent Category, since it's scoped to that one. */}
                 {(cat.parent_categories || []).map((p) => (
                   <div
                     className="cat-hierarchy-row cat-hierarchy-row--nested"
                     key={p.id}
                   >
                     <div className="cat-hierarchy-row-label">
-                      Category
+                      Grand Category
                       <span className="cat-hierarchy-row-label-sub">
                         for "{p.title}"
                       </span>
@@ -1784,7 +1781,7 @@ const EditProduct: React.FC = () => {
                             {g.title}
                             <button
                               className="cat-hierarchy-chip-remove"
-                              title="Remove this Category"
+                              title="Remove this Grand Category"
                               disabled={removingChipId === chipId}
                               onClick={() =>
                                 handleRemoveParentFromGrand(p.id, g.id)
@@ -1801,11 +1798,11 @@ const EditProduct: React.FC = () => {
                       })}
                       {(p.grand_categories || []).length === 0 && (
                         <span className="cat-hierarchy-empty-hint">
-                          Not added to a Category yet
+                          Not added to a Grand Category yet
                         </span>
                       )}
                       <CategoryAddSelect
-                        placeholder="+ Add a Category"
+                        placeholder="+ Add a Grand Category"
                         fetchAllFn={fetchAllGrandCategoriesFn}
                         excludeIds={(p.grand_categories || []).map(
                           (g) => g.id,

@@ -339,8 +339,8 @@ const SageCatalogPage = () => {
 
         {scope === "live" ? (
           <Combobox
-            placeholder="All categories"
-            searchPlaceholder="Search categories…"
+            placeholder="All supplier categories"
+            searchPlaceholder="Search supplier categories…"
             allowClear
             style={{ width: 260 }}
             value={category}
@@ -354,12 +354,12 @@ const SageCatalogPage = () => {
             }))}
           />
         ) : (
-          <Tip content="Category filtering searches SAGE's live taxonomy — switch to SAGE Live Catalog to use it.">
+          <Tip content="Supplier category filtering searches SAGE's live taxonomy — switch to SAGE Live Catalog to use it.">
             <Combobox
               disabled
               options={[]}
               onChange={() => {}}
-              placeholder="Category filter (Live only)"
+              placeholder="Supplier category filter (Live only)"
               style={{ width: 260 }}
             />
           </Tip>
@@ -425,7 +425,7 @@ const SageCatalogPage = () => {
 
         {scope === "live" && !liveHasCriteria && !loading ? (
           <div className="sage-catalog-empty">
-            Type a keyword or pick a category above to search SAGE's live
+            Type a keyword or pick a supplier category above to search SAGE's live
             feed
           </div>
         ) : (
@@ -446,7 +446,7 @@ const SageCatalogPage = () => {
                   </th>
                   <th>Product</th>
                   <th>SAGE ID</th>
-                  <th>Category</th>
+                  <th>Supplier Category</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
