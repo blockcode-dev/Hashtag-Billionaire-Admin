@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import axios from "axios";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -13,6 +12,7 @@ import {
   FileSpreadsheet,
   FileUp,
   Pencil,
+  RefreshCw,
   TriangleAlert,
   Upload,
   XCircle,
@@ -27,27 +27,34 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { confirm } from "@/components/common/ConfirmDialog";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Spinner } from "@/components/common/Spinner";
-import { apiErrorMessage, toastApiError } from "@/lib/api-errors";
+import { apiErrorMessage } from "@/lib/api-errors";
 import {
   GetProductImportFormatAPI,
-  ImportProductsAPI,
-  PreviewProductImportAPI,
   type ImportFormat,
   type ImportIssue,
   type ImportPreviewProduct,
-  type ImportReport,
-  type ImportResult,
 } from "@/services/Api/ProductImportApi";
+import { ImportProgress } from "./ImportProgress";
+import {
+  checkFile,
+  clearImport,
+  getImportJob,
+  importFile,
+  markSeen,
+  plural,
+  setTemplate,
+  useImportJob,
+  useImportPageShowing,
+} from "./importJob";
 
 // Several products from one CSV file. The backend owns the layout (columns, example file,
-// limits): this page shows it, uploads the file for a check, then imports it in one go.
+// limits): this page shows it, checks the file as soon as it's chosen, then imports it in one go.
+// The file, the check and the import live in importJob.ts, so they carry on on other pages.
 
 const NO_TEMPLATE = "none";
 const ACCEPTED = [".csv", ".txt", ".tsv"];
 // The product preview lists this many; the rest are counted.
 const PREVIEW_LIMIT = 200;
-
-const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString()} ${n === 1 ? one : many}`;
 
 const fileSize = (bytes: number) =>
   bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -77,6 +84,33 @@ const TONES = {
   warn: "border-warning-border bg-warning-soft text-warning-soft-foreground",
   good: "border-success-border bg-success-soft text-success-soft-foreground",
 } as const;
+
+const BACKGROUND_NOTE = "You can open other pages: it carries on, and a message in the corner tells you when it's done.";
+
+// Asks before leaving while a check or an import is running. Either one carries on after.
+const confirmLeave = (go: () => void) => {
+  const { phase, file, report } = getImportJob();
+  if (phase === "idle") return go();
+  const products = report?.summary.products ?? 0;
+  confirm(
+    phase === "importing"
+      ? {
+          title: `${plural(products, "product")} ${products === 1 ? "is" : "are"} still being imported`,
+          content:
+            "Leaving doesn't stop the import. It carries on in the background, and a message in the corner tells you when the products are ready.",
+          okText: "Leave, keep importing",
+          cancelText: "Stay on this page",
+          onOk: go,
+        }
+      : {
+          title: "Your file is still being checked",
+          content: `${file?.name ?? "The file"} keeps being checked in the background if you leave, and a message in the corner tells you when it's ready to import.`,
+          okText: "Leave, keep checking",
+          cancelText: "Stay on this page",
+          onOk: go,
+        },
+  );
+};
 
 function Callout({
   tone,
@@ -231,13 +265,57 @@ const ImportProductsPage = () => {
   const [format, setFormat] = useState<ImportFormat | null>(null);
   const [formatError, setFormatError] = useState<string | null>(null);
   const [showColumns, setShowColumns] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [templateId, setTemplateId] = useState<number | null>(null);
-  const [checking, setChecking] = useState(false);
-  const [report, setReport] = useState<ImportReport | null>(null);
-  const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState<ImportResult | null>(null);
+
+  const job = useImportJob();
+  const { file, templateId, report, result } = job;
+  const checking = job.phase === "checking";
+  const importing = job.phase === "importing";
+  const busy = job.phase !== "idle";
+  useImportPageShowing();
+
+  const leave = (path: string) => confirmLeave(() => navigate(path));
+
+  // While a check or an import runs: links to other pages ask first, and so does closing the tab
+  // (that would stop a check, and hide how an import ended).
+  useEffect(() => {
+    if (!busy) return;
+    const beforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const link = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
+      const url = new URL(link.href, window.location.href);
+      if (url.origin !== window.location.origin || url.pathname === window.location.pathname) return;
+      e.preventDefault();
+      e.stopPropagation();
+      confirmLeave(() => navigate(url.pathname + url.search + url.hash));
+    };
+    window.addEventListener("beforeunload", beforeUnload);
+    document.addEventListener("click", onClick, true);
+    return () => {
+      window.removeEventListener("beforeunload", beforeUnload);
+      document.removeEventListener("click", onClick, true);
+    };
+  }, [busy, navigate]);
+
+  // A new check (or one that finished while the page wasn't showing) scrolls into view, once the
+  // layout above it has loaded and stopped moving it.
+  const shownReport = useRef(job.unseen ? null : report);
+  const layoutLoaded = !!format || !!formatError;
+  useEffect(() => {
+    if (!report || report === shownReport.current || !layoutLoaded) return;
+    shownReport.current = report;
+    markSeen();
+    requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }, [report, layoutLoaded]);
+
+  useEffect(() => {
+    if (result) window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [result]);
 
   const fetchFormat = () =>
     GetProductImportFormatAPI()
@@ -256,9 +334,9 @@ const ImportProductsPage = () => {
   const templates = format?.pricing_templates ?? [];
   const maxMb = format?.limits.max_file_mb ?? 2;
 
-  // A different file or default template means the last check no longer applies.
+  // Choosing a file checks it straight away.
   const chooseFile = (picked: File | null | undefined) => {
-    if (!picked) return;
+    if (!picked || importing) return;
     const ext = picked.name.includes(".") ? picked.name.slice(picked.name.lastIndexOf(".")).toLowerCase() : "";
     if (!ACCEPTED.includes(ext)) {
       toast.error("Choose a .csv file", {
@@ -270,8 +348,7 @@ const ImportProductsPage = () => {
       toast.error(`The file is bigger than ${maxMb} MB`, { description: "Split it into smaller files." });
       return;
     }
-    setFile(picked);
-    setReport(null);
+    checkFile(picked, templateId);
   };
 
   const onInput = (e: ChangeEvent<HTMLInputElement>) => {
@@ -285,21 +362,6 @@ const ImportProductsPage = () => {
     chooseFile(e.dataTransfer.files?.[0]);
   };
 
-  const check = async () => {
-    if (!file) return;
-    setChecking(true);
-    setReport(null);
-    try {
-      const res = await PreviewProductImportAPI(file, templateId);
-      setReport(res.data.data);
-      requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
-    } catch (err) {
-      toastApiError("The file couldn't be checked", err);
-    } finally {
-      setChecking(false);
-    }
-  };
-
   const runImport = () => {
     if (!file || !report?.can_import) return;
     const { products, variants, new_supplier_categories: newCategories } = report.summary;
@@ -311,34 +373,11 @@ const ImportProductsPage = () => {
         (newCategories ? `, with ${plural(newCategories, "new supplier category", "new supplier categories")}` : "") +
         ". Every product in the file is created, or none if something goes wrong.",
       okText: "Import",
-      onOk: async () => {
-        setImporting(true);
-        try {
-          const res = await ImportProductsAPI(file, templateId);
-          setResult(res.data.data);
-          setReport(null);
-          toast.success(res.data.message || "Products imported");
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        } catch (err) {
-          if (axios.isAxiosError(err) && err.response?.status === 422 && err.response.data?.data) {
-            setReport(err.response.data.data);
-            toast.error("Nothing was imported", {
-              description: "Something the file names changed since the check. See the problems listed.",
-            });
-          } else {
-            toastApiError("Nothing was imported", err);
-          }
-        } finally {
-          setImporting(false);
-        }
+      // Not awaited: the dialog closes and the page shows the import's progress.
+      onOk: () => {
+        importFile();
       },
     });
-  };
-
-  const startOver = () => {
-    setFile(null);
-    setReport(null);
-    setResult(null);
   };
 
   const header = (
@@ -346,7 +385,7 @@ const ImportProductsPage = () => {
       title="Import products from CSV"
       description="Add many products at once from a spreadsheet. Nothing is saved until the file is checked and you press Import."
       actions={
-        <Button variant="outline" onClick={() => navigate("/products")}>
+        <Button variant="outline" onClick={() => leave("/products")}>
           <ArrowLeft aria-hidden />
           Products
         </Button>
@@ -411,7 +450,7 @@ const ImportProductsPage = () => {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => navigate("/products")}>Go to Products</Button>
-              <Button variant="outline" onClick={startOver}>
+              <Button variant="outline" onClick={clearImport}>
                 Import another file
               </Button>
             </div>
@@ -547,58 +586,19 @@ const ImportProductsPage = () => {
         <CardHeader>
           <CardTitle>2. Upload the file</CardTitle>
           <CardDescription>
-            Up to {(format?.limits.max_rows ?? 1000).toLocaleString()} rows and {maxMb} MB per file.
+            Up to {(format?.limits.max_rows ?? 1000).toLocaleString()} rows and {maxMb} MB per file. It's checked as
+            soon as you choose it.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => inputRef.current?.click()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                inputRef.current?.click();
-              }
-            }}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={onDrop}
-            className={cn(
-              "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors",
-              dragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/60 hover:bg-muted/40",
-            )}
-          >
-            <FileUp className="size-8 text-muted-foreground" aria-hidden />
-            {file ? (
-              <>
-                <p className="font-medium text-foreground">{file.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {fileSize(file.size)} · click or drop another file to replace it
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="font-medium text-foreground">Drop your CSV file here, or click to choose it</p>
-                <p className="text-sm text-muted-foreground">Saved from Excel, Google Sheets or Numbers</p>
-              </>
-            )}
-            <input ref={inputRef} type="file" accept=".csv,.tsv,.txt,text/csv" className="hidden" onChange={onInput} />
-          </div>
-
           <div className="grid gap-2 sm:max-w-md">
             <label className="text-sm font-medium text-foreground" htmlFor="default-pricing-template">
               Default pricing template
             </label>
             <Select
               value={templateId ? String(templateId) : NO_TEMPLATE}
-              onValueChange={(value) => {
-                setTemplateId(value === NO_TEMPLATE ? null : Number(value));
-                setReport(null);
-              }}
+              onValueChange={(value) => setTemplate(value === NO_TEMPLATE ? null : Number(value))}
+              disabled={importing}
             >
               <SelectTrigger id="default-pricing-template" className="w-full">
                 <SelectValue />
@@ -613,21 +613,84 @@ const ImportProductsPage = () => {
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Used for rows that leave both Price and Pricing template empty.
+              Used for rows that leave both Price and Pricing template empty. Changing it checks the file again.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={check} disabled={!file || checking}>
-              {checking ? <Spinner size="small" label="Checking" /> : <CheckCircle2 aria-hidden />}
-              Check file
-            </Button>
-            {file && (
-              <Button variant="ghost" onClick={startOver} disabled={checking}>
-                Clear
+          {checking && file ? (
+            <ImportProgress
+              title={`Checking ${file.name}`}
+              work="Checking every row"
+              sent={job.sent}
+              startedAt={job.startedAt}
+              note={`Nothing is imported yet. ${BACKGROUND_NOTE}`}
+              onCancel={clearImport}
+            />
+          ) : (
+            <div
+              role="button"
+              tabIndex={importing ? -1 : 0}
+              aria-disabled={importing || undefined}
+              onClick={() => !importing && inputRef.current?.click()}
+              onKeyDown={(e) => {
+                if (!importing && (e.key === "Enter" || e.key === " ")) {
+                  e.preventDefault();
+                  inputRef.current?.click();
+                }
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (!importing) setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={onDrop}
+              className={cn(
+                "flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors",
+                importing
+                  ? "cursor-not-allowed border-border opacity-60"
+                  : dragging
+                    ? "cursor-pointer border-primary bg-primary/5"
+                    : "cursor-pointer border-border hover:border-primary/60 hover:bg-muted/40",
+              )}
+            >
+              <FileUp className="size-8 text-muted-foreground" aria-hidden />
+              {file ? (
+                <>
+                  <p className="font-medium break-all text-foreground">{file.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {fileSize(file.size)} ·{" "}
+                    {importing ? "being imported" : "click or drop another file to check that one instead"}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-medium text-foreground">Drop your CSV file here, or click to choose it</p>
+                  <p className="text-sm text-muted-foreground">
+                    It's checked straight away. Nothing is imported until you press Import.
+                  </p>
+                </>
+              )}
+              <input ref={inputRef} type="file" accept=".csv,.tsv,.txt,text/csv" className="hidden" onChange={onInput} />
+            </div>
+          )}
+
+          {job.checkError && (
+            <Callout tone="bad" icon={TriangleAlert} title={`${file?.name ?? "The file"} couldn't be checked`}>
+              {job.checkError}
+            </Callout>
+          )}
+
+          {file && !busy && (
+            <div className="flex flex-wrap gap-2">
+              <Button variant={job.checkError ? "default" : "outline"} onClick={() => checkFile(file, templateId)}>
+                <RefreshCw aria-hidden />
+                Check again
               </Button>
-            )}
-          </div>
+              <Button variant="ghost" onClick={clearImport}>
+                Remove file
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -703,17 +766,27 @@ const ImportProductsPage = () => {
 
               {report.products.length > 0 && <ProductPreviewTable products={report.products} />}
 
-              <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-4">
-                {!report.can_import && (
-                  <p className="mr-auto text-sm text-muted-foreground">
-                    Fix the file, choose it again above, and check it again.
-                  </p>
-                )}
-                <Button onClick={runImport} disabled={!report.can_import || importing}>
-                  {importing ? <Spinner size="small" label="Importing" /> : <Upload aria-hidden />}
-                  Import {plural(report.summary.products, "product")}
-                </Button>
-              </div>
+              {importing ? (
+                <div className="border-t pt-4">
+                  <ImportProgress
+                    title={`Importing ${plural(report.summary.products, "product")}`}
+                    work="Creating the products"
+                    sent={job.sent}
+                    startedAt={job.startedAt}
+                    note={`Every product in the file is created, or none if something goes wrong. ${BACKGROUND_NOTE}`}
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-4">
+                  {!report.can_import && (
+                    <p className="mr-auto text-sm text-muted-foreground">Fix the file, then choose it again above.</p>
+                  )}
+                  <Button onClick={runImport} disabled={!report.can_import}>
+                    <Upload aria-hidden />
+                    Import {plural(report.summary.products, "product")}
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

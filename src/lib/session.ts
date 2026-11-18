@@ -61,6 +61,12 @@ export const getRoleName = () => localStorage.getItem(ROLE_NAME_KEY);
 
 export const isSuperAdmin = () => getRoleName() === SUPER_ADMIN_ROLE;
 
+// Calls `listener` when this tab signs in or out, or the role changes. Returns the unsubscribe.
+export const onSessionChange = (listener: () => void) => {
+  window.addEventListener(SESSION_EVENT, listener);
+  return () => window.removeEventListener(SESSION_EVENT, listener);
+};
+
 // Re-renders when the session changes in this tab or another one.
 export const useSession = () => {
   const read = () => ({

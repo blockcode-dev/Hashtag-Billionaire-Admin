@@ -1,6 +1,6 @@
 /** @format */
 
-import axios from "axios";
+import axios, { type AxiosRequestConfig } from "axios";
 
 import { API_BASE_URL } from "@/config/env";
 
@@ -97,18 +97,21 @@ const importBody = (file: File, defaultTemplateId: number | null) => {
   return body;
 };
 
-const multipart = { headers: { "Content-Type": "multipart/form-data" } };
+// `options` carries the upload progress listener, and for a check, the signal that cancels it.
+type UploadOptions = Pick<AxiosRequestConfig, "signal" | "onUploadProgress">;
+
+const multipart = (options?: UploadOptions) => ({ headers: { "Content-Type": "multipart/form-data" }, ...options });
 
 export const GetProductImportFormatAPI = async () => {
   return axios.get(`${API_BASE_URL}product/import/format`);
 };
 
 // Checks the file and answers an ImportReport. Saves nothing.
-export const PreviewProductImportAPI = async (file: File, defaultTemplateId: number | null) => {
-  return axios.post(`${API_BASE_URL}product/import/preview`, importBody(file, defaultTemplateId), multipart);
+export const PreviewProductImportAPI = async (file: File, defaultTemplateId: number | null, options?: UploadOptions) => {
+  return axios.post(`${API_BASE_URL}product/import/preview`, importBody(file, defaultTemplateId), multipart(options));
 };
 
 // 201 with an ImportResult. A file with problems answers 422, with the ImportReport in data.
-export const ImportProductsAPI = async (file: File, defaultTemplateId: number | null) => {
-  return axios.post(`${API_BASE_URL}product/import`, importBody(file, defaultTemplateId), multipart);
+export const ImportProductsAPI = async (file: File, defaultTemplateId: number | null, options?: UploadOptions) => {
+  return axios.post(`${API_BASE_URL}product/import`, importBody(file, defaultTemplateId), multipart(options));
 };
