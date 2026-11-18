@@ -430,8 +430,9 @@ const ImportProductsPage = () => {
         <CardHeader>
           <CardTitle>1. Fill in the spreadsheet</CardTitle>
           <CardDescription>
-            Start from the example. It has a product with no options, one with colours and sizes, and one priced with a
-            pricing template.
+            {/* With no pricing templates, the backend's example prices the business cards with Price. */}
+            Start from the example. It has a product with no options, one with colours and sizes, and business cards{" "}
+            {templates.length ? "priced with a pricing template" : "with a choice of paper"}.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
