@@ -1,6 +1,6 @@
 /** @format */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Eye } from "lucide-react";
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -34,22 +34,18 @@ const paymentMode = (row: any): string | null => row?.payment_method || row?.pay
 const money = (n: unknown) =>
   `$${Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-// Joined rows to ask for, so every payment arrives in one request (see loadPayments).
-const ALL_PAYMENT_ROWS = 100000;
-
 const PaymentsPage = () => {
   const [payments, setPayments] = useState<any[]>([]);
 
-  const [filteredPayments, setFilteredPayments] = useState<any[]>([]);
-
   const [loading, setLoading] = useState(false);
 
+  // What's typed, and what the list was last asked for (a moment later).
   const [search, setSearch] = useState("");
+  const [searched, setSearched] = useState("");
 
   const [page, setPage] = useState(1);
 
-  // How many payments the server says there are. Fewer can arrive: see loadPayments.
-  const [serverTotal, setServerTotal] = useState(0);
+  const [total, setTotal] = useState(0);
 
   const [limit, setLimit] = useState(50);
 
@@ -63,40 +59,39 @@ const PaymentsPage = () => {
    |--------------------------------------------------------------------------
    */
 
-  // payment/admin/all applies `limit` to joined database rows (a payment with
-  // its order and items), not to payments, so a page of 10 can hold 2 payments
-  // (BACKEND_QUESTIONS.md A4 and F30). Until it pages by payment, as orders do,
-  // ask for every row at once and page here. The database returns only the
-  // rows there are, so the large limit costs nothing extra.
+  // One page at a time; the server counts payments (F30). An answer that
+  // arrives after a newer request is dropped.
+  const requestRef = useRef(0);
   const loadPayments = async () => {
+    const request = ++requestRef.current;
     try {
       setLoading(true);
 
       const res = await GetAllPaymentsAPI({
-        page: 1,
-        limit: ALL_PAYMENT_ROWS,
+        page,
+        limit,
+        search: searched || undefined,
       });
+      if (request !== requestRef.current) return;
 
       const payload = res.data.data;
 
-      const paymentData = payload.payments || [];
+      setPayments(payload.payments || []);
 
-      setPayments(paymentData);
-
-      setFilteredPayments(paymentData);
-
-      setServerTotal(payload.total || 0);
+      setTotal(payload.total || 0);
     } catch (err) {
+      if (request !== requestRef.current) return;
       console.error("Failed to load payments", err);
       toastApiError("Couldn't load the payments", err);
     } finally {
-      setLoading(false);
+      if (request === requestRef.current) setLoading(false);
     }
   };
 
   useEffect(() => {
     loadPayments();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, limit, searched]);
 
   /*
    |--------------------------------------------------------------------------
@@ -104,29 +99,16 @@ const PaymentsPage = () => {
    |--------------------------------------------------------------------------
    */
 
+  // The server matches the customer's name or email, across every payment.
   useEffect(() => {
-    if (!search.trim()) {
-      setFilteredPayments(payments);
-
-      return;
-    }
-
-    const keyword = search.toLowerCase();
-
-    const filtered = payments.filter((p) => {
-      return (
-        p.transaction_id?.toLowerCase()?.includes(keyword) ||
-        p.user?.email?.toLowerCase()?.includes(keyword) ||
-        p.user?.name?.toLowerCase()?.includes(keyword) ||
-        p.order?.order_number?.toLowerCase()?.includes(keyword) ||
-        paymentTag(p.payment_status).label.toLowerCase().includes(keyword)
-      );
-    });
-
-    setFilteredPayments(filtered);
-  }, [search, payments]);
-
-  const pagePayments = filteredPayments.slice((page - 1) * limit, page * limit);
+    const timer = setTimeout(() => {
+      const term = search.trim();
+      if (term === searched) return;
+      setSearched(term);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search, searched]);
 
   /*
    |--------------------------------------------------------------------------
@@ -304,24 +286,13 @@ const PaymentsPage = () => {
         <SearchInput
           allowClear
           size="large"
-          placeholder="Search by transaction, order, customer..."
+          placeholder="Search by customer name or email..."
           value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            // A new search starts on the first page.
-            setPage(1);
-          }}
+          onChange={(e) => setSearch(e.target.value)}
           wrapperClassName="payment-search"
           aria-label="Search payments"
         />
       </div>
-
-      {!loading && payments.length < serverTotal && (
-        <p className="mb-4 rounded-md border border-warning-border bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
-          Showing {payments.length} of {serverTotal} payments: the server didn't
-          send the rest.
-        </p>
-      )}
 
       {/* TABLE */}
       <div className="payments-card">
@@ -329,18 +300,16 @@ const PaymentsPage = () => {
           rowKey="payment_id"
           loading={loading}
           columns={columns}
-          dataSource={pagePayments}
+          dataSource={payments}
           onRowClick={openPayment}
           className="payments-table"
           pagination={{
             current: page,
             pageSize: limit,
-            total: filteredPayments.length,
+            total,
             showSizeChanger: true,
             showTotal: (total) =>
-              search.trim()
-                ? `${total} of ${payments.length} payments`
-                : `Total ${total} payments`,
+              searched ? `${total} payments match "${searched}"` : `Total ${total} payments`,
             onChange: (current, pageSize) => {
               setPage(current);
               setLimit(pageSize);

@@ -16,6 +16,8 @@ API=https://node.hashtagbillionaire.com/api/v1
 TOKEN=$(curl -s -X POST "$API/admin/auth/login" -F email="$EMAIL" -F password="$PASSWORD" | jq -r .data.token)
 ```
 
+> **Update (panel, 2026-11-18):** F30 is live (backend `99bee9c`): the Payments page asks for one page at a time again and sends its search to the server. F31 asks for that search to match order numbers and transaction IDs too.
+
 > **Update (panel, 2026-11-16):** F30 asks for `payment/admin/all` to page by payment, as orders do (A4). Until then the Payments page loads every payment at once and pages them itself.
 
 > **Update (panel, 2026-11-12):** F28 asks for a `no_parent_category` filter on `GET product/admin/get/all`, so the Products page can list every product with no parent category. It's live (backend `20ebba1`). F29 asks for endpoints to save and load pricing templates. They're live too (backend `adeb71f`).
@@ -840,11 +842,19 @@ A template is `{ id, name, pricing_mode, bulk_pricing, quantity_pricing, created
 
 #### F30. Page `payment/admin/all` by payment, as orders are (Medium)
 
+**Done:** live since 16 November (backend `99bee9c`), which fixes A4 too. The Payments page asks for one page at a time again, 50 to a page, and sends `search` to the server.
+
 With real payments, the Payments page said "Total 17 payments" but showed 2 on a page of 10. This is A4, still open on `main` at `18d8b43`. `getAllPayments` (`checkout.service.js:666`) applies `limit` and `offset` to joined rows (`subQuery: false`, `:829`). A page of 10 rows held 2 payments, pages can overlap, and the last payment on a page can lose items. `total` counts payments (`distinct: true`), so it doesn't match the pages.
 
 **Fix:** pick the page of payment ids first, then load those payments with their includes, as `getAdminOrders` now does ("Pick the page of order ids first", `order.service.js`). Keep the response as it is: `{ payments, total }`.
 
 **Panel meanwhile:** it asks for page 1 with `limit=100000`, so every row arrives in one request, then pages and searches the payments itself, 50 to a page. If fewer payments arrive than `total`, it says so above the table. Once this is fixed, the panel goes back to asking for one page at a time.
+
+#### F31. Search payments by order number and transaction ID (Low)
+
+`search` on `GET payment/admin/all` matches the customer's email or name (`99bee9c`). Admins also look payments up by order number (`ORD-…`) and transaction ID, which the panel's search covered while it loaded every payment at once. Please match `$order.order_number$` and `transaction_id` too, alongside the email and name.
+
+**Panel meanwhile:** it sends what's typed as `search`, and says it searches by customer name or email. Once the backend matches these, only the search box's hint needs to change.
 
 ### Still open from earlier
 
