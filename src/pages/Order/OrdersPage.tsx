@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { ArrowUpRight, Ban, Download, Eye, TriangleAlert } from "lucide-react";
 import type { FormEvent, ReactNode } from "react";
 import axios from "axios";
+import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +27,14 @@ import { Spinner } from "@/components/common/Spinner";
 import { IMAGE_BASE_URL } from "@/config/env";
 import { apiErrorMessage, toastApiError } from "@/lib/api-errors";
 import { paymentModeLabel, refundPlace } from "@/lib/payments";
+import {
+  ORDER_STATUS,
+  ORDER_STATUS_FILTERS,
+  PAYMENT_FILTERS,
+  PAYMENT_STATUS,
+  SHIPMENT_STATUS,
+  type BadgeConfig,
+} from "@/lib/orderStatus";
 import "./Order.scss";
 import { CancelOrderAPI, DeleteOrderAPI, GetAdminOrdersAPI, RetryOrderLabelAPI } from "@/services/Api/OrderApi";
 
@@ -204,77 +213,7 @@ interface OrdersPayload {
   pagination?: { total: number };
 }
 
-interface BadgeConfig {
-  color: string;
-  bg: string;
-  dot: string;
-  label: string;
-  desc?: string;
-}
-
-// ─────────────────────────────────────────────
-// Status / Payment configs
-// ─────────────────────────────────────────────
-// Values and meanings from the go-live API contract, section 1. An order has three separate
-// fields: its own status, its payment status and its shipment status.
-const AWAITING_PAYMENT: BadgeConfig = {
-  color: "var(--warning-soft-foreground)",
-  bg: "var(--warning-soft)",
-  dot: "var(--warning)",
-  label: "Awaiting payment",
-  desc: "Created at checkout. Not paid yet.",
-};
-
-const ORDER_STATUS: Record<string, BadgeConfig> = {
-  PENDING_PAYMENT: AWAITING_PAYMENT,
-  // The old value for the same thing; new orders don't get it.
-  PENDING: AWAITING_PAYMENT,
-  FAILED: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Payment failed", desc: "The last payment attempt failed. The customer can still pay." },
-  CONFIRMED: { color: "var(--info-soft-foreground)", bg: "var(--info-soft)", dot: "var(--info)", label: "Confirmed", desc: "Paid. Being made or waiting to ship." },
-  SHIPPED: { color: "var(--primary-soft-foreground)", bg: "var(--primary-soft)", dot: "var(--primary)", label: "Shipped", desc: "The carrier has it." },
-  DELIVERED: { color: "var(--success-soft-foreground)", bg: "var(--success-soft)", dot: "var(--success)", label: "Delivered", desc: "Tracking says delivered." },
-  CANCELLED: { color: "var(--muted-foreground)", bg: "var(--muted)", dot: "var(--placeholder)", label: "Cancelled", desc: "Cancelled by an admin." },
-};
-
-// The status filter's choices, in order. PENDING is left out: it's the old name for PENDING_PAYMENT.
-const ORDER_STATUS_FILTERS = ["PENDING_PAYMENT", "FAILED", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"];
-
-const LABEL_BOUGHT: BadgeConfig & { desc: string } = {
-  color: "var(--info-soft-foreground)",
-  bg: "var(--info-soft)",
-  dot: "var(--info)",
-  label: "Label bought",
-  desc: "The label and tracking number are ready. Waiting for the carrier's first scan.",
-};
-
-const SHIPMENT_STATUS: Record<string, BadgeConfig & { desc: string }> = {
-  PENDING: { color: "var(--muted-foreground)", bg: "var(--muted)", dot: "var(--placeholder)", label: "No label yet", desc: "No shipping label has been bought yet." },
-  LABEL_CREATED: LABEL_BOUGHT,
-  // The old value for LABEL_CREATED.
-  SUCCESS: LABEL_BOUGHT,
-  FAILED: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Label failed", desc: "ShipStation couldn't buy the label. The order stays paid, and the label can be bought again." },
-  IN_TRANSIT: { color: "var(--primary-soft-foreground)", bg: "var(--primary-soft)", dot: "var(--primary)", label: "In transit", desc: "The carrier has the parcel." },
-  OUT_FOR_DELIVERY: { color: "var(--violet-soft-foreground)", bg: "var(--violet-soft)", dot: "var(--violet)", label: "Out for delivery", desc: "On the delivery vehicle." },
-  DELIVERED: { color: "var(--success-soft-foreground)", bg: "var(--success-soft)", dot: "var(--success)", label: "Delivered", desc: "The carrier confirmed delivery." },
-  EXCEPTION: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Delivery problem", desc: "The carrier reported a problem, such as a bad address or a missed delivery. Check the tracking." },
-  RETURNED: { color: "var(--warning-soft-foreground)", bg: "var(--warning-soft)", dot: "var(--warning)", label: "Returned", desc: "Going back to the sender. Refund or reship it." },
-  CANCELLED: { color: "var(--muted-foreground)", bg: "var(--muted)", dot: "var(--placeholder)", label: "Cancelled", desc: "The order was cancelled, and an unused label was voided." },
-};
-
-const PAYMENT_STATUS: Record<string, BadgeConfig> = {
-  SUCCESS: { color: "var(--success-soft-foreground)", bg: "var(--success-soft)", dot: "var(--success)", label: "Paid" },
-  PENDING: { color: "var(--warning-soft-foreground)", bg: "var(--warning-soft)", dot: "var(--warning)", label: "Unpaid", desc: "Not paid yet, or a payment is still being processed." },
-  REJECTED: { color: "var(--destructive-soft-foreground)", bg: "var(--destructive-soft)", dot: "var(--destructive)", label: "Failed", desc: "The last payment attempt failed." },
-};
-
-// The backend lists only paid orders unless payment_status is sent, so the filter always
-// sends one. "ALL" lists every payment status.
-const PAYMENT_FILTERS = [
-  { value: "SUCCESS", label: "Paid", stat: "Paid orders" },
-  { value: "PENDING", label: "Unpaid", stat: "Unpaid orders" },
-  { value: "REJECTED", label: "Failed", stat: "Failed payments" },
-  { value: "ALL", label: "All", stat: "Orders" },
-];
+// Status badges' looks and labels, and the filters' choices: shared with the Dashboard.
 
 const KIND_META: Record<ItemKind, { label: string; className: string; artworkCaption: string }> = {
   MANUAL: { label: "Manual", className: "kind-manual", artworkCaption: "Customized" },
@@ -1795,12 +1734,27 @@ const TabShipping = ({ order: o, busyAction, locked, onBuyLabel }: OrderActionPr
 // Main Orders Page
 // ─────────────────────────────────────────────
 const OrdersPage = () => {
+  // Links from the Dashboard set the filters: ?status=, ?payment_status=, ?search=, and ?open=
+  // (an order number to open once the list has loaded).
+  const [searchParams] = useSearchParams();
+  const linked = useMemo(() => {
+    const status = searchParams.get("status") ?? "";
+    const payment = searchParams.get("payment_status") ?? "";
+    return {
+      search: (searchParams.get("search") ?? "").trim(),
+      status: ORDER_STATUS_FILTERS.includes(status) ? status : "",
+      payment: PAYMENT_FILTERS.some((f) => f.value === payment) ? payment : "SUCCESS",
+      open: searchParams.get("open") ?? "",
+    };
+  }, [searchParams]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [paymentFilter, setPaymentFilter] = useState("SUCCESS");
+  const [searchInput, setSearchInput] = useState(linked.search);
+  const [search, setSearch] = useState(linked.search);
+  const [statusFilter, setStatusFilter] = useState(linked.status);
+  const [paymentFilter, setPaymentFilter] = useState(linked.payment);
+  // The order to open from the link, once; cleared when it has been looked for.
+  const toOpen = useRef(linked.open);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [limit, setLimit] = useState(50);
@@ -1844,6 +1798,14 @@ const OrdersPage = () => {
         setTotal(payload?.pagination?.total ?? 0);
         // The open order follows a reload, unless it's no longer on this page.
         setSelectedOrder((current) => (current && rows.find((row) => row.id === current.id)) ?? current);
+        if (toOpen.current) {
+          const linkedOrder = rows.find((row) => row.order_number === toOpen.current);
+          toOpen.current = "";
+          if (linkedOrder) {
+            setSelectedOrder(linkedOrder);
+            setModalOpen(true);
+          }
+        }
       } catch (err) {
         console.error("Failed to load orders", err);
       } finally {

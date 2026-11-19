@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ConfirmDialogHost } from "@/components/common/ConfirmDialog";
 import { BrowserRouter, Navigate, Routes, Route } from "react-router";
 import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/Dashboard/DashboardPage";
 import Users from "./pages/User/Users";
 import SettingsPage from "./pages/Settings/SettingsPage";
 import NotFound from "./pages/NotFound";
