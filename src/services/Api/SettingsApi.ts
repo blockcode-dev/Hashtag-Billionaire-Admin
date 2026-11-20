@@ -32,6 +32,8 @@ export interface Setting {
   max?: number;
   secret: boolean;
   required: boolean;
+  // A sender that can send a test email from itself (the four "… emails come from").
+  test_email?: boolean;
   // Always text ("587", "true", "a.com,b.com"). Masked for secrets unless revealed.
   value: string | null;
   // What applies when nothing is saved; always null for secrets.
@@ -88,9 +90,11 @@ export const GetHandlingFeeOptionsAPI = async () => {
   return axios.get<{ data: HandlingFeeOptions }>(`${API_BASE_URL}admin/settings/handling-fee-options`);
 };
 
-// Sends a test email to the signed-in admin with the saved mail settings.
-export const SendSettingsTestEmailAPI = async () => {
-  return axios.post<{ data: { sent_to: string }; message: string }>(
+// Sends a test email with the saved mail settings: to the signed-in admin, or to `to`; from the
+// Sender, or with `key` from that sender setting (one with test_email). 400 for a bad `to`.
+export const SendSettingsTestEmailAPI = async (body: { key?: string; to?: string } = {}) => {
+  return axios.post<{ data: { sent_to: string; sent_from: string | null }; message: string }>(
     `${API_BASE_URL}admin/settings/test-email`,
+    body,
   );
 };

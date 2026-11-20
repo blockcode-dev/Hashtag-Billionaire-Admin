@@ -34,6 +34,7 @@ import {
 import { HandlingFeeSummary } from "./HandlingFeeControl";
 import { SettingControl } from "./SettingControl";
 import { SettingsKeyDialog } from "./SettingsKeyDialog";
+import { TestEmailDialog } from "./TestEmailDialog";
 
 // The site's master controls (hashtag-backend docs/admin-settings.md). The settings are
 // stored once on the server, so every Super Admin works on the same values; this page
@@ -187,6 +188,8 @@ const SettingsPage = () => {
   const [idleWarning, setIdleWarning] = useState(false);
   const [checkingSave, setCheckingSave] = useState(false);
   const [testing, setTesting] = useState(false);
+  // The sender whose "Send test email" dialog is open.
+  const [testSender, setTestSender] = useState<Setting | null>(null);
   const [envListOpen, setEnvListOpen] = useState(false);
 
   // Bumped whenever an answer replaces what's shown (unlock, save, leaving edit mode),
@@ -416,6 +419,16 @@ const SettingsPage = () => {
     }
   };
 
+  // One sender's test, from its dialog. An error (bad address, mail server) is shown there.
+  const sendSenderTest = async (to: string) => {
+    if (!testSender) return;
+    const res = await SendSettingsTestEmailAPI({ key: testSender.key, ...(to && { to }) });
+    setTestSender(null);
+    toast.success(res.data?.message || "Test email sent", {
+      description: `Sent as ${res.data?.data?.sent_from ?? testSender.value}. If it arrives from another address, add this one under Send mail as in Gmail.`,
+    });
+  };
+
   if (!page) {
     return loading ? (
       <div className="flex justify-center py-16">
@@ -452,6 +465,12 @@ const SettingsPage = () => {
         <div className="flex flex-wrap items-center gap-2">
           <ReadValue setting={setting} />
           <SourceBadge setting={setting} />
+          {setting.test_email && (
+            <Button variant="outline" size="xs" onClick={() => setTestSender(setting)}>
+              <Mail />
+              Send test email
+            </Button>
+          )}
         </div>
         <ChangedBy setting={setting} />
         {setting.description && <p className="text-xs text-muted-foreground">{setting.description}</p>}
@@ -654,6 +673,8 @@ const SettingsPage = () => {
           </div>
         </div>
       )}
+
+      <TestEmailDialog setting={testSender} onSubmit={sendSenderTest} onClose={() => setTestSender(null)} />
 
       <SettingsKeyDialog
         open={dialog === "unlock"}
