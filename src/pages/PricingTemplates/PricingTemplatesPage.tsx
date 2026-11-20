@@ -1,7 +1,8 @@
 /** @format */
 
 import { useState } from "react";
-import { Pencil, Plus, RefreshCw, Search, Trash2, TriangleAlert } from "lucide-react";
+import { useNavigate } from "react-router";
+import { FileUp, Pencil, Plus, RefreshCw, Search, Trash2, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ const SEARCH_FROM = 6;
 // Quantity pricing saved ahead of time, to load into products while creating
 // them. Templates saved from a product show up here too.
 const PricingTemplatesPage = () => {
+  const navigate = useNavigate();
   const state = usePricingTemplates();
   const { status, templates } = state;
   const [dialog, setDialog] = useState<PricingTemplate | "new" | null>(null);
@@ -102,7 +104,7 @@ const PricingTemplatesPage = () => {
   } else if (!templates.length) {
     content = (
       <div className="rounded-xl border">
-        <EmptyState description="No templates yet. Add one here, or save one from a product's quantity-based pricing." />
+        <EmptyState description="No templates yet. Add one here, import several from a CSV file, or save one from a product's quantity-based pricing." />
       </div>
     );
   } else {
@@ -196,10 +198,16 @@ const PricingTemplatesPage = () => {
         title="Pricing Templates"
         description="Quantity pricing to load into products while creating them. Every admin shares these."
         actions={
-          <Button onClick={() => setDialog("new")} disabled={status !== "ready"}>
-            <Plus />
-            Add template
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => navigate("/pricing-templates/import")}>
+              <FileUp />
+              Import from CSV
+            </Button>
+            <Button onClick={() => setDialog("new")} disabled={status !== "ready"}>
+              <Plus />
+              Add template
+            </Button>
+          </>
         }
       />
 

@@ -5,6 +5,7 @@ import axios, { type AxiosProgressEvent } from "axios";
 import { toast } from "sonner";
 
 import { apiErrorMessage } from "@/lib/api-errors";
+import { plural } from "@/lib/csvFiles";
 import { getToken, onSessionChange } from "@/lib/session";
 import {
   ImportProductsAPI,
@@ -22,7 +23,8 @@ const TOAST_ID = "product-import";
 // How long a "done" message stays up while the admin is on another page.
 const DONE_TOAST_MS = 30_000;
 
-export const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString()} ${n === 1 ? one : many}`;
+// The import pages share it (src/lib/csvFiles.ts).
+export { plural };
 
 export type ImportPhase = "idle" | "checking" | "importing";
 

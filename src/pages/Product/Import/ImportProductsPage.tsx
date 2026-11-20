@@ -1,6 +1,6 @@
 /** @format */
 
-import { useEffect, useRef, useState, type ChangeEvent, type DragEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import {
@@ -25,13 +25,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { confirm } from "@/components/common/ConfirmDialog";
+import { Callout, IssueTable, Rule, Stat } from "@/components/common/ImportBlocks";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Spinner } from "@/components/common/Spinner";
 import { apiErrorMessage } from "@/lib/api-errors";
+import { downloadCsv, fileSize } from "@/lib/csvFiles";
 import {
   GetProductImportFormatAPI,
   type ImportFormat,
-  type ImportIssue,
   type ImportPreviewProduct,
 } from "@/services/Api/ProductImportApi";
 import { ImportProgress } from "./ImportProgress";
@@ -56,21 +57,6 @@ const ACCEPTED = [".csv", ".txt", ".tsv"];
 // The product preview lists this many; the rest are counted.
 const PREVIEW_LIMIT = 200;
 
-const fileSize = (bytes: number) =>
-  bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-
-// Saves text as a file. The byte order mark makes Excel open it as UTF-8.
-const downloadCsv = (name: string, csv: string) => {
-  const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = name;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-};
-
 // How much each column is needed, in words.
 const neededLabel = (key: string, required: boolean) => {
   if (required) return "Yes";
@@ -78,12 +64,6 @@ const neededLabel = (key: string, required: boolean) => {
   if (/^option\d_value$/.test(key)) return "With its option";
   return "No";
 };
-
-const TONES = {
-  bad: "border-destructive-border bg-destructive-soft text-destructive-soft-foreground",
-  warn: "border-warning-border bg-warning-soft text-warning-soft-foreground",
-  good: "border-success-border bg-success-soft text-success-soft-foreground",
-} as const;
 
 const BACKGROUND_NOTE = "You can open other pages: it carries on, and a message in the corner tells you when it's done.";
 
@@ -111,71 +91,6 @@ const confirmLeave = (go: () => void) => {
         },
   );
 };
-
-function Callout({
-  tone,
-  icon: Icon,
-  title,
-  children,
-}: {
-  tone: keyof typeof TONES;
-  icon: typeof CheckCircle2;
-  title: ReactNode;
-  children?: ReactNode;
-}) {
-  return (
-    <div className={cn("flex gap-3 rounded-lg border px-4 py-3", TONES[tone])}>
-      <Icon className="mt-0.5 size-5 shrink-0" aria-hidden />
-      <div className="space-y-1 text-sm">
-        <p className="font-medium">{title}</p>
-        {children && <div>{children}</div>}
-      </div>
-    </div>
-  );
-}
-
-function Stat({ label, value, tone }: { label: string; value: number; tone?: keyof typeof TONES }) {
-  return (
-    <div className={cn("min-w-28 rounded-lg border px-3 py-2", tone ? TONES[tone] : "bg-muted/30")}>
-      <div className="text-xl font-semibold tabular-nums">{value.toLocaleString()}</div>
-      <div className="text-xs">{label}</div>
-    </div>
-  );
-}
-
-function Rule({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <li className="rounded-lg border bg-muted/20 px-4 py-3">
-      <p className="text-sm font-medium text-foreground">{title}</p>
-      <p className="mt-1 text-sm text-muted-foreground">{children}</p>
-    </li>
-  );
-}
-
-function IssueTable({ issues, label = "What to fix" }: { issues: ImportIssue[]; label?: string }) {
-  return (
-    <div className="max-h-96 overflow-auto rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-20">Row</TableHead>
-            <TableHead className="w-44">Column</TableHead>
-            <TableHead>{label}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {issues.map((issue, i) => (
-            <TableRow key={i}>
-              <TableCell className="tabular-nums">{issue.row ?? "File"}</TableCell>
-              <TableCell>{issue.column ?? "—"}</TableCell>
-              <TableCell className="whitespace-normal">{issue.message}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
-}
 
 const rowsLabel = (rows: number[]) =>
   rows.length === 1 ? `Row ${rows[0]}` : `Rows ${rows.slice(0, 6).join(", ")}${rows.length > 6 ? ", …" : ""}`;
