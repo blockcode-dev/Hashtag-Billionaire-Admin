@@ -55,6 +55,9 @@ export interface TemplateImportPreview {
 export interface TemplateImportReport {
   file_name: string | null;
   replace_existing: boolean;
+  // Templates in the file whose name is already a template (`name` is the existing one's). Without
+  // replace_existing each is a problem; with it, each is updated with the file's prices.
+  already_exist?: { name: string; file_name: string; rows: number[]; style: string }[];
   summary: {
     rows: number;
     templates: number;

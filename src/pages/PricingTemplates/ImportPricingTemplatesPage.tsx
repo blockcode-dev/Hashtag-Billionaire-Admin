@@ -22,7 +22,6 @@ import { cn } from "cn";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { confirm } from "@/components/common/ConfirmDialog";
 import { Callout, IssueTable, Rule, Stat } from "@/components/common/ImportBlocks";
@@ -43,10 +42,13 @@ import { QUANTITY_MODE_INFO, describeQuantityRows, formatMoney } from "@/utils/v
 // Several pricing templates from one CSV file, in either pricing style. The backend owns the layout
 // (columns, example, limits): this page shows it, checks the file as soon as it's chosen, then
 // saves every template in one go. Built like Import products from CSV.
-
-type OnExisting = "stop" | "replace";
+//
+// A name in the file that's already a template isn't changed unless the admin says so: the check
+// asks, naming the template, and "Update" checks the file again with replace_existing.
 
 const LIST_PATH = "/pricing-templates";
+
+const quoted = (names: string[]) => names.map((n) => `“${n}”`).join(", ");
 
 // The example's rows for one pricing style, as cells by header.
 const exampleFor = (format: TemplateImportFormat, label: string) => {
@@ -138,7 +140,8 @@ const ImportPricingTemplatesPage = () => {
   const [dragging, setDragging] = useState(false);
 
   const [file, setFile] = useState<File | null>(null);
-  const [onExisting, setOnExisting] = useState<OnExisting>("stop");
+  // Update the templates the file names that already exist (asked after the check).
+  const [update, setUpdate] = useState(false);
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState<string | null>(null);
   const [report, setReport] = useState<TemplateImportReport | null>(null);
@@ -172,7 +175,7 @@ const ImportPricingTemplatesPage = () => {
   const maxMb = format?.limits.max_file_mb ?? 2;
 
   // Checks the file on the server. A newer check cancels the one before it.
-  const check = async (picked: File, existing: OnExisting) => {
+  const check = async (picked: File, updateExisting: boolean) => {
     checkRef.current?.abort();
     const controller = new AbortController();
     checkRef.current = controller;
@@ -181,7 +184,7 @@ const ImportPricingTemplatesPage = () => {
     setReport(null);
 
     try {
-      const res = await PreviewPricingTemplateImportAPI(picked, existing === "replace", { signal: controller.signal });
+      const res = await PreviewPricingTemplateImportAPI(picked, updateExisting, { signal: controller.signal });
       if (!controller.signal.aborted) setReport(res.data.data);
     } catch (err) {
       if (axios.isCancel(err) || controller.signal.aborted) return;
@@ -194,7 +197,7 @@ const ImportPricingTemplatesPage = () => {
     }
   };
 
-  // Choosing a file checks it straight away.
+  // Choosing a file checks it straight away. A new file never updates anything until asked.
   const chooseFile = (picked: File | null | undefined) => {
     if (!picked || importing) return;
     if (!CSV_EXTENSIONS.includes(extensionOf(picked.name))) {
@@ -208,7 +211,8 @@ const ImportPricingTemplatesPage = () => {
       return;
     }
     setFile(picked);
-    check(picked, onExisting);
+    setUpdate(false);
+    check(picked, false);
   };
 
   const onInput = (e: ChangeEvent<HTMLInputElement>) => {
@@ -222,8 +226,8 @@ const ImportPricingTemplatesPage = () => {
     chooseFile(e.dataTransfer.files?.[0]);
   };
 
-  const changeExisting = (value: OnExisting) => {
-    setOnExisting(value);
+  const changeUpdate = (value: boolean) => {
+    setUpdate(value);
     if (file) check(file, value);
   };
 
@@ -232,6 +236,7 @@ const ImportPricingTemplatesPage = () => {
     checkRef.current = null;
     setChecking(false);
     setFile(null);
+    setUpdate(false);
     setReport(null);
     setCheckError(null);
     setResult(null);
@@ -241,16 +246,15 @@ const ImportPricingTemplatesPage = () => {
     if (!file) return;
     setImporting(true);
     try {
-      const res = await ImportPricingTemplatesAPI(file, onExisting === "replace");
+      const res = await ImportPricingTemplatesAPI(file, update);
       setResult(res.data.data);
       toast.success(res.data.message || "Pricing templates imported");
-      // The number of templates that exist, for the next file.
       fetchFormat();
     } catch (err) {
       // The file is checked again on import: a template saved meanwhile shows up as a problem.
       if (axios.isAxiosError(err) && err.response?.status === 422 && err.response.data?.data) {
         setReport(err.response.data.data);
-        toast.error("Nothing was imported", { description: "Something changed since the check: see the problems below." });
+        toast.error("Nothing was imported", { description: "Something changed since the check: see below." });
       } else {
         toast.error("Couldn't import the templates", { description: apiErrorMessage(err, "Try again in a moment.") });
       }
@@ -261,17 +265,20 @@ const ImportPricingTemplatesPage = () => {
 
   const runImport = () => {
     if (!file || !report?.can_import) return;
-    const { templates, new_templates: created, replaced_templates: replaced } = report.summary;
+    const created = report.summary.new_templates;
+    const updated = report.templates.filter((t) => t.action === "replace").map((t) => t.replaces?.name ?? t.name);
+    const parts = [
+      created ? `${plural(created, "new template")} will be added` : null,
+      updated.length === 1
+        ? `“${updated[0]}” will be updated with the prices in the file`
+        : updated.length
+          ? `${updated.length} templates you already have will be updated with the prices in the file`
+          : null,
+    ].filter(Boolean);
 
     confirm({
-      title: `Import ${plural(templates, "pricing template")}?`,
-      content:
-        [
-          created ? `${plural(created, "new template")} will be added` : null,
-          replaced ? `${plural(replaced, "existing template")} will get the prices in the file` : null,
-        ]
-          .filter(Boolean)
-          .join(", and ") + ". Every template in the file is saved, or none if something goes wrong.",
+      title: `Import ${plural(report.summary.templates, "pricing template")}?`,
+      content: `${parts.join(", and ")}. Every template in the file is saved, or none if something goes wrong.`,
       okText: "Import",
       // Not awaited: the dialog closes and the page shows the import running.
       onOk: () => {
@@ -305,7 +312,7 @@ const ImportPricingTemplatesPage = () => {
               Imported {plural(result.summary.templates, "pricing template")}
             </CardTitle>
             <CardDescription>
-              {[created ? `${plural(created, "new template")}` : null, replaced ? `${replaced} replaced` : null]
+              {[created ? plural(created, "new template") : null, replaced ? `${replaced} updated` : null]
                 .filter(Boolean)
                 .join(", ")}
               . Load {result.summary.templates === 1 ? "it" : "them"} into products while creating or editing them, as with
@@ -340,7 +347,7 @@ const ImportPricingTemplatesPage = () => {
                         {describeQuantityRows(t.pricing_mode, t.bulk_pricing ?? [], t.quantity_pricing ?? [])}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Badge variant="outline">{t.action === "replace" ? "Replaced" : "New"}</Badge>
+                        <Badge variant="outline">{t.action === "replace" ? "Updated" : "New"}</Badge>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -359,7 +366,16 @@ const ImportPricingTemplatesPage = () => {
     );
   }
 
-  const existing = format?.existing_templates ?? 0;
+  // Names in the file that are already templates. Until the admin chooses to update them they're
+  // asked about on their own, not listed with the file's other problems.
+  const taken = report?.already_exist ?? [];
+  const askToUpdate = !!report && taken.length > 0 && !report.replace_existing;
+  const takenRows = new Set(taken.map((t) => t.rows[0]));
+  const otherErrors = (report?.errors ?? []).filter(
+    (e) => !(askToUpdate && e.column === "Template name" && e.row !== null && takenRows.has(e.row)),
+  );
+  const updating = (report?.templates ?? []).filter((t) => t.action === "replace").map((t) => t.replaces?.name ?? t.name);
+  const takenNames = taken.map((t) => t.name);
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
@@ -410,15 +426,16 @@ const ImportPricingTemplatesPage = () => {
                   Write Variable ranges or Fixed quantities on the template's first row, or on every row. A template has
                   one style.
                 </Rule>
-                <Rule title="New names, or replace">
-                  A name that's already a template is a problem, unless you choose to replace it when you upload.
+                <Rule title="Names you already have">
+                  If your file uses the name of a template you already have, the check asks whether to update it.
+                  Nothing you have changes unless you say so.
                 </Rule>
                 <Rule title="Cover every quantity">
                   Quantities no tier covers can't be ordered. The check warns about gaps, a first tier above 1, and a last
                   tier with a To.
                 </Rule>
                 <Rule title="Products keep their prices">
-                  Loading a template copies its prices into a product, so importing or replacing templates never changes
+                  Loading a template copies its prices into a product, so importing or updating templates never changes
                   products already priced.
                 </Rule>
                 <Rule title="Save it as CSV">
@@ -477,30 +494,6 @@ const ImportPricingTemplatesPage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="grid gap-2 sm:max-w-md">
-            <label className="text-sm font-medium text-foreground" htmlFor="existing-templates">
-              Templates that already exist
-            </label>
-            <Select value={onExisting} onValueChange={(value) => changeExisting(value as OnExisting)} disabled={importing}>
-              <SelectTrigger id="existing-templates" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="stop">Stop: list them as problems</SelectItem>
-                <SelectItem value="replace">Replace them with the prices in the file</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              {format && existing === 0
-                ? "There are no templates yet, so every template in the file is new."
-                : `${plural(existing, "template")} ${existing === 1 ? "exists" : "exist"} now. ` +
-                  (onExisting === "replace"
-                    ? "A name in the file that matches one replaces that template's prices; the check shows which. "
-                    : "A name in the file that matches one is a problem, unless you choose to replace it. ") +
-                  "Changing this checks the file again."}
-            </p>
-          </div>
-
           {checking && file ? (
             <div className="flex items-center gap-3 rounded-lg border px-4 py-6">
               <Spinner size="small" />
@@ -571,7 +564,7 @@ const ImportPricingTemplatesPage = () => {
 
           {file && !checking && !importing && (
             <div className="flex flex-wrap gap-2">
-              <Button variant={checkError ? "default" : "outline"} onClick={() => check(file, onExisting)}>
+              <Button variant={checkError ? "default" : "outline"} onClick={() => check(file, update)}>
                 <RefreshCw aria-hidden />
                 Check again
               </Button>
@@ -596,34 +589,78 @@ const ImportPricingTemplatesPage = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex flex-wrap gap-2">
-                <Stat label="Templates" value={report.summary.templates} />
-                <Stat label="Variable ranges" value={report.summary.variable_ranges} />
-                <Stat label="Fixed quantities" value={report.summary.fixed_quantities} />
-                <Stat label="New" value={report.summary.new_templates} />
-                <Stat label="Replacing existing" value={report.summary.replaced_templates} />
-                <Stat label="Problems" value={report.summary.errors} tone={report.summary.errors ? "bad" : "good"} />
+                <Stat label="New templates" value={report.summary.new_templates} />
+                {report.replace_existing && <Stat label="To update" value={report.summary.replaced_templates} />}
+                {askToUpdate && <Stat label="Already a template" value={taken.length} tone="warn" />}
+                <Stat label="Problems" value={otherErrors.length} tone={otherErrors.length ? "bad" : "good"} />
                 <Stat label="Warnings" value={report.summary.warnings} tone={report.summary.warnings ? "warn" : undefined} />
               </div>
 
-              {report.errors.length > 0 ? (
+              {askToUpdate && (
+                <Callout
+                  tone="warn"
+                  icon={RefreshCw}
+                  title={
+                    taken.length === 1
+                      ? `“${takenNames[0]}” is already a template`
+                      : `${taken.length} names in your file are already templates: ${quoted(takenNames)}`
+                  }
+                >
+                  <div className="space-y-3">
+                    <p>
+                      {taken.length === 1
+                        ? `Your file has prices for it. Update “${takenNames[0]}” to use them, or give it another name in your file to add it as a new template instead.`
+                        : "Your file has prices for them. Update them to use these prices, or give them other names in your file to add them as new templates instead."}{" "}
+                      Products already priced with {taken.length === 1 ? "it" : "them"} keep their prices.
+                    </p>
+                    <Button size="sm" onClick={() => changeUpdate(true)} disabled={checking}>
+                      <RefreshCw aria-hidden />
+                      {taken.length === 1
+                        ? `Update “${takenNames[0]}” with this file's prices`
+                        : `Update these ${taken.length} templates with this file's prices`}
+                    </Button>
+                  </div>
+                </Callout>
+              )}
+
+              {report.replace_existing && updating.length > 0 && (
+                <Callout
+                  tone="warn"
+                  icon={RefreshCw}
+                  title={
+                    updating.length === 1
+                      ? `“${updating[0]}” will be updated with the prices in this file`
+                      : `${updating.length} templates will be updated with the prices in this file: ${quoted(updating)}`
+                  }
+                >
+                  Products already priced with {updating.length === 1 ? "it" : "them"} keep their prices.{" "}
+                  <button type="button" className="font-medium underline" onClick={() => changeUpdate(false)}>
+                    Don't update {updating.length === 1 ? "it" : "them"}
+                  </button>
+                </Callout>
+              )}
+
+              {otherErrors.length > 0 && (
                 <div className="space-y-3">
                   <Callout
                     tone="bad"
                     icon={XCircle}
-                    title={`Fix ${plural(report.errors.length, "problem")} in the file, then upload it again`}
+                    title={`Fix ${plural(otherErrors.length, "problem")} in the file, then upload it again`}
                   >
                     Nothing has been saved.
                   </Callout>
-                  <IssueTable issues={report.errors} />
+                  <IssueTable issues={otherErrors} />
                 </div>
-              ) : (
+              )}
+
+              {report.can_import && (
                 <Callout tone="good" icon={CheckCircle2} title="The file is ready to import">
                   Check the templates below, then press Import.
                 </Callout>
               )}
 
               {report.warnings.length > 0 && (
-                <details className="space-y-3" open={report.errors.length === 0}>
+                <details className="space-y-3" open={otherErrors.length === 0}>
                   <summary className="cursor-pointer text-sm font-medium text-foreground">
                     {plural(report.warnings.length, "warning")}: worth a look, they don't stop the import
                   </summary>
@@ -656,14 +693,7 @@ const ImportPricingTemplatesPage = () => {
                           </TableCell>
                           <TableCell className="min-w-56 whitespace-normal text-sm">{t.description}</TableCell>
                           <TableCell className="whitespace-normal text-sm">
-                            {t.action === "replace" && t.replaces ? (
-                              <span>
-                                Replaces “{t.replaces.name}”
-                                <span className="text-muted-foreground"> ({t.replaces.style})</span>
-                              </span>
-                            ) : (
-                              "New template"
-                            )}
+                            {t.action === "replace" && t.replaces ? `Updates “${t.replaces.name}”` : "New template"}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -674,7 +704,11 @@ const ImportPricingTemplatesPage = () => {
 
               <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-4">
                 {!report.can_import && (
-                  <p className="mr-auto text-sm text-muted-foreground">Fix the file, then choose it again above.</p>
+                  <p className="mr-auto text-sm text-muted-foreground">
+                    {askToUpdate && otherErrors.length === 0
+                      ? "Choose above whether to update it, or rename it in your file."
+                      : "Fix the file, then choose it again above."}
+                  </p>
                 )}
                 <Button onClick={runImport} disabled={!report.can_import || importing}>
                   {importing ? <Spinner size="small" className="text-current" /> : <Upload aria-hidden />}
