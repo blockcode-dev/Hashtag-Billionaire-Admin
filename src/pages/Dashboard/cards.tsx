@@ -6,10 +6,13 @@ import {
   ChevronRight,
   Clock,
   Flag,
+  Lock,
   Mail,
+  MessageSquareWarning,
   PackageCheck,
   PackageX,
   SearchCheck,
+  Stamp,
   TriangleAlert,
   type LucideIcon,
 } from "lucide-react";
@@ -101,6 +104,40 @@ export function AttentionCard({ data, loading, error, onRetry }: { data: Activit
             : "Every paid order has a label",
           tone: "warning",
           href: ordersLink({ status: "CONFIRMED" }),
+        },
+        // Artwork approval. The Orders list has no filter for it; its Artwork badges show which
+        // orders these are. `?.`: a backend from before artwork approval leaves them out.
+        {
+          key: "approval-changes",
+          icon: MessageSquareWarning,
+          count: data.approval_changes?.count ?? 0,
+          label: "Customers asked for artwork changes",
+          detail: "Upload a new version and send it",
+          tone: "warning",
+          href: "/orders",
+          optional: true,
+        },
+        {
+          key: "approval-ready",
+          icon: Lock,
+          count: data.approval_ready?.count ?? 0,
+          label: "Artwork approved, ready to lock",
+          detail: (data.approval_ready?.count ?? 0) === 1 ? "Lock it for production" : "Lock them for production",
+          tone: "info",
+          href: "/orders",
+          optional: true,
+        },
+        {
+          key: "approval",
+          icon: Stamp,
+          count: data.waiting_for_approval?.count ?? 0,
+          label: "Labels waiting for artwork approval",
+          detail: `Shipping label on hold${
+            data.waiting_for_approval?.oldest_at ? ` · oldest ${ageOf(data.waiting_for_approval.oldest_at)}` : ""
+          }`,
+          tone: "info",
+          href: ordersLink({ status: "CONFIRMED" }),
+          optional: true,
         },
         {
           key: "label",

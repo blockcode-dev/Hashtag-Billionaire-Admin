@@ -24,6 +24,7 @@ import PricingMarkupPage from "./pages/PricingMarkup/PricingMarkupPage";
 import AddUserPage from "./pages/User/AddUser/AddUserPage";
 import PaymentsPage from "./pages/Payment/PaymentsPage";
 import OrdersPage from "./pages/Order/OrdersPage";
+import OrderApprovalPage from "./pages/OrderApproval/OrderApprovalPage";
 import ParentCategoryPage from "./pages/ParentCategory/ParentCategoryPage";
 import AddParentCategoryPage from "./pages/ParentCategory/AddParentCategoryPage";
 import EditParentCategoryPage from "./pages/ParentCategory/EditParentCategoryPage";
@@ -160,6 +161,15 @@ const App = () => (
             element={
               <AdminLayout>
                 <OrdersPage />
+              </AdminLayout>
+            }
+          />
+
+          <Route
+            path="/orders/:id/approval"
+            element={
+              <AdminLayout>
+                <OrderApprovalPage />
               </AdminLayout>
             }
           />

@@ -109,6 +109,19 @@ $info-tx:   var(--info-soft-foreground);
     th:first-child, td:first-child { padding-left: 20px; }
     th:last-child, td:last-child { padding-right: 20px; }
 
+    // The last column (Artwork approval and View) stays in sight when the table is wider than the
+    // card and scrolls sideways; its shadow shows there's more under it. Before the row's hover,
+    // which recolours it with the rest of the row.
+    th:last-child, .order-row > td:last-child {
+      position: sticky;
+      right: 0;
+      z-index: 1;
+      background: $surface;
+      box-shadow: -8px 0 8px -8px rgb(0 0 0 / 0.15);
+    }
+    // The header's tint (bg-muted/50 over the card), solid so nothing shows through.
+    th:last-child { background: color-mix(in srgb, var(--muted) 50%, var(--background)); }
+
     .order-row {
       cursor: pointer;
       transition: background 0.12s;
@@ -215,6 +228,13 @@ $info-tx:   var(--info-soft-foreground);
   }
 
   .cell-date { font-size: 13px; color: $text-3; white-space: nowrap; }
+
+  // Up to wide screens the two truncated texts give way a little, so the whole table, with its
+  // Artwork badges, still fits a 1440 px window beside the menu.
+  @media (max-width: 1535px) {
+    .cell-customer .cell-email { max-width: 140px; }
+    .cell-product-name { max-width: 100px; }
+  }
 
   .view-btn {
     display: inline-flex;

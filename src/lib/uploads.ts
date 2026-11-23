@@ -10,6 +10,12 @@ export const IMAGE_ACCEPT = IMAGE_EXTENSIONS.map((ext) => `.${ext}`).join(",");
 
 export const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
+// Artwork previews on an order's Artwork approval page. SVG is allowed there: the backend checks
+// its contents and shows the customer a picture made from it.
+const PROOF_EXTENSIONS = ["png", "jpg", "jpeg", "svg"];
+export const PROOF_ACCEPT = PROOF_EXTENSIONS.map((ext) => `.${ext}`).join(",");
+const MAX_PROOF_BYTES = 20 * 1024 * 1024;
+
 // Per save request: `images` and `variant_images` are capped separately.
 export const MAX_PRODUCT_IMAGES_PER_SAVE = 10;
 export const MAX_VARIANT_IMAGES_PER_SAVE = 20;
@@ -17,15 +23,29 @@ export const MAX_VARIANT_IMAGES_PER_SAVE = 20;
 const extensionOf = (name: string) => name.split(".").pop()?.toLowerCase() ?? "";
 
 // Splits picked files into the ones the backend will take and a message about the rest.
-export function checkImageFiles(files: File[]): { accepted: File[]; error: string | null } {
+export function checkImageFiles(files: File[]) {
+  return checkFiles(files, IMAGE_EXTENSIONS, MAX_IMAGE_BYTES, "JPG, PNG, WebP, AVIF or GIF");
+}
+
+// The same for artwork previews.
+export function checkProofFiles(files: File[]) {
+  return checkFiles(files, PROOF_EXTENSIONS, MAX_PROOF_BYTES, "PNG, JPG or SVG");
+}
+
+function checkFiles(
+  files: File[],
+  extensions: string[],
+  maxBytes: number,
+  typesText: string,
+): { accepted: File[]; error: string | null } {
   const accepted: File[] = [];
   const wrongType: string[] = [];
   const tooBig: string[] = [];
 
   for (const file of files) {
-    if (!IMAGE_EXTENSIONS.includes(extensionOf(file.name)) || !file.type.startsWith("image/")) {
+    if (!extensions.includes(extensionOf(file.name)) || !file.type.startsWith("image/")) {
       wrongType.push(file.name);
-    } else if (file.size > MAX_IMAGE_BYTES) {
+    } else if (file.size > maxBytes) {
       tooBig.push(file.name);
     } else {
       accepted.push(file);
@@ -34,10 +54,10 @@ export function checkImageFiles(files: File[]): { accepted: File[]; error: strin
 
   const problems: string[] = [];
   if (wrongType.length) {
-    problems.push(`${listNames(wrongType)} ${wrongType.length === 1 ? "isn't" : "aren't"} JPG, PNG, WebP, AVIF or GIF`);
+    problems.push(`${listNames(wrongType)} ${wrongType.length === 1 ? "isn't" : "aren't"} ${typesText}`);
   }
   if (tooBig.length) {
-    problems.push(`${listNames(tooBig)} ${tooBig.length === 1 ? "is" : "are"} over 20 MB`);
+    problems.push(`${listNames(tooBig)} ${tooBig.length === 1 ? "is" : "are"} over ${maxBytes / 1024 / 1024} MB`);
   }
 
   return {

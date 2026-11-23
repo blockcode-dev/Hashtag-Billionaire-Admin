@@ -149,6 +149,14 @@ export interface Activity {
   generated_at: string;
   timezone: string;
   to_ship: { orders: number; label_failed: number; oldest_at: string | null };
+  // Paid orders whose label waits for the customer's artwork approval (or for the team to decide
+  // whether it should). They aren't in to_ship.
+  waiting_for_approval: { count: number; oldest_at: string | null };
+  // Open artwork approvals (not locked, and the order isn't cancelled or with the carrier) where
+  // the customer asked for changes, and where they approved everything (ready to lock for
+  // production). Missing from a backend without them.
+  approval_changes?: { count: number };
+  approval_ready?: { count: number };
   needs_attention: { orders: number };
   unpaid_checkouts: { orders: number; amount: number; days: number };
   sourcing_requests: { new: number; in_review: number };

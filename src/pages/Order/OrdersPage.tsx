@@ -1,10 +1,10 @@
 /** @format */
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { ArrowUpRight, Ban, Download, Eye, TriangleAlert } from "lucide-react";
+import { ArrowUpRight, Ban, Download, Eye, Stamp, TriangleAlert } from "lucide-react";
 import type { FormEvent, ReactNode } from "react";
 import axios from "axios";
-import { useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,8 +24,11 @@ import { DataTable, type DataTableColumn } from "@/components/common/DataTable";
 import { EmptyState } from "@/components/common/EmptyState";
 import { SearchInput } from "@/components/common/SearchInput";
 import { Spinner } from "@/components/common/Spinner";
+import { StatusTag } from "@/components/common/StatusTag";
+import { Tip } from "@/components/common/Tip";
 import { IMAGE_BASE_URL } from "@/config/env";
 import { apiErrorMessage, toastApiError } from "@/lib/api-errors";
+import { NOT_STARTED_TAG, approvalTagOf } from "@/lib/approvalStatus";
 import { paymentModeLabel, refundPlace } from "@/lib/payments";
 import {
   ORDER_STATUS,
@@ -36,7 +39,13 @@ import {
   type BadgeConfig,
 } from "@/lib/orderStatus";
 import "./Order.scss";
-import { CancelOrderAPI, DeleteOrderAPI, GetAdminOrdersAPI, RetryOrderLabelAPI } from "@/services/Api/OrderApi";
+import {
+  CancelOrderAPI,
+  DeleteOrderAPI,
+  GetAdminOrdersAPI,
+  RetryOrderLabelAPI,
+  type OrderApprovalSummary,
+} from "@/services/Api/OrderApi";
 
 // ─────────────────────────────────────────────
 // Types
@@ -159,6 +168,8 @@ interface OrderActions {
   can_buy_label: boolean;
   can_cancel: boolean;
   can_delete: boolean;
+  /** Its Artwork approval can start (paid, not cancelled) or exists. Missing from a server without artwork approval. */
+  can_open_approval?: boolean;
 }
 
 interface Order {
@@ -189,6 +200,8 @@ interface Order {
   cancelled_at?: string | null;
   cancel_reason?: string | null;
   actions?: OrderActions;
+  /** Its artwork approval: null when it has none, missing from a server without artwork approval. */
+  approval?: OrderApprovalSummary | null;
   payment_method: string;
   carrier: string;
   service_code?: string | null;
@@ -780,11 +793,10 @@ interface ImageThumbProps {
 }
 
 const ImageThumb = ({ src, caption, size = "md", fit = "cover", lightboxLabel, onOpen }: ImageThumbProps) => {
-  const [failed, setFailed] = useState(false);
+  // The image that failed to load, so a new src gets its own try.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
-  useEffect(() => setFailed(false), [src]);
-
-  const usable = Boolean(src) && !failed;
+  const usable = Boolean(src) && failedSrc !== src;
 
   return (
     <figure className="thumb-wrap">
@@ -796,7 +808,7 @@ const ImageThumb = ({ src, caption, size = "md", fit = "cover", lightboxLabel, o
           aria-label={`Enlarge ${caption} image`}
           title="Click to enlarge"
         >
-          <img src={src as string} alt={caption} loading="lazy" onError={() => setFailed(true)} />
+          <img src={src as string} alt={caption} loading="lazy" onError={() => setFailedSrc(src)} />
           <span className="thumb-zoom" aria-hidden="true">
             <ZoomIcon />
           </span>
@@ -836,6 +848,96 @@ const AttentionPill = ({ note }: { note: string }) => (
     <TriangleAlert size={12} aria-hidden />
     Needs attention
   </span>
+);
+
+const approvalPath = (order: Order) => `/orders/${order.id}/approval`;
+
+/** The carrier has the parcel: too late to check the artwork (as the backend's orderActions.js). */
+const WITH_CARRIER_SHIPMENT = ["IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED", "RETURNED", "EXCEPTION"];
+
+/**
+ * An item the customer designed or customized: a print method or locations, their own graphics,
+ * or logo or text options. The backend holds such orders for artwork approval (approvalLines.js).
+ */
+const isCustomized = (item: OrderItem) => {
+  const cfg = item.customization_config;
+  return Boolean(
+    cfg?.print_method || cfg?.locations?.length || cfg?.customization?.length || cfg?.custom_text || item.graphics?.length,
+  );
+};
+
+/**
+ * A paid order with customized items that hasn't shipped and whose artwork approval hasn't
+ * started. `approval` is null, not missing, only from a server with artwork approval.
+ */
+const artworkNotStarted = (o: Order) =>
+  o.approval === null &&
+  Boolean(o.actions?.can_open_approval) &&
+  !["SHIPPED", "DELIVERED"].includes(o.status) &&
+  !WITH_CARRIER_SHIPMENT.includes(o.shipment_status) &&
+  (o.items ?? []).some(isCustomized);
+
+/**
+ * Where the artwork approval stands ("Artwork: Approved"), with a dot for customer changes nobody
+ * has looked at yet. A customized order that hasn't started one says so. It opens the Artwork
+ * approval page, like the row's stamp button. `stacked` puts "Artwork" above the status, so the
+ * list's Status column stays narrow.
+ */
+const ApprovalBadge = ({ order, stacked = false }: { order: Order; stacked?: boolean }) => {
+  const approval = order.approval;
+  const tag = approval ? approvalTagOf(approval) : artworkNotStarted(order) ? NOT_STARTED_TAG : null;
+  if (!tag) return null;
+  const unseen = approval && approval.unseen > 0 ? approval.unseen : 0;
+  return (
+    <Tip content={`${tag.desc}${unseen ? ` ${unseen} new from the customer.` : ""}`}>
+      {/* The dot sits on the tag's corner, so the Status column keeps its width. */}
+      <Link
+        to={approvalPath(order)}
+        className="relative inline-flex rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        // Not the row's click: that opens the order.
+        onClick={(e) => e.stopPropagation()}
+      >
+        <StatusTag
+          color={tag.color}
+          className={`underline-offset-2 hover:underline${stacked ? " flex-col items-start gap-0 py-1 text-left leading-tight" : ""}`}
+        >
+          {stacked ? (
+            <>
+              <span className="text-[10px] font-semibold tracking-wide uppercase opacity-80">Artwork</span>
+              {tag.label}
+            </>
+          ) : (
+            <>Artwork: {tag.label}</>
+          )}
+        </StatusTag>
+        {unseen > 0 && (
+          <span
+            className="absolute -top-1 -right-1 size-2.5 rounded-full border-2 border-background bg-destructive"
+            role="img"
+            aria-label={`${unseen} new from the customer`}
+          />
+        )}
+      </Link>
+    </Tip>
+  );
+};
+
+/**
+ * The list's Artwork approval button, beside View: an icon like it, so the row keeps its width. It
+ * opens for every order; the page itself says when an unpaid or cancelled order can't start one.
+ */
+const ApprovalRowButton = ({ order }: { order: Order }) => (
+  <Tip content="Artwork approval">
+    <Link
+      to={approvalPath(order)}
+      className="view-btn"
+      aria-label={`Artwork approval for order ${order.order_number}`}
+      // Not the row's click: that opens the order.
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Stamp size={15} aria-hidden />
+    </Link>
+  </Tip>
 );
 
 const KindBadge = ({ kind }: { kind: ItemKind }) => (
@@ -978,6 +1080,16 @@ const OrderNotices = ({ order: o }: { order: Order }) => {
   );
 };
 
+/** Why a paid order has no label yet when its artwork approval holds it. */
+const heldLabelNote = (o: Order) => {
+  if (!o.approval || o.approval.locked) return null;
+  if (o.approval.hold_state === "PENDING_DECISION") {
+    return "Paid. The shipping label waits for your decision on the Artwork approval page.";
+  }
+  if (o.approval.hold_state === "HOLD") return "Paid. The shipping label waits for the customer's artwork approval.";
+  return null;
+};
+
 const OrderActionBar = ({
   order: o,
   busyAction,
@@ -989,15 +1101,21 @@ const OrderActionBar = ({
   const label = labelActionOf(o);
   const canCancel = Boolean(o.actions?.can_cancel);
   const canDelete = Boolean(o.actions?.can_delete);
-  if (!label && !canCancel && !canDelete) return null;
 
+  // Artwork approval is there for every order, so the bar always shows.
   return (
     <div className="om-actions">
       <p className="om-actions-note" title={label === "retry" ? o.shipment_error ?? undefined : undefined}>
-        {label === "buy" && "Paid. No shipping label yet."}
+        {label === "buy" && (heldLabelNote(o) ?? "Paid. No shipping label yet.")}
         {label === "retry" && `The label wasn't bought: ${o.shipment_error || "ShipStation didn't give a reason."}`}
       </p>
       <div className="om-actions-buttons">
+        <Button asChild size="sm" variant="outline">
+          <Link to={approvalPath(o)}>
+            <Stamp aria-hidden />
+            Artwork approval
+          </Link>
+        </Button>
         <LabelButton order={o} busyAction={busyAction} locked={locked} onBuyLabel={onBuyLabel} />
         {canCancel && (
           <Button type="button" size="sm" variant="outline" disabled={locked} onClick={() => onCancel(o)}>
@@ -1181,6 +1299,7 @@ const OrderDetailModal = ({
               <StatusBadge value={order.status} map={ORDER_STATUS} />
               <StatusBadge value={order.payment_status} map={PAYMENT_STATUS} />
               {order.shipment_status === "FAILED" && <StatusBadge value="FAILED" map={SHIPMENT_STATUS} />}
+              <ApprovalBadge order={order} />
               <CheckPill warnings={calc.warningCount} />
             </div>
           </div>
@@ -1848,12 +1967,13 @@ const OrdersPage = () => {
     [refresh],
   );
 
-  // "Buy label" (shipment PENDING) and "Try again" (FAILED).
+  // "Buy label" (shipment PENDING) and "Try again" (FAILED). While the customer is still approving
+  // the artwork, the backend asks first (409 APPROVAL_OPEN); buying anyway locks the approval.
   const buyLabel = useCallback(
-    (order: Order) =>
-      runAction(order, "label", async () => {
+    function buy(order: Order, confirmed = false): Promise<void> {
+      return runAction(order, "label", async () => {
         try {
-          const res = await RetryOrderLabelAPI(order.id);
+          const res = await RetryOrderLabelAPI(order.id, confirmed);
           const label = (res.data?.data ?? {}) as Partial<Order>;
           patchOrder(order.id, { ...label, shipment_error: null });
           toast.success("Label bought", {
@@ -1862,6 +1982,22 @@ const OrdersPage = () => {
               : `${order.order_number} has its label.`,
           });
         } catch (err) {
+          if (
+            !confirmed &&
+            axios.isAxiosError(err) &&
+            err.response?.status === 409 &&
+            err.response.data?.data?.code === "APPROVAL_OPEN"
+          ) {
+            confirm({
+              title: "Buy the label anyway?",
+              content:
+                "The customer hasn't approved all of their artwork yet. Buying the label locks the artwork approval for production, so they can't change anything after that.",
+              okText: "Buy label",
+              cancelText: "Not now",
+              onOk: () => buy(order, true),
+            });
+            return;
+          }
           toastApiError("The label wasn't bought", err, "Check your connection and try again.");
           // 502 is ShipStation refusing, with its reason. 400 and 409 mean the order changed
           // elsewhere (it has a label, or one is being bought); the reload shows it.
@@ -1869,7 +2005,8 @@ const OrdersPage = () => {
             patchOrder(order.id, { shipment_error: apiErrorMessage(err, "ShipStation didn't give a reason.") });
           }
         }
-      }),
+      });
+    },
     [runAction, patchOrder],
   );
 
@@ -2004,6 +2141,7 @@ const OrdersPage = () => {
             <StatusBadge value={row.status} map={ORDER_STATUS} />
             {row.shipment_status === "FAILED" && <StatusBadge value="FAILED" map={SHIPMENT_STATUS} />}
             {row.attention_note && <AttentionPill note={row.attention_note} />}
+            <ApprovalBadge order={row} stacked />
           </div>
         ),
       },
@@ -2015,18 +2153,21 @@ const OrdersPage = () => {
         title: <span className="sr-only">Actions</span>,
         align: "right",
         render: (_v, row) => (
-          <button
-            type="button"
-            className="view-btn"
-            aria-label={`View order ${row.order_number}`}
-            title="View order"
-            onClick={(e) => {
-              e.stopPropagation();
-              openOrder(row);
-            }}
-          >
-            <Eye size={15} aria-hidden />
-          </button>
+          <div className="flex items-center justify-end gap-1.5">
+            <ApprovalRowButton order={row} />
+            <button
+              type="button"
+              className="view-btn"
+              aria-label={`View order ${row.order_number}`}
+              title="View order"
+              onClick={(e) => {
+                e.stopPropagation();
+                openOrder(row);
+              }}
+            >
+              <Eye size={15} aria-hidden />
+            </button>
+          </div>
         ),
       },
     ],
