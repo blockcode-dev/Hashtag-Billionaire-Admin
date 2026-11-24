@@ -190,15 +190,23 @@ function ApprovalScreen({ orderId }: { orderId: number }) {
   const cancelled = order.status === "CANCELLED";
   const unpaid = order.payment_status !== "SUCCESS";
   const readyFiles = flow?.readyFiles ?? 0;
+  // Why "Send a reminder email" can't be used now, or null. It sits under Customer link & options,
+  // above Unlock. A reminder tells the customer their artwork is waiting for their approval, so it
+  // needs an item that is: with nothing waiting and nothing new to send, unlocking or switching
+  // the link on wouldn't help, so that reason comes first.
   const remindBlock = !approval?.first_sent_at
     ? "Nothing has been sent yet. Use Send to customer at the bottom."
-    : readOnlyText
+    : readOnly === "SHIPPED" || readOnly === "CANCELLED"
       ? readOnlyText
-      : approval.link.disabled
-        ? "The customer link is switched off."
-        : readyFiles
-          ? "New artwork previews are ready: use Send to customer at the bottom."
-          : null;
+      : flow?.counts.WAITING === 0 && !readyFiles
+        ? "Nothing is waiting for the customer to check right now."
+        : readOnly === "LOCKED"
+          ? "It's locked for production. Unlock it below first."
+          : approval.link.disabled
+            ? "The customer link is switched off."
+            : readyFiles
+              ? "New artwork previews are ready: use Send to customer at the bottom."
+              : null;
 
   const start = () => void write("start", () => StartOrderApprovalAPI(orderId), "Artwork approval didn't start");
 
@@ -323,7 +331,10 @@ function ApprovalScreen({ orderId }: { orderId: number }) {
   const replaceLink = () =>
     confirm({
       title: "Replace the customer link?",
-      content: "The old link stops working straight away. Send the new one with a reminder email, or copy it.",
+      // Offers the reminder email only while one can go out.
+      content: remindBlock
+        ? "The old link stops working straight away. To give the customer the new one, copy it under Customer link & options."
+        : "The old link stops working straight away. Send the new one with a reminder email, or copy it.",
       okText: "Replace link",
       okType: "danger",
       onOk: async () => {

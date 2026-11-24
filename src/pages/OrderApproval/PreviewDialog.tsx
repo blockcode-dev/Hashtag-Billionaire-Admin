@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ImagePreview } from "@/components/common/ImagePreview";
 import { plainText } from "@/pages/Dashboard/format";
 import type { ApprovalLine, ApprovalView, ChoiceKind, LineStatus, ReadOnlyReason } from "@/services/Api/ApprovalApi";
-import { codeLabel, fileUrl, isDisplayable } from "./format";
+import { codeLabel, fileUrl, isDisplayable, newerVersions } from "./format";
 
 // The customer page's own words (the approval site), not the panel's.
 const READ_ONLY: Record<ReadOnlyReason, string> = {
@@ -52,8 +52,8 @@ export function PreviewDialog({ open, view, onClose }: { open: boolean; view: Ap
         <DialogHeader className="border-b px-5 py-4">
           <DialogTitle>What the customer sees</DialogTitle>
           <DialogDescription>
-            A simplified view of their page right now, as on a phone: each item's latest artwork preview and where it
-            stands. Nothing here can be clicked.
+            A simplified view of their page right now, as on a phone: each item's artwork preview as they see it, and
+            where it stands. Nothing here can be clicked.
           </DialogDescription>
         </DialogHeader>
 
@@ -94,9 +94,13 @@ export function PreviewDialog({ open, view, onClose }: { open: boolean; view: Ap
 
 function PreviewItem({ line, readOnly }: { line: ApprovalLine; readOnly: boolean }) {
   const latest = line.versions[line.versions.length - 1];
+  // The version their page opens on, picked as the approval site does: the approved one while the
+  // item is approved (an earlier one after going back), otherwise the newest.
+  const shown =
+    (line.status === "APPROVED" ? line.versions.find((v) => v.version === line.approved_version) : undefined) ?? latest;
   const artwork = line.detail.customer_artwork.flatMap((file) => fileUrl(file.url) ?? []).filter(isDisplayable);
   const chips = [line.detail.color, line.detail.sizes_text, ...line.detail.print_methods.map(codeLabel)].filter(Boolean);
-  const images = latest?.files.map((file) => fileUrl(file.preview_url ?? file.url) ?? "") ?? [];
+  const images = shown?.files.map((file) => fileUrl(file.preview_url ?? file.url) ?? "") ?? [];
   const status =
     (readOnly ? READ_ONLY_STATUS[line.status] : undefined) ?? CUSTOMER_STATUS[line.status] ?? CUSTOMER_STATUS.NOT_SENT;
   const choice = line.last_choice;
@@ -131,10 +135,10 @@ function PreviewItem({ line, readOnly }: { line: ApprovalLine; readOnly: boolean
         </div>
       )}
 
-      {latest && !line.no_proof && (
+      {shown && !line.no_proof && (
         <>
-          <p className="text-xs font-medium text-muted-foreground">Version {latest.version}</p>
-          {latest.message && <p className="text-sm break-words whitespace-pre-wrap">{latest.message}</p>}
+          <p className="text-xs font-medium text-muted-foreground">Version {shown.version}</p>
+          {shown.message && <p className="text-sm break-words whitespace-pre-wrap">{shown.message}</p>}
           <div className="grid grid-cols-2 gap-2">
             {images.map((src, i) => (
               <ImagePreview
@@ -147,21 +151,30 @@ function PreviewItem({ line, readOnly }: { line: ApprovalLine; readOnly: boolean
             ))}
           </div>
           {choice ? (
-            <p
-              className={cn(
-                "flex items-center gap-1.5 text-sm font-medium",
-                choice.kind === "REJECTED" ? "text-foreground" : "text-success-soft-foreground",
+            <div className="space-y-1">
+              <p
+                className={cn(
+                  "flex items-center gap-1.5 text-sm font-medium",
+                  choice.kind === "REJECTED" ? "text-foreground" : "text-success-soft-foreground",
+                )}
+              >
+                {choice.kind === "REJECTED" ? (
+                  <X className="size-4" aria-hidden />
+                ) : choice.kind === "WENT_BACK" ? (
+                  <Undo2 className="size-4" aria-hidden />
+                ) : (
+                  <Check className="size-4" aria-hidden />
+                )}
+                {CHOICE_TEXT[choice.kind]} {choice.version}
+              </p>
+              {/* Their page spells out what going back did. */}
+              {choice.kind === "WENT_BACK" && (
+                <p className="text-sm text-muted-foreground">
+                  Version {choice.version} is approved, and {newerVersions(choice.version, c)}{" "}
+                  {choice.version + 1 >= c ? "is" : "are"} rejected.
+                </p>
               )}
-            >
-              {choice.kind === "REJECTED" ? (
-                <X className="size-4" aria-hidden />
-              ) : choice.kind === "WENT_BACK" ? (
-                <Undo2 className="size-4" aria-hidden />
-              ) : (
-                <Check className="size-4" aria-hidden />
-              )}
-              {CHOICE_TEXT[choice.kind]} {choice.version}
-            </p>
+            </div>
           ) : (
             !readOnly && (
               // As on a phone: Reject on the left, Approve on the right, and going back under them.
