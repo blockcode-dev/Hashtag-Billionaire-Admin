@@ -1,10 +1,10 @@
 import { getAdminId } from "@/lib/session";
 import type { ApprovalEvent, ApprovalView } from "@/services/Api/ApprovalApi";
-import { count, eventLineName, imageNumber } from "./format";
+import { count, eventLineName, newerVersions } from "./format";
 
 // The Activity tab: the approval's events told as plain sentences, newest first. Steps that
 // happen together read as one: a Send's new versions and its email, several images added at
-// once, an "Approve all".
+// once, an "Approve all" and its undo.
 
 export type ActivityWho = "customer" | "team" | "store";
 
@@ -23,7 +23,7 @@ export interface ActivityEntry {
   details?: string[];
   // A smaller line under it, e.g. why an email failed.
   extra?: string | null;
-  // The customer took it back or removed it later.
+  // The customer undid it later.
   crossedOut?: boolean;
   tone?: "good" | "attention" | "problem";
 }
@@ -48,6 +48,12 @@ export function buildActivity(view: ApprovalView): ActivityEntry[] {
     return event.admin?.name || "Someone on the team";
   };
   const item = (event: ApprovalEvent) => eventLineName(event, view) ?? "an item";
+  // "Version 2 of Polo (Black)", or the item alone when the event names no version.
+  const versionOf = (version: number | null, event: ApprovalEvent) =>
+    version ? `Version ${version} of ${item(event)}` : item(event);
+  // The version of the choice the customer undid; the backend names it, older entries may not.
+  const undoneVersion = (event: ApprovalEvent) =>
+    event.version ?? view.history.find((e) => e.id === event.target_event_id)?.version ?? null;
   const lineOf = (event: ApprovalEvent) => view.lines.find((line) => line.id === event.line_id);
   const filesIn = (event: ApprovalEvent) =>
     lineOf(event)?.versions.find((v) => v.version === event.version)?.files.length ?? 0;
@@ -201,14 +207,27 @@ export function buildActivity(view: ApprovalView): ActivityEntry[] {
           const group = run((next) => next.type === event.type && next.batch_id === event.batch_id);
           add(group, {
             text: `The customer approved ${count(group.length, "item")} at once with “Approve all”`,
-            details: group.map((e) => `${item(e)}: Version ${e.version}${e.undone ? " (taken back later)" : ""}`),
+            details: group.map((e) => `${item(e)}: Version ${e.version}${e.undone ? " (undone later)" : ""}`),
             crossedOut: group.every((e) => e.undone),
+            tone: "good",
+          });
+        } else if (event.kind === "WENT_BACK") {
+          // Going back approved that version, and counts as rejecting every newer one.
+          const newest = event.newest_version;
+          const rejected =
+            event.version !== null && newest !== null && newest > event.version
+              ? `This approved Version ${event.version} and rejected ${newerVersions(event.version, newest)}.`
+              : null;
+          add([event], {
+            text: `The customer went back to ${versionOf(event.version, event)}`,
+            extra: event.undone ? "Undone later" : rejected,
+            crossedOut: event.undone,
             tone: "good",
           });
         } else {
           add([event], {
-            text: `The customer approved Version ${event.version} of ${item(event)}`,
-            extra: event.undone ? "Taken back later" : null,
+            text: `The customer approved ${versionOf(event.version, event)}`,
+            extra: event.undone ? "Undone later" : null,
             crossedOut: event.undone,
             tone: "good",
           });
@@ -220,43 +239,38 @@ export function buildActivity(view: ApprovalView): ActivityEntry[] {
         if (event.batch_id) {
           const group = run((next) => next.type === event.type && next.batch_id === event.batch_id);
           add(group, {
-            text: `The customer took back “Approve all” for ${count(group.length, "item")}`,
+            text: `The customer undid “Approve all” for ${count(group.length, "item")}`,
             details: group.map((e) => item(e)),
           });
         } else {
-          const target = view.history.find((e) => e.id === event.target_event_id);
+          const on = versionOf(undoneVersion(event), event);
           add([event], {
-            text: `The customer took back their approval${target?.version ? ` of Version ${target.version}` : ""} of ${item(event)}`,
+            text:
+              event.kind === "UNDID_GO_BACK"
+                ? `The customer undid going back to ${on}`
+                : `The customer undid their approval of ${on}`,
           });
         }
         break;
       }
 
       case "NOTE_ADDED": {
-        const line = lineOf(event);
-        const note = line?.notes.find((n) => n.event_id === event.id);
-        const image = line && note ? imageNumber(line, note.version, note.file_id) : null;
-        const photos = note?.pictures.length ?? 0;
-        const on = event.version ? `Version ${event.version} of ${item(event)}` : item(event);
+        // A rejection: the customer's note says what to change.
+        const note = lineOf(event)?.notes.find((n) => n.event_id === event.id);
+        const pictures = note?.pictures.length ?? 0;
+        const undone = event.undone || Boolean(note?.removed);
         add([event], {
-          text: note?.after_approval ? `The customer left a note on ${on}` : `The customer asked for changes to ${on}`,
+          text: `The customer rejected ${versionOf(event.version, event)}`,
           quote: event.body,
-          extra:
-            [image && `About image ${image}`, photos && `with ${count(photos, "photo")}`, note?.removed && "Removed by the customer later"]
-              .filter(Boolean)
-              .join(" · ") || null,
-          crossedOut: note?.removed,
-          tone: note?.after_approval ? undefined : "attention",
+          extra: [pictures > 0 && `With ${count(pictures, "picture")}`, undone && "Undone later"].filter(Boolean).join(" · ") || null,
+          crossedOut: undone,
+          tone: "attention",
         });
         break;
       }
 
       case "NOTE_REMOVED":
-        add([event], { text: `The customer removed their note on ${item(event)}` });
-        break;
-
-      case "NOTE_RESTORED":
-        add([event], { text: `The customer brought back their note on ${item(event)}` });
+        add([event], { text: `The customer undid their rejection of ${versionOf(undoneVersion(event), event)}` });
         break;
 
       default:

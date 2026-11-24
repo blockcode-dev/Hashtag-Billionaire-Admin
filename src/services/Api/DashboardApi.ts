@@ -153,7 +153,7 @@ export interface Activity {
   // whether it should). They aren't in to_ship.
   waiting_for_approval: { count: number; oldest_at: string | null };
   // Open artwork approvals (not locked, and the order isn't cancelled or with the carrier) where
-  // the customer asked for changes, and where they approved everything (ready to lock for
+  // the customer rejected an item, and where they approved everything (ready to lock for
   // production). Missing from a backend without them.
   approval_changes?: { count: number };
   approval_ready?: { count: number };

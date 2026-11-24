@@ -111,7 +111,7 @@ export function AttentionCard({ data, loading, error, onRetry }: { data: Activit
           key: "approval-changes",
           icon: MessageSquareWarning,
           count: data.approval_changes?.count ?? 0,
-          label: "Customers asked for artwork changes",
+          label: "Artwork rejected by customers",
           detail: "Upload a new version and send it",
           tone: "warning",
           href: "/orders",

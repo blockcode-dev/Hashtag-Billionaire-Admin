@@ -152,7 +152,7 @@ export function LinkOptions({
             <Option
               icon={<LockOpen />}
               title="Unlock"
-              hint="The customer can approve and ask for changes again."
+              hint="The customer can approve, reject and undo again."
               disabled={waiting}
               onClick={pick(onUnlock)}
             />

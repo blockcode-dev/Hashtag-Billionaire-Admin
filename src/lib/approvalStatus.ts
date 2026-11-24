@@ -22,9 +22,9 @@ const APPROVAL_STATUS: Record<ApprovalStatus, ApprovalTag> = {
     desc: "Artwork previews sent. The customer hasn't approved every item yet.",
   },
   CHANGES_REQUESTED: {
-    label: "Changes requested",
+    label: "Rejected",
     color: "orange",
-    desc: "The customer asked for changes. Upload a new version and send it.",
+    desc: "The customer rejected an item's artwork. Upload a new version and send it.",
   },
   APPROVED: { label: "Approved", color: "green", desc: "The customer approved the artwork for every item." },
 };

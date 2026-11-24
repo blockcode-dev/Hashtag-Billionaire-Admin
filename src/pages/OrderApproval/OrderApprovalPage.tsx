@@ -35,15 +35,16 @@ import { LinkOptions } from "./LinkOptions";
 import { PreviewDialog } from "./PreviewDialog";
 import { SendBar } from "./SendBar";
 import { SendDialog } from "./SendDialog";
-import { HowItWorks, StepGuide } from "./StepGuide";
-import { activeNotes, flowOf } from "./flow";
-import { centralTime, count } from "./format";
+import { HowItWorks, Summary } from "./Summary";
+import { flowOf, wentBackTo } from "./flow";
+import { centralTime, count, lineName } from "./format";
 import { useApproval } from "./useApproval";
 
 // An order's artwork approval (/orders/:id/approval). The team adds an artwork preview for each
 // item and sends them; order@ emails the customer a link to the approval site, where they approve
-// each item or ask for changes without signing in. The page walks the team through it in four
-// steps and shows everything the customer does; it looks for their answers every minute.
+// or reject each item without signing in. The page says where it stands at the top, keeps its one
+// main button (Send to customer, or Lock for production) at the bottom and shows everything the
+// customer does; it looks for their answers every minute.
 
 const TONES = {
   info: "border-info-border bg-info-soft text-info-soft-foreground",
@@ -201,7 +202,7 @@ function ApprovalScreen({ orderId }: { orderId: number }) {
 
   const start = () => void write("start", () => StartOrderApprovalAPI(orderId), "Artwork approval didn't start");
 
-  // From the guide's item links: the Items tab, scrolled to that item's card.
+  // From the summary's item links: the Items tab, scrolled to that item's card.
   const showItem = (lineId: number) => {
     setTab("items");
     requestAnimationFrame(() =>
@@ -272,7 +273,19 @@ function ApprovalScreen({ orderId }: { orderId: number }) {
       title: "Lock for production?",
       content: (
         <ul className="list-disc space-y-1 pl-5">
-          <li>The customer can still look at their artwork, but can't approve, ask for changes or leave notes.</li>
+          <li>The customer can still look at their artwork, but can't approve, reject or undo anything.</li>
+          {/* The version to make, where it isn't the newest one. */}
+          {lines.map((line) => {
+            const back = wentBackTo(line);
+            return (
+              back !== null && (
+                <li key={line.id}>
+                  {lineName(line)}: use Version {back} for production (the customer went back to it), not Version{" "}
+                  {line.current_version}.
+                </li>
+              )
+            );
+          })}
           {approval?.status !== "APPROVED" && <li>Not every item is approved yet.</li>}
           {(approval?.hold_state === "HOLD" || approval?.hold_state === "PENDING_DECISION") && (
             <li>The shipping label stops waiting. It's bought now if automatic labels are on.</li>
@@ -291,7 +304,7 @@ function ApprovalScreen({ orderId }: { orderId: number }) {
   const unlock = () =>
     confirm({
       title: "Unlock artwork approval?",
-      content: "The customer can approve and ask for changes again. A shipping label that was already bought stays.",
+      content: "The customer can approve, reject and undo again. A shipping label that was already bought stays.",
       okText: "Unlock",
       onOk: () => write("unlock", () => UnlockApprovalAPI(orderId), "It wasn't unlocked"),
     });
@@ -381,7 +394,6 @@ function ApprovalScreen({ orderId }: { orderId: number }) {
           total={lines.length}
           started={started}
           readOnly={readOnlyText}
-          openNotes={started ? activeNotes(view, line) : []}
           busy={busy}
           upload={upload}
           newEventIds={newEventIds}
@@ -470,14 +482,7 @@ function ApprovalScreen({ orderId }: { orderId: number }) {
             </section>
           )}
 
-          <StepGuide
-            view={view}
-            flow={flow}
-            onSend={() => setSendOpen(true)}
-            onLock={lock}
-            onShowItem={showItem}
-            busy={busy}
-          />
+          <Summary view={view} flow={flow} onShowItem={showItem} />
 
           {approval.hold_state === "HOLD" && !readOnly && (
             <Notice tone="info" icon={<PauseCircle />}>
@@ -515,7 +520,7 @@ function ApprovalScreen({ orderId }: { orderId: number }) {
             </TabsContent>
           </Tabs>
 
-          <SendBar view={view} flow={flow} busy={busy} onSend={() => setSendOpen(true)} />
+          <SendBar view={view} flow={flow} busy={busy} onSend={() => setSendOpen(true)} onLock={lock} />
         </div>
       ) : (
         <div className="space-y-6">

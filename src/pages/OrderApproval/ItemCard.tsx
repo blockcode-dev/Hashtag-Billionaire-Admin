@@ -1,14 +1,15 @@
 import { useRef, useState, type DragEvent, type ReactNode } from "react";
 import {
   Check,
+  ChevronDown,
   CircleCheck,
   CircleDashed,
+  CircleX,
   Clock,
   Copy,
   Download,
   Ellipsis,
   ImagePlus,
-  MessageSquareWarning,
   Plus,
   Send,
   Upload,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,8 +33,15 @@ import { Tip } from "@/components/common/Tip";
 import { FilePicker } from "@/components/common/Upload";
 import { PROOF_ACCEPT } from "@/lib/uploads";
 import { plainText } from "@/pages/Dashboard/format";
-import type { ApprovalFile, ApprovalLine, ApprovalNote } from "@/services/Api/ApprovalApi";
-import { centralTime, codeLabel, count, fileSize, fileUrl, imageNumber, isDisplayable } from "./format";
+import type {
+  ApprovalFile,
+  ApprovalLine,
+  ApprovalNote,
+  ApprovalVersion,
+  VersionStatus,
+} from "@/services/Api/ApprovalApi";
+import { wentBackTo } from "./flow";
+import { centralTime, codeLabel, count, fileSize, fileUrl, isDisplayable, newerVersions } from "./format";
 
 export interface UploadProgress {
   lineId: number;
@@ -49,8 +58,6 @@ interface ItemCardProps {
   started: boolean;
   // Why nothing can change now (locked, shipped or cancelled), or null.
   readOnly: string | null;
-  // The customer's notes that still count on this item (flow.ts activeNotes).
-  openNotes: ApprovalNote[];
   // The write under way anywhere on the page; every button waits for it.
   busy: string | null;
   upload: UploadProgress | null;
@@ -61,15 +68,24 @@ interface ItemCardProps {
   onNoPreview: (line: ApprovalLine, on: boolean) => void;
 }
 
+// "Start from Version 2's images": puts a sent version's images in the next version, so the team
+// only removes or adds what changed.
+const startFrom = (version: ApprovalVersion) => {
+  const images = version.files.length === 1 ? "image" : "images";
+  return {
+    label: `Start from Version ${version.version}'s ${images}`,
+    hint: `Puts Version ${version.version}'s ${images} in a new version, so you only remove or add what changed.`,
+  };
+};
+
 // One thing the customer approves (a product in one colour, all its sizes): what they ordered,
-// where it stands, their own artwork, and the team's artwork previews.
+// the customer's answer, their own artwork, and the team's artwork previews.
 export function ItemCard({
   line,
   index,
   total,
   started,
   readOnly,
-  openNotes,
   busy,
   upload,
   newEventIds,
@@ -102,6 +118,16 @@ export function ItemCard({
   // Previews that aren't sent yet would be left behind on an item that needs none.
   const noPreviewBlock =
     readOnly ?? (!line.no_proof && line.drafts.length > 0 ? "Remove the artwork previews that aren't sent yet first." : null);
+  // A new version can start from images already sent: the newest version's, and the one the
+  // customer went back to. Not while new previews wait to be sent, nor on a rejected item, whose
+  // strip offers it.
+  const backTo = wentBackTo(line);
+  const startFromVersions =
+    !line.drafts.length && line.status !== "CHANGES_REQUESTED"
+      ? [line.versions[line.versions.length - 1], line.versions.find((v) => v.version === backTo)].filter(
+          (version): version is ApprovalVersion => Boolean(version?.files.length),
+        )
+      : [];
 
   return (
     // The scroll margin keeps the card's top clear of the panel's sticky header.
@@ -128,6 +154,20 @@ export function ItemCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-72">
+              {startFromVersions.map((version) => {
+                const { label, hint } = startFrom(version);
+                return (
+                  <DropdownMenuItem
+                    key={version.version}
+                    disabled={busy !== null}
+                    onSelect={() => onReuse(line, version.version)}
+                    className="flex-col items-start gap-0.5"
+                  >
+                    <span className="font-medium">{label}</span>
+                    <span className="text-xs text-muted-foreground">{hint}</span>
+                  </DropdownMenuItem>
+                );
+              })}
               <DropdownMenuItem
                 disabled={busy !== null || noPreviewBlock !== null}
                 onSelect={() => onNoPreview(line, true)}
@@ -146,9 +186,7 @@ export function ItemCard({
       {live && (
         <StatusStrip
           line={line}
-          title={title}
           readOnly={readOnly}
-          openNotes={openNotes}
           newEventIds={newEventIds}
           canAdd={canAdd}
           busy={busy}
@@ -168,7 +206,6 @@ export function ItemCard({
               title={title}
               canAdd={canAdd}
               readOnly={readOnly}
-              openNotes={openNotes}
               busy={busy}
               upload={upload?.lineId === line.id ? upload : null}
               onUpload={onUpload}
@@ -239,9 +276,7 @@ function Strip({ tone, icon, children }: { tone: keyof typeof STRIP_TONES; icon:
 
 interface StatusStripProps {
   line: ApprovalLine;
-  title: string;
   readOnly: string | null;
-  openNotes: ApprovalNote[];
   newEventIds: ReadonlySet<number>;
   canAdd: boolean;
   busy: string | null;
@@ -249,29 +284,14 @@ interface StatusStripProps {
   onReuse: (line: ApprovalLine, version: number) => void;
 }
 
-// Where the item stands, in one coloured strip under its name: above all what the customer did
-// (approved, or asked for changes with their note and photos), so nobody can miss it.
-function StatusStrip({
-  line,
-  title,
-  readOnly,
-  openNotes,
-  newEventIds,
-  canAdd,
-  busy,
-  onUploadClick,
-  onReuse,
-}: StatusStripProps) {
+// The customer's answer, in one coloured strip under the item's name, so nobody can miss it:
+// approved, went back to an earlier version, or rejected with their note and pictures.
+function StatusStrip({ line, readOnly, newEventIds, canAdd, busy, onUploadClick, onReuse }: StatusStripProps) {
   const latest = line.versions[line.versions.length - 1];
+  const reuse = latest?.files.length ? startFrom(latest) : null;
   const nextVersion = line.current_version + 1;
   const ready = line.drafts.length;
-  const notes = openNotes.length > 0 && (
-    <ul className="space-y-2">
-      {openNotes.map((note) => (
-        <NoteItem key={note.event_id} note={note} line={line} title={title} isNew={newEventIds.has(note.event_id)} />
-      ))}
-    </ul>
-  );
+  const choice = line.last_choice;
   // What to do with previews added but not sent; nothing while the order is locked or closed.
   const sendHint = readOnly
     ? `${ready === 1 ? "It" : "They"} can't be sent right now.`
@@ -309,17 +329,23 @@ function StatusStrip({
         </Strip>
       );
 
-    case "APPROVED":
+    case "APPROVED": {
+      const back = wentBackTo(line);
+      // The version of the customer's choice: the newest one, or the one they went back to.
+      const chosen = choice?.version ?? line.approved_version;
       return (
         <Strip tone="good" icon={<CircleCheck className="text-success" />}>
-          <p className="font-semibold text-success-soft-foreground">
-            The customer approved Version {line.approved_version} · {centralTime(line.approved_at)}
+          <p>
+            <span className="font-semibold text-success-soft-foreground">
+              {back === null ? `The customer approved Version ${chosen}` : `The customer went back to Version ${chosen}`}
+            </span>{" "}
+            <span className="text-muted-foreground">· {centralTime(choice?.at ?? line.approved_at)}</span>
           </p>
-          {line.approved_version !== null && line.approved_version < line.current_version && (
-            <p>They chose Version {line.approved_version}, not the newest one (Version {line.current_version}).</p>
+          {back !== null && (
+            <p className="font-semibold">
+              Use Version {back} for production. They rejected {newerVersions(back, line.current_version)}.
+            </p>
           )}
-          {openNotes.length > 0 && <p className="font-medium">They also left a note:</p>}
-          {notes}
           {ready > 0 && (
             <p className="text-muted-foreground">
               Version {nextVersion} is ready, not sent yet. Sending it asks the customer to approve this item again.
@@ -327,12 +353,22 @@ function StatusStrip({
           )}
         </Strip>
       );
+    }
 
-    case "CHANGES_REQUESTED":
+    case "CHANGES_REQUESTED": {
+      const rejected = choice?.version ?? line.current_version;
+      const note =
+        line.notes.find((n) => n.event_id === choice?.event_id) ??
+        line.versions.find((v) => v.version === rejected)?.note ??
+        null;
       return (
-        <Strip tone="attention" icon={<MessageSquareWarning className="text-warning" />}>
-          <p className="font-semibold text-warning-soft-foreground">Customer asked for changes</p>
-          {notes}
+        <Strip tone="attention" icon={<CircleX className="text-warning" />}>
+          <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+            <span className="font-semibold text-warning-soft-foreground">The customer rejected Version {rejected}</span>
+            {note && <span className="text-muted-foreground">· {centralTime(note.created_at)}</span>}
+            {note && newEventIds.has(note.event_id) && <StatusTag color="gold">New</StatusTag>}
+          </p>
+          {note && <RejectionNote note={note} />}
           {ready > 0
             ? readyLine
             : canAdd && (
@@ -341,10 +377,8 @@ function StatusStrip({
                     {busy === `upload:${line.id}` ? <Spinner size="small" className="text-current" /> : <Upload />}
                     Upload a new version
                   </Button>
-                  {latest && latest.files.length > 0 && (
-                    <Tip
-                      content={`Puts Version ${latest.version}'s ${latest.files.length === 1 ? "image" : "images"} in the new version, so you only remove or add what changed.`}
-                    >
+                  {latest && reuse && (
+                    <Tip content={reuse.hint}>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -352,7 +386,7 @@ function StatusStrip({
                         onClick={() => onReuse(line, latest.version)}
                       >
                         {busy === `copy:${line.id}` ? <Spinner size="small" className="text-current" /> : <Copy />}
-                        Start from Version {latest.version}'s {latest.files.length === 1 ? "image" : "images"}
+                        {reuse.label}
                       </Button>
                     </Tip>
                   )}
@@ -361,15 +395,16 @@ function StatusStrip({
               )}
         </Strip>
       );
+    }
 
     default: {
-      const sent = latest ? ` · sent ${centralTime(latest.sent_at)}` : "";
+      const sentAt = latest ? ` · sent ${centralTime(latest.sent_at)}` : "";
       // Locked, shipped or cancelled: the customer can't approve any more, so nothing is awaited.
       return readOnly ? (
         <Strip tone="quiet" icon={<CircleDashed className="text-muted-foreground" />}>
           <p>
             <span className="font-semibold">Not approved.</span> Version {line.current_version}
-            {sent}
+            {sentAt}
           </p>
         </Strip>
       ) : (
@@ -377,13 +412,54 @@ function StatusStrip({
           <p>
             <span className="font-semibold text-info-soft-foreground">Waiting for the customer</span> to check Version{" "}
             {line.current_version}
-            {sent}
+            {sentAt}
           </p>
           {readyLine}
         </Strip>
       );
     }
   }
+}
+
+// What the customer wrote when they rejected a version, and their pictures (click to enlarge).
+// Folded, the words fit on one line and the pictures wait for Show.
+function RejectionNote({ note, folded = false }: { note: ApprovalNote; folded?: boolean }) {
+  const pictures = note.pictures.map((picture) => fileUrl(picture.url) ?? "");
+  return (
+    <div className="space-y-2">
+      {note.body ? (
+        <blockquote
+          className={cn(
+            "border-l-2 border-warning-border pl-3 text-sm break-words text-foreground",
+            folded ? "truncate" : "whitespace-pre-wrap",
+          )}
+        >
+          {note.body}
+        </blockquote>
+      ) : (
+        <p className="text-sm text-muted-foreground italic">Pictures only, no words</p>
+      )}
+      {!folded && pictures.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">Their pictures:</p>
+          <ul className="flex flex-wrap gap-2">
+            {note.pictures.map((picture, i) => (
+              <li key={picture.id}>
+                <ImagePreview
+                  src={pictures[i]}
+                  alt={`The customer's picture ${i + 1}`}
+                  gallery={pictures}
+                  width={72}
+                  height={72}
+                  className="size-18 rounded-md border bg-muted/30 object-cover"
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // The files the customer ordered with, each with a Download link for making the artwork
@@ -452,7 +528,6 @@ interface PreviewsProps {
   title: string;
   canAdd: boolean;
   readOnly: string | null;
-  openNotes: ApprovalNote[];
   busy: string | null;
   upload: UploadProgress | null;
   onUpload: (line: ApprovalLine, files: File[]) => void;
@@ -461,18 +536,7 @@ interface PreviewsProps {
 }
 
 // The team's side: the place to add artwork previews, the ones not sent yet, and what was sent.
-function Previews({
-  line,
-  title,
-  canAdd,
-  readOnly,
-  openNotes,
-  busy,
-  upload,
-  onUpload,
-  onRemove,
-  onUploadClick,
-}: PreviewsProps) {
+function Previews({ line, title, canAdd, readOnly, busy, upload, onUpload, onRemove, onUploadClick }: PreviewsProps) {
   const neverSent = line.current_version === 0;
   const firstUpload = neverSent && !line.drafts.length;
   const one = line.drafts.length === 1;
@@ -511,11 +575,10 @@ function Previews({
       )}
 
       {line.versions.length > 0 && (
-        <SentVersions
-          key={line.current_version}
+        <VersionList
           line={line}
           title={title}
-          openNotes={openNotes}
+          readOnly={readOnly !== null}
           canAdd={canAdd}
           busy={busy}
           onUploadClick={onUploadClick}
@@ -622,92 +685,154 @@ function AddTile(props: DropProps) {
   );
 }
 
-interface SentVersionsProps {
+interface VersionListProps {
   line: ApprovalLine;
   title: string;
-  openNotes: ApprovalNote[];
+  readOnly: boolean;
   canAdd: boolean;
   busy: string | null;
   onUploadClick: () => void;
 }
 
-// What the customer was sent, newest version first. The page remounts this when a new version
-// goes out, so it opens on that one.
-function SentVersions({ line, title, openNotes, canAdd, busy, onUploadClick }: SentVersionsProps) {
-  const [shown, setShown] = useState(line.current_version);
+// What the customer was sent, newest first, with what became of each version. The newest one and
+// the approved one show their images; the others are folded to their row, status and note, and
+// Show unfolds them.
+function VersionList({ line, title, readOnly, canAdd, busy, onUploadClick }: VersionListProps) {
+  // Versions the team unfolded.
+  const [unfolded, setUnfolded] = useState<ReadonlySet<number>>(() => new Set());
   const newestFirst = [...line.versions].reverse();
-  const version = line.versions.find((v) => v.version === shown) ?? newestFirst[0];
-  const approvedHere = line.status === "APPROVED" && line.approved_version === version.version;
-  const open = new Set(openNotes.map((note) => note.event_id));
-  // Notes shown in the strip above aren't repeated here.
-  const notes = line.notes.filter((note) => note.version === version.version && !open.has(note.event_id));
-  const versionLabel = (n: number) => `Version ${n}${n === line.current_version ? " (latest)" : ""}`;
-  // The changes strip has its own buttons, and previews already added show "Add more". While the
-  // customer is checking or has approved, a new version is the exception: a quiet button.
+  // A rejected item's strip has its own buttons, and previews already added show "Add more". While
+  // the customer is checking or has approved, a new version is the exception: a quiet button.
   const offerUpload = canAdd && !line.drafts.length && line.status !== "CHANGES_REQUESTED";
+  const fold = (version: number, open: boolean) =>
+    setUnfolded((current) => {
+      const next = new Set(current);
+      if (open) next.add(version);
+      else next.delete(version);
+      return next;
+    });
 
   return (
-    <div className="space-y-3 rounded-lg border p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">Sent to the customer:</span> {versionLabel(version.version)},{" "}
-          {centralTime(version.sent_at)}
-          {approvedHere && (
-            <span className="font-medium text-success-soft-foreground">
-              {" "}
-              · <Check className="inline size-3.5 align-[-2px]" aria-hidden /> approved
-            </span>
-          )}
-        </p>
-        {newestFirst.length > 1 && (
-          <div role="group" aria-label={`Versions of ${title}`} className="inline-flex flex-wrap rounded-lg bg-muted p-[3px]">
-            {newestFirst.map((v) => (
-              <button
-                key={v.version}
-                type="button"
-                aria-pressed={v.version === version.version}
-                onClick={() => setShown(v.version)}
-                className={cn(
-                  "rounded-md px-2.5 py-1 text-xs font-medium text-foreground/60 transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                  v.version === version.version && "bg-background text-foreground shadow-sm",
-                )}
-              >
-                {versionLabel(v.version)}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <Thumbs files={version.files} title={`${title}, Version ${version.version}`} />
-
-      {notes.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">The customer's notes on Version {version.version}</p>
-          <ul className="space-y-2">
-            {notes.map((note) => (
-              <NoteItem key={note.event_id} note={note} line={line} title={title} isNew={false} />
-            ))}
-          </ul>
-        </div>
-      )}
-
+    <div className="space-y-2">
+      <ol aria-label={`Versions of ${title}`} className="divide-y rounded-lg border">
+        {newestFirst.map((version) => {
+          const pinned =
+            version.version === line.current_version ||
+            (line.status === "APPROVED" && version.version === line.approved_version);
+          return (
+            <VersionRow
+              key={version.version}
+              line={line}
+              version={version}
+              title={title}
+              readOnly={readOnly}
+              pinned={pinned}
+              open={pinned || unfolded.has(version.version)}
+              onOpenChange={(open) => fold(version.version, open)}
+            />
+          );
+        })}
+      </ol>
       {offerUpload && (
-        <div className="border-t pt-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="-ml-2 text-muted-foreground"
-            disabled={busy !== null}
-            onClick={onUploadClick}
-          >
-            {busy === `upload:${line.id}` ? <Spinner size="small" className="text-current" /> : <Upload />}
-            Upload a new version
-          </Button>
-        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="-ml-2 text-muted-foreground"
+          disabled={busy !== null}
+          onClick={onUploadClick}
+        >
+          {busy === `upload:${line.id}` ? <Spinner size="small" className="text-current" /> : <Upload />}
+          Upload a new version
+        </Button>
       )}
     </div>
+  );
+}
+
+const VERSION_TAGS: Record<VersionStatus, { label: string; color: string; icon?: ReactNode }> = {
+  WAITING: { label: "Waiting for the customer", color: "blue" },
+  APPROVED: { label: "Approved", color: "green", icon: <Check className="size-3" aria-hidden /> },
+  REJECTED: { label: "Rejected", color: "orange", icon: <X className="size-3" aria-hidden /> },
+  REPLACED: { label: "Replaced", color: "default" },
+};
+
+// What became of a version. While the order can't change, a version nobody chose is just not
+// approved: nothing is awaited.
+function VersionTag({ status, readOnly }: { status: VersionStatus; readOnly: boolean }) {
+  if (status === "WAITING" && readOnly) return <StatusTag>Not approved</StatusTag>;
+  const tag = VERSION_TAGS[status];
+  if (!tag) return null;
+  const element = (
+    <StatusTag color={tag.color}>
+      {tag.icon}
+      {tag.label}
+    </StatusTag>
+  );
+  return status === "REPLACED" ? <Tip content="A newer version was sent.">{element}</Tip> : element;
+}
+
+interface VersionRowProps {
+  line: ApprovalLine;
+  version: ApprovalVersion;
+  title: string;
+  readOnly: boolean;
+  // The newest and the approved version are always open.
+  pinned: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+// One sent version: its name, when it was sent and what became of it, why it was rejected, and
+// its images. Folding hides only the images (and shortens the note).
+function VersionRow({ line, version, title, readOnly, pinned, open, onOpenChange }: VersionRowProps) {
+  // An item marked "No preview needed" shows what was sent, not what became of it.
+  const withStatus = !line.no_proof;
+  // The strip above already shows the rejection that is the customer's last choice.
+  const inStrip =
+    line.status === "CHANGES_REQUESTED" && version.note !== null && version.note.event_id === line.last_choice?.event_id;
+  const why = withStatus && version.status === "REJECTED" && !inStrip;
+
+  return (
+    <li>
+      <Collapsible open={open} onOpenChange={onOpenChange} className="space-y-2.5 px-3 py-2.5">
+        <div className="flex min-h-7 flex-wrap items-center gap-x-2 gap-y-1">
+          <p className="text-sm">
+            <span className="font-semibold text-foreground">Version {version.version}</span>{" "}
+            <span className="text-muted-foreground">· sent {centralTime(version.sent_at)}</span>
+          </p>
+          {withStatus && <VersionTag status={version.status} readOnly={readOnly} />}
+          {!pinned && (
+            <CollapsibleTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="ml-auto h-7 text-muted-foreground"
+                aria-label={`${open ? "Hide" : "Show"} Version ${version.version}`}
+              >
+                {open ? "Hide" : "Show"}
+                <ChevronDown className={cn("transition-transform", open && "rotate-180")} aria-hidden />
+              </Button>
+            </CollapsibleTrigger>
+          )}
+        </div>
+        {why &&
+          (version.note ? (
+            // Tinted like the strip, so the customer's pictures don't read as the version's images.
+            <div className="rounded-md bg-warning-soft/60 px-3 py-2">
+              <RejectionNote note={version.note} folded={!open} />
+            </div>
+          ) : (
+            version.went_back_to !== null && (
+              <p className="text-sm text-muted-foreground">The customer went back to Version {version.went_back_to}.</p>
+            )
+          ))}
+        <CollapsibleContent>
+          <Thumbs files={version.files} title={`${title}, Version ${version.version}`} />
+        </CollapsibleContent>
+      </Collapsible>
+    </li>
   );
 }
 
@@ -761,69 +886,5 @@ function Thumbs({ files, title, onRemove, after }: ThumbsProps) {
       ))}
       {after && <li>{after}</li>}
     </ul>
-  );
-}
-
-function NoteItem({ note, line, title, isNew }: { note: ApprovalNote; line: ApprovalLine; title: string; isNew: boolean }) {
-  const image = imageNumber(line, note.version, note.file_id);
-  const imageFile = image ? line.versions.find((v) => v.version === note.version)?.files[image - 1] : null;
-  const photos = note.pictures.map((picture) => fileUrl(picture.url) ?? "");
-
-  return (
-    <li className={cn("rounded-md border bg-background p-3", note.removed && "bg-muted/40")}>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-        <span>{centralTime(note.created_at)}</span>
-        {note.version > 0 && <span>· on Version {note.version}</span>}
-        {image && <span>· about image {image}</span>}
-        {note.removed && <StatusTag>Removed by the customer {centralTime(note.removed_at)}</StatusTag>}
-        {isNew && <StatusTag color="gold">New</StatusTag>}
-      </div>
-      <div className="mt-2 flex gap-3">
-        {imageFile && (
-          <ImagePreview
-            src={fileUrl(imageFile.preview_url ?? imageFile.url)}
-            alt={`${title}: image ${image} of Version ${note.version}, which the note is about`}
-            width={48}
-            height={48}
-            className="size-12 shrink-0 rounded-md border bg-muted/30 object-contain"
-          />
-        )}
-        <div className="min-w-0 flex-1 space-y-2">
-          {note.body ? (
-            <p
-              className={cn(
-                "text-sm break-words whitespace-pre-wrap text-foreground",
-                note.removed && "text-muted-foreground line-through",
-              )}
-            >
-              {note.body}
-            </p>
-          ) : (
-            <p className="text-sm text-muted-foreground italic">Photos only, no words</p>
-          )}
-          {photos.length > 0 && (
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">
-                The customer's {photos.length === 1 ? "photo" : "photos"}:
-              </p>
-              <ul className="flex flex-wrap gap-2">
-                {note.pictures.map((picture, i) => (
-                  <li key={picture.id}>
-                    <ImagePreview
-                      src={photos[i]}
-                      alt={`The customer's photo ${i + 1}: ${picture.name}`}
-                      gallery={photos}
-                      width={72}
-                      height={72}
-                      className={cn("size-18 rounded-md border bg-muted/30 object-cover", note.removed && "opacity-60")}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      </div>
-    </li>
   );
 }

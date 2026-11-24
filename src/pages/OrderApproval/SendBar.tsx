@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { CircleAlert, CircleCheck, Info, Send } from "lucide-react";
+import { CircleAlert, CircleCheck, Info, Lock, Send } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/common/Spinner";
@@ -20,15 +20,14 @@ const TONE_ICON: Record<Tone, ReactNode> = {
 interface Bar {
   tone: Tone;
   text: ReactNode;
+  // The bar's button: Send to customer, Lock for production once there's nothing left for the
+  // customer to do, or none (locked, shipped or cancelled).
+  button: "send" | "lock" | null;
   // Why Send can't be pressed, or null when it can.
   block: string | null;
-  // False when nothing is left to send (locked, shipped, cancelled, everything approved, or
-  // nothing for the customer to check): the bar only says where things stand, so the step
-  // guide's Lock for production stays the page's one main button.
-  offer: boolean;
 }
 
-// What the bar says, and whether and when Send can be pressed.
+// What the bar says, and which button it offers and when it can be pressed.
 function barState(view: ApprovalView, flow: Flow): Bar {
   const approval = view.approval;
   const lastEmail = view.history.find((event) => event.type === "EMAIL_SENT" || event.type === "EMAIL_FAILED");
@@ -41,13 +40,13 @@ function barState(view: ApprovalView, flow: Flow): Bar {
       return {
         tone: "quiet",
         text: "Locked for production, so nothing more is sent. Unlock it under Customer link & options to change something.",
+        button: null,
         block: null,
-        offer: false,
       };
     case "SHIPPED":
-      return { tone: "quiet", text: "This order has shipped, so nothing more is sent.", block: null, offer: false };
+      return { tone: "quiet", text: "This order has shipped, so nothing more is sent.", button: null, block: null };
     case "CANCELLED":
-      return { tone: "quiet", text: "This order is cancelled, so nothing is sent.", block: null, offer: false };
+      return { tone: "quiet", text: "This order is cancelled, so nothing is sent.", button: null, block: null };
   }
 
   if (flow.readyFiles) {
@@ -55,8 +54,8 @@ function barState(view: ApprovalView, flow: Flow): Bar {
       return {
         tone: "attention",
         text: "The customer link is switched off. Switch it on under Customer link & options, then send.",
+        button: "send",
         block: "The customer link is switched off.",
-        offer: true,
       };
     }
     return {
@@ -67,36 +66,31 @@ function barState(view: ApprovalView, flow: Flow): Bar {
           {items(flow.ready)}.
         </>
       ),
+      button: "send",
       block: null,
-      offer: true,
     };
   }
 
   if (flow.situation === "nothing-to-check") {
-    return {
-      tone: "quiet",
-      text: "Nothing for the customer to check. Lock for production when you're ready.",
-      block: null,
-      offer: false,
-    };
+    return { tone: "quiet", text: "Nothing for the customer to check.", button: "lock", block: null };
   }
   if (!flow.sentBefore) {
     return {
       tone: "quiet",
       text: "Nothing to send yet. Add an artwork preview to an item first.",
+      button: "send",
       block: "Add an artwork preview to an item first.",
-      offer: true,
     };
   }
-  if (flow.changes.length) {
+  if (flow.rejected.length) {
     return {
       tone: "attention",
       text:
-        flow.changes.length === 1
-          ? `The customer asked for changes to ${items(flow.changes)}. Upload a new version on the item, then send it from here.`
-          : `The customer asked for changes to ${items(flow.changes)}. Upload a new version on each, then send them from here.`,
+        flow.rejected.length === 1
+          ? `The customer rejected ${items(flow.rejected)}. Upload a new version on the item, then send it from here.`
+          : `The customer rejected ${items(flow.rejected)}. Upload a new version on each, then send them from here.`,
+      button: "send",
       block: "Upload a new version first.",
-      offer: true,
     };
   }
   if (flow.missing.length) {
@@ -106,32 +100,32 @@ function barState(view: ApprovalView, flow: Flow): Bar {
         flow.missing.length === 1
           ? `${items(flow.missing)} has no artwork preview yet. Add one, then send it from here.`
           : `${items(flow.missing)} have no artwork preview yet. Add them, then send them from here.`,
+      button: "send",
       block: "Add an artwork preview first.",
-      offer: true,
     };
   }
   if (approval?.status === "APPROVED") {
     return {
       tone: "good",
       text: `The customer approved everything · ${centralTime(approval.approved_at)}`,
+      button: "lock",
       block: null,
-      offer: false,
     };
   }
   if (approval?.link.disabled) {
     return {
       tone: "attention",
       text: "The customer link is switched off, so the customer can't open it. Switch it on under Customer link & options.",
+      button: "send",
       block: "The customer link is switched off.",
-      offer: true,
     };
   }
   if (lastEmail?.type === "EMAIL_FAILED") {
     return {
       tone: "attention",
       text: `The last email to ${to} didn't go out. Send a reminder under Customer link & options, or copy the link there and send it yourself.`,
+      button: "send",
       block: "Nothing new to send.",
-      offer: true,
     };
   }
   return {
@@ -142,8 +136,8 @@ function barState(view: ApprovalView, flow: Flow): Bar {
         <span className="text-muted-foreground"> · {centralTime(approval?.last_sent_at)}</span>
       </>
     ),
+    button: "send",
     block: "Nothing new to send. Upload a new version on an item to send it.",
-    offer: true,
   };
 }
 
@@ -152,12 +146,15 @@ interface SendBarProps {
   flow: Flow;
   busy: string | null;
   onSend: () => void;
+  // Opens the Lock for production confirmation.
+  onLock: () => void;
 }
 
 // The page's one main button, kept in sight at the bottom of the screen: Send to customer, with
-// how many new artwork previews go out, or the reason there's nothing to send.
-export function SendBar({ view, flow, busy, onSend }: SendBarProps) {
-  const { tone, text, block, offer } = barState(view, flow);
+// how many new artwork previews go out or the reason there's nothing to send, and Lock for
+// production once there's nothing left for the customer to do.
+export function SendBar({ view, flow, busy, onSend, onLock }: SendBarProps) {
+  const { tone, text, button, block } = barState(view, flow);
   const label = flow.readyFiles ? `Send ${count(flow.readyFiles, "new preview")} to customer` : "Send to customer";
   const bar = useRef<HTMLDivElement>(null);
 
@@ -185,13 +182,19 @@ export function SendBar({ view, flow, busy, onSend }: SendBarProps) {
           <span className="shrink-0 [&_svg]:size-4.5">{TONE_ICON[tone]}</span>
           <span className={cn("min-w-0", tone === "quiet" && "text-muted-foreground")}>{text}</span>
         </p>
-        {offer && (
+        {button === "send" && (
           <Tip content={block}>
             <Button size="lg" disabled={block !== null || busy !== null} onClick={onSend}>
               {busy === "send" ? <Spinner size="small" className="text-current" /> : <Send />}
               {label}
             </Button>
           </Tip>
+        )}
+        {button === "lock" && (
+          <Button size="lg" disabled={busy !== null} onClick={onLock}>
+            {busy === "lock" ? <Spinner size="small" className="text-current" /> : <Lock />}
+            Lock for production
+          </Button>
         )}
       </div>
     </div>

@@ -3,18 +3,53 @@ import axios from "axios";
 import { API_BASE_URL } from "@/config/env";
 
 // Artwork approval for one paid order: the team uploads proof images for each line and sends
-// them; order@ emails the customer a link to the approval site, where they approve without
-// signing in. Every write answers with the whole view below, so the page shows what comes back.
+// them; order@ emails the customer a link to the approval site, where they approve each item,
+// reject it with a note and pictures, or go back to an earlier version, without signing in, and
+// can undo their last choice until the team locks it. Every write answers with the whole view
+// below, so the page shows what comes back.
 // The admin token is attached by the axios interceptor (services/Api/interceptors.ts).
-// The API keeps its own names; on screen a proof is an "artwork preview" and a draft is one
-// "not sent yet".
+// The API keeps its own names; on screen a proof is an "artwork preview", a draft is one "not
+// sent yet", a note is the customer's rejection and CHANGES_REQUESTED reads "Rejected".
 
 export type ApprovalStatus = "DRAFT" | "WAITING" | "CHANGES_REQUESTED" | "APPROVED";
 
 // PENDING_DECISION: held at payment until the team decides; HOLD: the label waits for Lock.
 export type HoldState = "NONE" | "PENDING_DECISION" | "HOLD" | "RELEASED";
 
+// CHANGES_REQUESTED: the customer rejected the newest version.
 export type LineStatus = "NOT_SENT" | "NO_PROOF_NEEDED" | "WAITING" | "CHANGES_REQUESTED" | "APPROVED";
+
+// What became of a sent version. WAITING: the newest, nothing chosen on it yet. APPROVED: by
+// Approve or by going back to it. REJECTED: by the customer's Reject, or by going back to an
+// older version. REPLACED: a newer version was sent before they chose it, or after they approved it.
+export type VersionStatus = "WAITING" | "APPROVED" | "REJECTED" | "REPLACED";
+
+// The customer's choices on an item: approve the newest version, reject it (with a note), or go
+// back to an older version (which approves it and rejects the newer ones).
+export type ChoiceKind = "APPROVED" | "REJECTED" | "WENT_BACK";
+
+// What an event means for the customer's choices; null for every other event.
+export type HistoryKind =
+  | "SENT"
+  | "APPROVED"
+  | "WENT_BACK"
+  | "REJECTED"
+  | "UNDID_APPROVAL"
+  | "UNDID_GO_BACK"
+  | "UNDID_REJECTION";
+
+// An item's last choice: what the customer's Undo takes back. null while nothing is chosen on
+// the newest version, and while the item isn't sent or is marked "No preview needed".
+export interface LastChoice {
+  // The APPROVED or NOTE_ADDED event.
+  event_id: number;
+  kind: ChoiceKind;
+  // The version it names; for WENT_BACK, the version gone back to.
+  version: number;
+  at: string;
+  // Set when it came from "Approve all".
+  batch_id: string | null;
+}
 
 // Why the customer's page is read-only.
 export type ReadOnlyReason = "LOCKED" | "SHIPPED" | "CANCELLED";
@@ -44,8 +79,7 @@ export type EventType =
   | "APPROVED"
   | "APPROVAL_UNDONE"
   | "NOTE_ADDED"
-  | "NOTE_REMOVED"
-  | "NOTE_RESTORED";
+  | "NOTE_REMOVED";
 
 export interface ApprovalFile {
   id: number;
@@ -65,21 +99,26 @@ export interface ApprovalVersion {
   // The team's message with that Send.
   message: string | null;
   files: ApprovalFile[];
+  status: VersionStatus;
+  // When the customer approved or rejected it; null for WAITING and REPLACED.
+  decided_at: string | null;
+  // REJECTED by going back to an older version: that version.
+  went_back_to: number | null;
+  // REJECTED: the customer's rejection of this version, when they wrote one.
+  note: ApprovalNote | null;
 }
 
+// A customer's rejection: what to change, and their pictures. The API calls it a note.
 export interface ApprovalNote {
   // The customer's NOTE_ADDED event.
   event_id: number;
   body: string | null;
   created_at: string;
-  // The version the customer was looking at.
+  // The version they rejected.
   version: number;
-  // The proof image the note is about; null for the whole item.
-  file_id: number | null;
+  // Undone with Undo.
   removed: boolean;
   removed_at: string | null;
-  // Added while the item was approved.
-  after_approval: boolean;
   pictures: { id: number; url: string; name: string }[];
 }
 
@@ -112,8 +151,9 @@ export interface ApprovalLine {
   drafts: ApprovalFile[];
   // Oldest first.
   versions: ApprovalVersion[];
-  // Oldest first.
+  // The customer's rejections, oldest first.
   notes: ApprovalNote[];
+  last_choice: LastChoice | null;
 }
 
 export interface ApprovalEventMeta {
@@ -136,8 +176,9 @@ export interface ApprovalEvent {
   admin: { id: number; name: string } | null;
   line_id: number | null;
   line_title: string | null;
+  // APPROVAL_UNDONE and NOTE_REMOVED: the version of the choice they undid.
   version: number | null;
-  // APPROVAL_UNDONE, NOTE_REMOVED and NOTE_RESTORED: the event they act on.
+  // APPROVAL_UNDONE and NOTE_REMOVED: the choice they undid.
   target_event_id: number | null;
   // Approvals made together with "Approve all", and their undo.
   batch_id: string | null;
@@ -147,8 +188,12 @@ export interface ApprovalEvent {
   // Customer events only.
   ip: string | null;
   user_agent: string | null;
-  // An approval the customer took back.
+  // A choice the customer undid: an approval, a go back or a rejection.
   undone: boolean;
+  kind: HistoryKind | null;
+  // A choice: the item's newest version when it was made. APPROVAL_UNDONE and NOTE_REMOVED: that
+  // of the choice they undid. Otherwise null.
+  newest_version: number | null;
 }
 
 export interface Approval {

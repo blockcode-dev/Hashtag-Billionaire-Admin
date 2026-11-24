@@ -1,25 +1,40 @@
-import { Check } from "lucide-react";
+import { Check, Undo2, X } from "lucide-react";
 import { cn } from "cn";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ImagePreview } from "@/components/common/ImagePreview";
 import { plainText } from "@/pages/Dashboard/format";
-import type { ApprovalLine, ApprovalView, LineStatus, ReadOnlyReason } from "@/services/Api/ApprovalApi";
+import type { ApprovalLine, ApprovalView, ChoiceKind, LineStatus, ReadOnlyReason } from "@/services/Api/ApprovalApi";
 import { codeLabel, fileUrl, isDisplayable } from "./format";
 
 // The customer page's own words (the approval site), not the panel's.
 const READ_ONLY: Record<ReadOnlyReason, string> = {
-  LOCKED: "Your order is in production. Your artwork can't be changed any more.",
+  LOCKED: "Your order is in production. Your choices are final now.",
   SHIPPED: "Your order has shipped.",
   CANCELLED: "This order was cancelled.",
 };
 
+const NEUTRAL = "border-border bg-muted text-foreground";
+
 const CUSTOMER_STATUS: Record<LineStatus, { label: string; className: string }> = {
   APPROVED: { label: "Approved", className: "border-success-border bg-success-soft text-success-soft-foreground" },
-  CHANGES_REQUESTED: { label: "Changes requested", className: "border-border bg-muted text-foreground" },
-  WAITING: { label: "Needs your review", className: "border-primary-border bg-primary-soft text-primary-soft-foreground" },
-  NO_PROOF_NEEDED: { label: "No preview needed", className: "border-border bg-muted text-foreground" },
-  NOT_SENT: { label: "Artwork preview coming soon", className: "border-border bg-muted text-foreground" },
+  CHANGES_REQUESTED: { label: "Rejected", className: NEUTRAL },
+  WAITING: { label: "Waiting for you", className: "border-primary-border bg-primary-soft text-primary-soft-foreground" },
+  NO_PROOF_NEEDED: { label: "No preview needed", className: NEUTRAL },
+  NOT_SENT: { label: "Artwork preview coming soon", className: NEUTRAL },
+};
+
+// Once the page can't change, an item nobody approved isn't waiting any more.
+const READ_ONLY_STATUS: Partial<Record<LineStatus, { label: string; className: string }>> = {
+  WAITING: { label: "Not approved", className: NEUTRAL },
+  NOT_SENT: { label: "No preview sent", className: NEUTRAL },
+};
+
+// "You approved Version 2": the customer's last choice, as their page says it.
+const CHOICE_TEXT: Record<ChoiceKind, string> = {
+  APPROVED: "You approved Version",
+  WENT_BACK: "You went back to Version",
+  REJECTED: "You rejected Version",
 };
 
 // "Preview what the customer sees": the customer's page drawn from this page's data. It never
@@ -54,7 +69,7 @@ export function PreviewDialog({ open, view, onClose }: { open: boolean; view: Ap
               <p className="text-xs font-medium text-muted-foreground">Order {order.order_number}</p>
               <p className="text-lg font-semibold text-foreground">Review your artwork</p>
               <p className="text-sm text-muted-foreground">
-                Check each item, then approve it or request changes. We start production once everything is approved.
+                Check each item. Approve it if it looks right, or reject it and tell us what to change.
               </p>
               <p className="text-sm font-medium text-foreground">
                 {approved.length} of {toCheck.length} approved
@@ -82,7 +97,10 @@ function PreviewItem({ line, readOnly }: { line: ApprovalLine; readOnly: boolean
   const artwork = line.detail.customer_artwork.flatMap((file) => fileUrl(file.url) ?? []).filter(isDisplayable);
   const chips = [line.detail.color, line.detail.sizes_text, ...line.detail.print_methods.map(codeLabel)].filter(Boolean);
   const images = latest?.files.map((file) => fileUrl(file.preview_url ?? file.url) ?? "") ?? [];
-  const status = CUSTOMER_STATUS[line.status] ?? CUSTOMER_STATUS.NOT_SENT;
+  const status =
+    (readOnly ? READ_ONLY_STATUS[line.status] : undefined) ?? CUSTOMER_STATUS[line.status] ?? CUSTOMER_STATUS.NOT_SENT;
+  const choice = line.last_choice;
+  const c = line.current_version;
 
   return (
     <article className="space-y-3 rounded-lg border bg-background p-3 shadow-xs">
@@ -115,10 +133,7 @@ function PreviewItem({ line, readOnly }: { line: ApprovalLine; readOnly: boolean
 
       {latest && !line.no_proof && (
         <>
-          <p className="text-xs font-medium text-muted-foreground">
-            Version {latest.version}
-            {line.versions.length > 1 ? " (latest)" : ""}
-          </p>
+          <p className="text-xs font-medium text-muted-foreground">Version {latest.version}</p>
           {latest.message && <p className="text-sm break-words whitespace-pre-wrap">{latest.message}</p>}
           <div className="grid grid-cols-2 gap-2">
             {images.map((src, i) => (
@@ -131,20 +146,47 @@ function PreviewItem({ line, readOnly }: { line: ApprovalLine; readOnly: boolean
               />
             ))}
           </div>
-          {line.status === "APPROVED" ? (
-            <p className="flex items-center gap-1.5 text-sm font-medium text-success-soft-foreground">
-              <Check className="size-4" aria-hidden />
-              You approved Version {line.approved_version}
+          {choice ? (
+            <p
+              className={cn(
+                "flex items-center gap-1.5 text-sm font-medium",
+                choice.kind === "REJECTED" ? "text-foreground" : "text-success-soft-foreground",
+              )}
+            >
+              {choice.kind === "REJECTED" ? (
+                <X className="size-4" aria-hidden />
+              ) : choice.kind === "WENT_BACK" ? (
+                <Undo2 className="size-4" aria-hidden />
+              ) : (
+                <Check className="size-4" aria-hidden />
+              )}
+              {CHOICE_TEXT[choice.kind]} {choice.version}
             </p>
           ) : (
             !readOnly && (
-              <div className="grid grid-cols-2 gap-2">
-                <Button type="button" tabIndex={-1}>
-                  Approve artwork
-                </Button>
-                <Button type="button" variant="outline" tabIndex={-1}>
-                  Request changes
-                </Button>
+              // As on a phone: Reject on the left, Approve on the right, and going back under them.
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <Button type="button" variant="outline" tabIndex={-1}>
+                    <X aria-hidden />
+                    Reject
+                  </Button>
+                  <Button type="button" tabIndex={-1}>
+                    <Check aria-hidden />
+                    Approve
+                  </Button>
+                </div>
+                {c >= 2 && (
+                  <Button type="button" variant="outline" tabIndex={-1} className="h-auto w-full flex-col gap-0.5 py-2">
+                    <span className="flex items-center gap-1.5">
+                      <Undo2 aria-hidden />
+                      Go back to Version {c - 1}
+                    </span>
+                    <span className="text-xs font-normal text-muted-foreground">
+                      Approves Version {c - 1} and rejects Version {c}
+                    </span>
+                  </Button>
+                )}
               </div>
             )
           )}

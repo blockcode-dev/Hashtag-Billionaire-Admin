@@ -98,12 +98,10 @@ export const deviceOf = (userAgent: string | null) => {
   return [device, browser].filter(Boolean).join(" · ") || null;
 };
 
-// Where a note's image sits in its version, numbered as the customer sees them: 1, 2, …
-export const imageNumber = (line: ApprovalLine, version: number, fileId: number | null) => {
-  if (fileId === null) return null;
-  const index = line.versions.find((v) => v.version === version)?.files.findIndex((f) => f.id === fileId) ?? -1;
-  return index >= 0 ? index + 1 : null;
-};
+// The versions newer than k, up to the newest c, which going back to Version k rejected:
+// "Version 2", "Versions 2 and 3", "Versions 2 to 4".
+export const newerVersions = (k: number, c: number) =>
+  c - k <= 1 ? `Version ${k + 1}` : c - k === 2 ? `Versions ${k + 1} and ${c}` : `Versions ${k + 1} to ${c}`;
 
 // The subject the customer gets for each kind of email (the backend's templates/approvals.js).
 export const emailSubject = (kind: EmailKind, orderNumber: string) =>
