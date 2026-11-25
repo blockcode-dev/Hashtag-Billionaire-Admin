@@ -171,6 +171,10 @@ const isValidPrice = (raw: string): boolean => {
   return raw.trim() !== "" && Number.isFinite(n) && n >= 0;
 };
 
+/** A One price / Fixed quantity price as saved: null when left empty, else rounded to cents. */
+const optionalPrice = (raw: string): number | null =>
+  raw.trim() === "" ? null : Number(Number(raw).toFixed(2));
+
 const emptyTier = (): TierDraft => ({ key: newKey(), max: "", price: "" });
 
 const emptyQuantity = (): QuantityDraft => ({ key: newKey(), quantity: "", price: "" });
@@ -316,12 +320,13 @@ const validate = (basic: BasicInfo, values: ValueDraft[]): ValidationResult => {
     else if (seen.has(name.toLowerCase())) fail(`“${name}” is already in the list.`);
     seen.add(name.toLowerCase());
 
+    // Optional (25 Nov): left empty, the value costs nothing extra.
     if (usesFixedPrice(value.pricingType)) {
-      if (!isValidPrice(value.fixedPrice)) {
+      if (value.fixedPrice.trim() !== "" && !isValidPrice(value.fixedPrice)) {
         fail(
-          `Enter the ${
+          `The ${
             value.pricingType === "FIXED" ? "price per item" : "total price"
-          }. Use 0 if it's free.`
+          } must be 0 or more, or left empty.`
         );
       }
       return;
@@ -396,7 +401,8 @@ const buildValueBody = (value: ValueDraft): ValueBody =>
     ? {
         name: value.name.trim(),
         pricing_type: value.pricingType,
-        fixed_price: Number(Number(value.fixedPrice).toFixed(2)),
+        // Empty means no price: the value costs nothing extra.
+        fixed_price: optionalPrice(value.fixedPrice),
       }
     : { name: value.name.trim(), pricing_type: value.pricingType, fixed_price: null };
 
@@ -1007,7 +1013,7 @@ const ValueCard = memo(
 
           {usesFixedPrice(value.pricingType) ? (
             <div className="customization__flat-price">
-              <label htmlFor={`price-${value.key}`}>{fixedPriceLabel}</label>
+              <label htmlFor={`price-${value.key}`}>{fixedPriceLabel} (optional)</label>
 
               <div className="customization__flat-price-row">
                 <MoneyInput
@@ -1018,7 +1024,9 @@ const ValueCard = memo(
                 />
 
                 <span className="customization__hint">
-                  {value.pricingType === "FIXED"
+                  {value.fixedPrice.trim() === ""
+                    ? "Optional. Leave it empty if this costs nothing extra."
+                    : value.pricingType === "FIXED"
                     ? isValidPrice(value.fixedPrice)
                       ? `10 items add ${formatMoney(Number(value.fixedPrice) * 10)} to the order.`
                       : "Charged on every item, whatever the quantity."
@@ -1379,7 +1387,7 @@ const CustomizationForm = () => {
           saved.name.trim() !== body.name ||
           typeChanged ||
           (usesFixedPrice(value.pricingType) &&
-            Number(saved.fixedPrice || NaN) !== Number(value.fixedPrice));
+            optionalPrice(saved.fixedPrice) !== optionalPrice(value.fixedPrice));
 
         // Set the type first: pricing rows can only be added once the value
         // has the matching type. When the type changes, the backend also

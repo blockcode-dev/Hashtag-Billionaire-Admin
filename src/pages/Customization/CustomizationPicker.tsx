@@ -78,17 +78,19 @@ export const getValuePriceInfo = (value: CustomizationOptionValue): ValuePriceIn
 
   const isFixed = value.pricing_type === "FIXED" || (!value.pricing_type && !tiers.length);
 
+  // One price and Fixed quantity: the price is optional (25 Nov). Left empty, the value costs
+  // nothing extra (the cart and the shop count it as $0), so it's ready to use.
   // Fixed quantity: one total, charged once, so never "each".
   if (value.pricing_type === "FIXED_QUANTITY") {
     return Number.isFinite(fixed)
       ? { priced: true, label: `${formatMoney(fixed)} total` }
-      : { priced: false, label: "No price" };
+      : { priced: true, label: "No extra charge" };
   }
 
   if (isFixed) {
     return Number.isFinite(fixed)
       ? { priced: true, label: `${formatMoney(fixed)} each` }
-      : { priced: false, label: "No price" };
+      : { priced: true, label: "No extra charge" };
   }
 
   if (!tiers.length) return { priced: false, label: "No price" };

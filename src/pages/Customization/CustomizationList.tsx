@@ -106,7 +106,8 @@ const getPricingStatus = (
     };
   }
 
-  // Works for every pricing type.
+  // Works for every pricing type. A One price or Fixed quantity value with no price counts as
+  // ready: it costs nothing extra.
   const priced = values.filter(isValuePriced).length;
 
   if (priced === values.length) {
@@ -115,8 +116,8 @@ const getPricingStatus = (
       label: "Ready",
       detail:
         values.length === 1
-          ? "The value has a price."
-          : `All ${values.length} values have prices.`,
+          ? "The value is ready to use."
+          : `All ${values.length} values are ready to use.`,
     };
   }
 
