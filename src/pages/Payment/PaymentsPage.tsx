@@ -14,6 +14,7 @@ import { StatusTag } from "@/components/common/StatusTag";
 import { toastApiError } from "@/lib/api-errors";
 import { paymentModeLabel } from "@/lib/payments";
 import { GetAllPaymentsAPI } from "@/services/Api/PaymentApi";
+import { printCodeLabel, rowLocationCount } from "@/utils/printLabels";
 
 import "./Payments.scss";
 
@@ -460,7 +461,7 @@ const PaymentsPage = () => {
                           <div>
                             <span className="meta-label">Print Method:</span>
                             <div>
-                              {item?.customization_config?.print_method || "--"}
+                              {printCodeLabel(item?.customization_config?.print_method)}
                             </div>
                           </div>
                           <div>
@@ -514,30 +515,38 @@ const PaymentsPage = () => {
 
                           {/* CUSTOMIZATION */}
                           {item?.pricing_breakdown?.pricing_table?.map(
-                            (pricing: any, idx: number) => (
-                              <div className="price-step" key={idx}>
-                                <div className="left">
-                                  <div className="title">
-                                    {pricing.print_method || pricing.type}
-                                    {pricing.location
-                                      ? ` (${pricing.location})`
-                                      : ""}
+                            (pricing: any, idx: number) => {
+                              // DTF, screen print and DTG are priced per location; one row covers them all.
+                              const lineLocations = Array.isArray(item?.customization_config?.locations)
+                                ? item.customization_config.locations.length
+                                : 0;
+                              const spots = rowLocationCount(pricing, lineLocations);
+                              return (
+                                <div className="price-step" key={idx}>
+                                  <div className="left">
+                                    <div className="title">
+                                      {printCodeLabel(pricing.print_method || pricing.type)}
+                                      {pricing.location
+                                        ? ` (${printCodeLabel(pricing.location)})`
+                                        : ""}
+                                    </div>
+                                    <div className="subtitle">
+                                      {pricing.quantity} × $
+                                      {pricing.price_per_item ??
+                                        pricing.final_price_per_item ??
+                                        pricing.second_location_price}
+                                      {spots > 1 ? ` × ${spots} locations` : ""}
+                                      {item?.customization_config?.custom_text
+                                        ? ` • "${item.customization_config.custom_text}"`
+                                        : ""}
+                                    </div>
                                   </div>
-                                  <div className="subtitle">
-                                    {pricing.quantity} × $
-                                    {pricing.price_per_item ??
-                                      pricing.final_price_per_item ??
-                                      pricing.second_location_price}
-                                    {item?.customization_config?.custom_text
-                                      ? ` • "${item.customization_config.custom_text}"`
-                                      : ""}
+                                  <div className="right">
+                                    ${Number(pricing.total).toFixed(2)}
                                   </div>
                                 </div>
-                                <div className="right">
-                                  ${Number(pricing.total).toFixed(2)}
-                                </div>
-                              </div>
-                            ),
+                              );
+                            },
                           )}
 
                           {/* PRE-MADE OPTIONS */}

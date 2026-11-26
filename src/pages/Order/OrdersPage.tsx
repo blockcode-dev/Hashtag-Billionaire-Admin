@@ -30,6 +30,7 @@ import { IMAGE_BASE_URL } from "@/config/env";
 import { apiErrorMessage, toastApiError } from "@/lib/api-errors";
 import { NOT_STARTED_TAG, approvalTagOf } from "@/lib/approvalStatus";
 import { paymentModeLabel, refundPlace } from "@/lib/payments";
+import { printCodeLabel, rowCoversLineLocations, rowLocationCount } from "@/utils/printLabels";
 import {
   ORDER_STATUS,
   ORDER_STATUS_FILTERS,
@@ -63,11 +64,14 @@ interface PricingTier {
   price: number;
 }
 
-/** Supplier products (SanMar / S&S): one row per decoration location. */
+/** Supplier products (SanMar / S&S): one row per embroidery location, one row for DTF, screen
+ *  print or DTG (priced per location, `locations` of them), one for drinkware. */
 interface PricingRow {
   type?: string;
   print_method?: string;
   location?: string;
+  /** DTF, screen print, DTG: how many locations price_per_item is charged for. Drinkware: the codes. */
+  locations?: number | string[];
   quantity: number;
   price_per_item: number;
   total: number;
@@ -528,20 +532,35 @@ const calcDecoratedItem = (item: OrderItem, kind: ItemKind): ItemCalc => {
     },
   ];
 
+  // DTF, screen print and DTG rows are priced per location: one row covers all the line's locations.
+  const lineLocations = getLocations(item);
   rows.forEach((row) => {
     const perItem = toNum(row.price_per_item);
-    const label = `${humanize(row.print_method ?? row.type)} — ${humanize(row.location)}`;
+    const spots = rowLocationCount(row, lineLocations.length);
+    const unit = perItem * spots;
+    const where = row.location
+      ? humanize(row.location)
+      : rowCoversLineLocations(row) && lineLocations.length
+        ? lineLocations.map(humanize).join(", ")
+        : "--";
+    const label = `${printCodeLabel(row.print_method ?? row.type)} — ${where}`;
     if (toNum(row.quantity) && toNum(row.quantity) !== qty) {
       cautions.push({ level: "warning", message: `${label} is priced for ${row.quantity} units but the line has ${qty}.` });
     }
-    pushMismatch(cautions, `${label} total`, perItem * toNum(row.quantity || qty), toNum(row.total));
+    pushMismatch(cautions, `${label} total`, unit * toNum(row.quantity || qty), toNum(row.total));
     if (perItem === 0) {
       cautions.push({ level: "info", message: `${label} is priced at $0.00 — confirm this was intended.` });
     }
-    lines.push({ label, detail: `${qty} × ${fmt$(perItem)}`, amount: round2(perItem * qty) });
+    lines.push({
+      label,
+      detail: spots > 1 ? `${qty} × ${fmt$(unit)} (${spots} locations × ${fmt$(perItem)})` : `${qty} × ${fmt$(perItem)}`,
+      amount: round2(unit * qty),
+    });
   });
 
-  const decoUnit = rows.length ? sum(rows.map((r) => r.price_per_item)) : toNum(pb?.customization_price);
+  const decoUnit = rows.length
+    ? sum(rows.map((r) => toNum(r.price_per_item) * rowLocationCount(r, lineLocations.length)))
+    : toNum(pb?.customization_price);
   if (!rows.length && decoUnit > 0) {
     lines.push({ label: "Decoration", detail: `${qty} × ${fmt$(decoUnit)}`, amount: round2(decoUnit * qty) });
   }
@@ -1399,7 +1418,7 @@ const TabOverview = ({ order: o, calc, onImageClick }: TabProps) => (
                 <div className="product-chips">
                   <KindBadge kind={c.kind} />
                   {item.customization_config?.print_method && (
-                    <span className="chip">{humanize(item.customization_config.print_method)}</span>
+                    <span className="chip">{printCodeLabel(item.customization_config.print_method)}</span>
                   )}
                   {getVariantChips(item).map((chip) => (
                     <span className="chip" key={chip}>
@@ -1492,7 +1511,7 @@ const ItemCard = ({ item, index, calc, onImageClick }: { item: OrderItem; index:
           <div className="product-chips">
             <KindBadge kind={calc.kind} />
             {item.customization_config?.print_method && (
-              <span className="chip">{humanize(item.customization_config.print_method)}</span>
+              <span className="chip">{printCodeLabel(item.customization_config.print_method)}</span>
             )}
             {getVariantChips(item).map((chip) => (
               <span className="chip" key={chip}>
@@ -1547,12 +1566,14 @@ const DecoratedDetails = ({ item }: { item: OrderItem }) => {
   const rows = pb?.pricing_table ?? [];
   const qty = toNum(item.quantity);
   const locations = getLocations(item);
-  const decoTotal = sum(rows.map((r) => toNum(r.price_per_item) * qty));
+  // A DTF, screen print or DTG row is priced per location and covers all of them.
+  const spotsOf = (row: PricingRow) => rowLocationCount(row, locations.length);
+  const decoTotal = sum(rows.map((r) => toNum(r.price_per_item) * spotsOf(r) * qty));
 
   return (
     <>
       <div className="kv-grid kv-grid-3">
-        <KV label="Print Method" value={humanize(item.customization_config?.print_method)} />
+        <KV label="Print Method" value={printCodeLabel(item.customization_config?.print_method)} />
         <KV label="Locations" value={locations.length ? locations.map(humanize).join(", ") : "--"} />
         <KV label={setupFeeLabel(item)} value={toNum(pb?.setup_fee) ? fmt$(pb?.setup_fee) : "--"} />
         {item.customization_config?.custom_text && (
@@ -1575,15 +1596,31 @@ const DecoratedDetails = ({ item }: { item: OrderItem }) => {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, ri) => (
-                  <tr key={ri} className={toNum(row.price_per_item) === 0 ? "row-zero" : undefined}>
-                    <td className="td-strong">{humanize(row.location)}</td>
-                    <td>{humanize(row.print_method ?? row.type)}</td>
-                    <td className="num">{row.quantity}</td>
-                    <td className="num">{fmt$(row.price_per_item)}</td>
-                    <td className="num td-bold">{fmt$(row.total)}</td>
-                  </tr>
-                ))}
+                {rows.map((row, ri) => {
+                  const spots = spotsOf(row);
+                  return (
+                    <tr key={ri} className={toNum(row.price_per_item) === 0 ? "row-zero" : undefined}>
+                      <td className="td-strong">
+                        {row.location
+                          ? humanize(row.location)
+                          : rowCoversLineLocations(row) && locations.length
+                            ? locations.map(humanize).join(", ")
+                            : "--"}
+                      </td>
+                      <td>{printCodeLabel(row.print_method ?? row.type)}</td>
+                      <td className="num">{row.quantity}</td>
+                      <td className="num">
+                        {fmt$(toNum(row.price_per_item) * spots)}
+                        {spots > 1 && (
+                          <div className="muted">
+                            {spots} × {fmt$(row.price_per_item)}
+                          </div>
+                        )}
+                      </td>
+                      <td className="num td-bold">{fmt$(row.total)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
               <tfoot>
                 <tr>
