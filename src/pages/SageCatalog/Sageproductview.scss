@@ -88,6 +88,11 @@
       color: var(--muted-foreground);
       border-color: var(--border);
     }
+
+    /* The badge explains itself on hover. */
+    &[title] {
+      cursor: help;
+    }
   }
 
   .spv-primary-btn {
@@ -334,10 +339,23 @@
     color: var(--muted-foreground);
     margin: 10px 0 0;
     line-height: 1.5;
+
+    /* Between a card's label and its table, so a long table can't hide it. */
+    &--above {
+      margin: 0 0 12px;
+    }
   }
 
   .spv-variant-table td {
     vertical-align: middle;
+  }
+
+  /* SAGE's colour text spelling under the colour's name, when it differs ("Hot P"). */
+  .spv-variant-listed-as {
+    display: block;
+    margin-top: 2px;
+    font-size: 11.5px;
+    color: var(--muted-foreground);
   }
 
   .spv-variant-thumb {

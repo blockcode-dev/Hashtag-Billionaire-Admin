@@ -19,6 +19,7 @@ import {
 } from "@/services/Api/SageApi";
 import { toastApiError } from "@/lib/api-errors";
 import { sageImportOutcome, sageStockLabel } from "@/lib/sage";
+import { buildSageColorTable } from "@/lib/sageColors";
 import "./Sageproductview.scss";
 import { sanitizeHtml } from "@/lib/sanitize";
 
@@ -52,63 +53,6 @@ function buildTierRows(prc: any[] = [], net: any[] = [], qty: any[] = []) {
     });
   }
   return rows;
-}
-
-// ─── Real variant/color truth ────────────────────────────────────────────
-// SAGE gives two overlapping but different sources for "what colors exist":
-//  - `colors`: a flat comma string of what's CURRENTLY offered
-//  - `skus`: an array with per-color stock (onHand), which can include
-//    colors no longer in `colors` (discontinued shades still on record)
-// Merging them, with `skus` as the stock source of truth, is the only way
-// to actually answer "does the supplier provide variant data" honestly —
-// a flat chip list of `colors` alone hides the stock numbers entirely.
-interface VariantRow {
-  color: string;
-  onHand: number | null;
-  currentlyOffered: boolean;
-  image: string | null;
-}
-
-function buildVariantRows(colors: string, skus: any[], pics: any[]): VariantRow[] {
-  const currentColors = colors
-    ? colors.split(",").map((c) => c.trim()).filter(Boolean)
-    : [];
-  const rows: VariantRow[] = [];
-  const seen = new Set<string>();
-
-  for (const sku of skus || []) {
-    const colorAttr = (sku.attributes || []).find((a: any) => a.typeId === 10);
-    const colorName = colorAttr?.value;
-    if (!colorName || seen.has(colorName)) continue;
-    seen.add(colorName);
-
-    const pic = pics.find(
-      (p: any) =>
-        p.caption &&
-        p.caption.trim().toLowerCase() === colorName.trim().toLowerCase(),
-    );
-
-    rows.push({
-      color: colorName,
-      onHand: sku.onHand ?? null,
-      currentlyOffered: currentColors.includes(colorName),
-      image: pic?.url || null,
-    });
-  }
-
-  // Any color SAGE lists in `colors` but that didn't show up in `skus`
-  // (rare, but possible) still needs to appear — just without a stock
-  // number, since that's genuinely all the data we have for it.
-  for (const c of currentColors) {
-    if (seen.has(c)) continue;
-    const pic = pics.find(
-      (p: any) => p.caption && p.caption.trim().toLowerCase() === c.trim().toLowerCase(),
-    );
-    rows.push({ color: c, onHand: null, currentlyOffered: true, image: pic?.url || null });
-  }
-
-  // Currently-offered colors first, then discontinued ones.
-  return rows.sort((a, b) => Number(b.currentlyOffered) - Number(a.currentlyOffered));
 }
 
 const FLAG_LABELS: { key: string; label: string }[] = [
@@ -189,12 +133,10 @@ const SageProductView = () => {
     spc,
     description,
     category,
-    colors = "",
     prc = [],
     net = [],
     qty = [],
     pics = [],
-    skus = [],
     dimensions,
     prodTime,
     themes,
@@ -235,7 +177,7 @@ const SageProductView = () => {
   } = data;
 
   const tierRows = buildTierRows(prc, net, qty);
-  const variantRows = buildVariantRows(colors, skus, pics);
+  const colorTable = buildSageColorTable(data);
   const generalImages = pics.filter((p: any) => !p.caption);
   const activeFlags = FLAG_LABELS.filter((f) => !!data[f.key]);
 
@@ -401,13 +343,16 @@ const SageProductView = () => {
             )}
           </div>
 
-          {/* VARIANT / STOCK DATA — the actual answer to "does the
-              supplier give us variant data." Built from `skus`, which
-              carries real per-color stock levels that the flat `colors`
-              string alone doesn't have. */}
+          {/* VARIANT / STOCK DATA — the colours the import makes variants
+              for, as the backend works them out from SAGE's stock list
+              (`skus`, with per-colour stock) and its shortened colour text,
+              then the text entries it leaves out. See src/lib/sageColors.ts. */}
           <div className="spv-card">
-            <label>Variant Data — Color &amp; Stock ({variantRows.length})</label>
-            {variantRows.length ? (
+            <label>Variant Data — Color &amp; Stock ({colorTable.count})</label>
+            {colorTable.note && (
+              <p className="spv-note spv-note--above">{colorTable.note}</p>
+            )}
+            {colorTable.rows.length ? (
               <table className="spv-table spv-variant-table">
                 <thead>
                   <tr>
@@ -418,12 +363,12 @@ const SageProductView = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {variantRows.map((v) => (
-                    <tr key={v.color}>
+                  {colorTable.rows.map((v) => (
+                    <tr key={v.key}>
                       <td>
                         {v.image ? (
                           <div className="spv-variant-thumb">
-                            <img src={v.image} alt={v.color} loading="lazy" />
+                            <img src={v.image} alt={v.name} loading="lazy" />
                           </div>
                         ) : (
                           <div className="spv-variant-thumb spv-variant-thumb--empty">
@@ -431,24 +376,27 @@ const SageProductView = () => {
                           </div>
                         )}
                       </td>
-                      <td>{v.color}</td>
                       <td>
-                        {v.onHand === null
-                          ? "—"
-                          : v.onHand > 0
-                            ? v.onHand.toLocaleString()
-                            : "Out of stock"}
-                      </td>
-                      <td>
-                        {v.currentlyOffered ? (
-                          <span className="spv-badge spv-badge--active">
-                            Currently offered
-                          </span>
-                        ) : (
-                          <span className="spv-badge spv-badge--discontinued">
-                            No longer offered
+                        {v.name}
+                        {v.listedAs && (
+                          <span className="spv-variant-listed-as">
+                            {`In colour text as "${v.listedAs}"`}
                           </span>
                         )}
+                        {v.stockListAs && (
+                          <span className="spv-variant-listed-as">
+                            {`In stock list as "${v.stockListAs}"`}
+                          </span>
+                        )}
+                      </td>
+                      <td>{v.stock}</td>
+                      <td>
+                        <span
+                          className={`spv-badge spv-badge--${v.badge.tone}`}
+                          title={v.badge.hint}
+                        >
+                          {v.badge.label}
+                        </span>
                       </td>
                     </tr>
                   ))}
