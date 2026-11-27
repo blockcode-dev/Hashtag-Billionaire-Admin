@@ -46,6 +46,7 @@ import {
 import { GetAllTiersAPI } from "@/services/Api/TierApi";
 import { GetUseCasesAPI } from "@/services/Api/IndustryApi";
 import { useNavigate } from "react-router";
+import { PRODUCTS_LIST_STATE_KEY } from "@/lib/productsListState";
 
 const TABS = [
   { label: "All Products", value: "" },
@@ -122,9 +123,10 @@ const TIER_DOT_COLORS: Record<string, string> = {
 
 // ─── What the list was showing ──────────────────────────────────────────
 // Kept for this browser tab, so coming back from a product (View, Edit,
-// Duplicate, Back, or the Products link) shows the same search, filters and
-// page, with the product you opened in view.
-const LIST_STATE_KEY = "products-list";
+// Duplicate, Add product, Import, Back) shows the same search, supplier,
+// filters and page, with the product you opened in view. Going to any other
+// page, or clicking the menu, forgets it (lib/productsListState.ts).
+const LIST_STATE_KEY = PRODUCTS_LIST_STATE_KEY;
 
 interface ListState {
   search: string;

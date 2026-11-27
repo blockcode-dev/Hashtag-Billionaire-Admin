@@ -1,4 +1,7 @@
+import { useEffect } from "react";
+import { useLocation } from "react-router";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { forgetProductsList, isProductsPage } from "@/lib/productsListState";
 import { useProfileSync } from "@/hooks/use-profile-sync";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
@@ -14,6 +17,13 @@ interface AdminLayoutProps {
 export function AdminLayout({ children, superAdminOnly = false }: AdminLayoutProps) {
   // Keeps the role, and so the menu and Super Admin pages, current.
   useProfileSync();
+
+  // Anywhere but Products and the pages its buttons open, the Products list's search and filters
+  // are forgotten, so coming back shows every product (lib/productsListState.ts).
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (!isProductsPage(pathname)) forgetProductsList();
+  }, [pathname]);
 
   return (
     <ProtectedRoute>

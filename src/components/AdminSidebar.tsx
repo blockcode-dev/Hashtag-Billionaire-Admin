@@ -30,6 +30,7 @@ import {
 import logoFull from "@/assets/logo.webp";
 import { useSession } from "@/lib/session";
 import { NAV_GROUPS, isNavActive, type NavItem } from "./navigation";
+import { forgetProductsList } from "@/lib/productsListState";
 
 // Active entries use the brand tint; hover stays neutral.
 const ACTIVE =
@@ -60,7 +61,9 @@ function NavParent({ item, collapsed, pathname }: { item: NavItem; collapsed: bo
             <DropdownMenuLabel>{item.title}</DropdownMenuLabel>
             {children.map((child) => (
               <DropdownMenuItem key={child.url} asChild>
-                <Link to={child.url}>{child.title}</Link>
+                <Link to={child.url} onClick={forgetProductsList}>
+                  {child.title}
+                </Link>
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
@@ -84,7 +87,7 @@ function NavParent({ item, collapsed, pathname }: { item: NavItem; collapsed: bo
             {children.map((child) => (
               <SidebarMenuSubItem key={child.url}>
                 <SidebarMenuSubButton asChild isActive={isNavActive(pathname, child.url)} className={ACTIVE}>
-                  <NavLink to={child.url}>
+                  <NavLink to={child.url} onClick={forgetProductsList}>
                     <span>{child.title}</span>
                   </NavLink>
                 </SidebarMenuSubButton>
@@ -106,7 +109,12 @@ export function AdminSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="h-16 flex-row items-center border-b border-sidebar-border px-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
-        <Link to="/dashboard" aria-label="Hashtag Billionaire, go to dashboard" className="flex items-center rounded-md">
+        <Link
+          to="/dashboard"
+          aria-label="Hashtag Billionaire, go to dashboard"
+          className="flex items-center rounded-md"
+          onClick={forgetProductsList}
+        >
           {collapsed ? (
             <img src="/favicon.ico" alt="" className="size-8 rounded-md" />
           ) : (
@@ -131,7 +139,8 @@ export function AdminSidebar() {
                   ) : (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild isActive={isNavActive(pathname, item.url!)} tooltip={item.title} className={ACTIVE}>
-                        <NavLink to={item.url!}>
+                        {/* Any menu click starts the Products list fresh (lib/productsListState.ts). */}
+                        <NavLink to={item.url!} onClick={forgetProductsList}>
                           <item.icon />
                           <span>{item.title}</span>
                         </NavLink>

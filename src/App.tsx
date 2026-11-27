@@ -3,7 +3,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ConfirmDialogHost } from "@/components/common/ConfirmDialog";
-import { BrowserRouter, Navigate, Routes, Route } from "react-router";
+import { BrowserRouter, Navigate, Routes, Route, useLocation } from "react-router";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard/DashboardPage";
 import Users from "./pages/User/Users";
@@ -59,6 +59,14 @@ import CustomizationForm from "./pages/Customization/CustomizationForm";
 import GalleryPage from "./pages/Gallery/GalleryPage";
 import PricingTemplatesPage from "./pages/PricingTemplates/PricingTemplatesPage";
 import ImportPricingTemplatesPage from "./pages/PricingTemplates/ImportPricingTemplatesPage";
+
+// Products, keyed by the visit: clicking Products in the menu while on it (a new location at the
+// same address) starts the list fresh, as arriving from any other page does
+// (lib/productsListState.ts). Coming back from a product keeps the list as it was.
+const ProductsRoute = () => {
+  const { key } = useLocation();
+  return <ProductsPage key={key} />;
+};
 
 const App = () => (
   <TooltipProvider>
@@ -298,7 +306,7 @@ const App = () => (
             path="/products"
             element={
               <AdminLayout>
-                <ProductsPage />
+                <ProductsRoute />
               </AdminLayout>
             }
           />
