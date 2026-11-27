@@ -37,7 +37,8 @@ import "./Customization.scss";
 // CONSTANTS
 // ============================================================
 
-const PAGE_SIZE = 20;
+// 100 is the most the backend sends per page, so all customizations fit on one page (27 Nov).
+const PAGE_SIZE = 100;
 
 const NAME_SUGGESTIONS = [
   "Engraving",
