@@ -148,11 +148,30 @@ export const selectionToPayload = (
     value_ids: selection[Number(optionId)],
   }));
 
-/** Ticked customizations with no value picked (can't be saved). */
-export const findEmptyOptions = (selection: CustomizationSelection): number[] =>
-  Object.keys(selection)
+/** A customization with no values: customers only type text or upload an image (27 Nov). */
+const hasNoValues = (option: CustomizationOption): boolean => option.values.length === 0;
+
+/**
+ * Ticked customizations with no value picked (can't be saved). A customization that has no
+ * values at all is fine ticked on its own: there's nothing to pick.
+ */
+export const findEmptyOptions = (
+  selection: CustomizationSelection,
+  options: CustomizationOption[] = []
+): number[] => {
+  const withoutValues = new Set(options.filter(hasNoValues).map((option) => option.id));
+  return Object.keys(selection)
     .map(Number)
-    .filter((optionId) => selection[optionId].length === 0);
+    .filter((optionId) => selection[optionId].length === 0 && !withoutValues.has(optionId));
+};
+
+/** What customers fill in for a customization with no values. */
+const inputSummary = (option: CustomizationOption): string => {
+  if (option.allow_text_input && option.allow_image_upload) return "type text or upload an image";
+  if (option.allow_text_input) return "type text";
+  if (option.allow_image_upload) return "upload an image";
+  return "";
+};
 
 // Pure state updaters — use with setState(prev => ...).
 
@@ -215,8 +234,11 @@ export const CustomizationOptionCard = memo(
   }: CustomizationOptionCardProps) => {
     const enabled = selectedValueIds !== undefined;
     const pricedIds = option.values.filter(isValuePriced).map((v) => v.id);
-    const canEnable = pricedIds.length > 0;
-    const noneSelected = enabled && selectedValueIds.length === 0;
+    const noValues = hasNoValues(option);
+    // With no values, a customization can still be offered: customers fill in its text or image.
+    const canEnable = pricedIds.length > 0 || noValues;
+    const noneSelected = enabled && !noValues && selectedValueIds.length === 0;
+    const inputs = inputSummary(option);
     const checkboxId = `pc-option-${option.id}`;
 
     return (
@@ -233,8 +255,9 @@ export const CustomizationOptionCard = memo(
           <span className="customization__pc-title">
             <strong>{option.name}</strong>
             <span>
-              {!option.values.length
-                ? "No values yet. Add them on the Customizations page."
+              {noValues
+                ? option.description ||
+                  (inputs ? `No values: customers ${inputs}` : "No values")
                 : !canEnable
                 ? "None of its values have a price yet. Set prices on the Customizations page."
                 : option.description ||
@@ -248,7 +271,17 @@ export const CustomizationOptionCard = memo(
           </span>
         </label>
 
-        {enabled && (
+        {enabled && noValues && (
+          <div className="customization__pc-body">
+            <p className="customization__pc-hint">
+              {inputs
+                ? `Nothing to pick: on the website customers ${inputs} for ${option.name}, at no extra charge.`
+                : `Nothing to pick or fill in yet: add values, or turn on Text or Image for ${option.name} on the Customizations page.`}
+            </p>
+          </div>
+        )}
+
+        {enabled && !noValues && (
           <div className="customization__pc-body">
             <div className="customization__pc-body-head">
               <p className="customization__pc-hint">

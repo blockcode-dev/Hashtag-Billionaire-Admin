@@ -223,7 +223,7 @@ const ProductCustomizationsStep = ({ productId }: ProductCustomizationsStepProps
     if (timerRef.current) clearTimeout(timerRef.current);
     pendingRef.current = null;
 
-    if (findEmptyOptions(selection).length) {
+    if (findEmptyOptions(selection, options).length) {
       setStatus("invalid");
       return;
     }
@@ -240,7 +240,7 @@ const ProductCustomizationsStep = ({ productId }: ProductCustomizationsStepProps
       pendingRef.current = null;
       persist(selection);
     }, AUTOSAVE_DELAY);
-  }, [selection, persist]);
+  }, [selection, options, persist]);
 
   // Flush a waiting save if the admin switches steps before it fires.
   useEffect(

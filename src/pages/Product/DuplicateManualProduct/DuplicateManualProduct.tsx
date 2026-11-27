@@ -1401,7 +1401,7 @@ const DuplicateManualProduct: React.FC = () => {
   };
 
   const validateCustomizations = (): boolean => {
-    const emptyIds = findEmptyOptions(customizationSelection);
+    const emptyIds = findEmptyOptions(customizationSelection, customizationOptions);
     if (!emptyIds.length) return true;
 
     const name =
