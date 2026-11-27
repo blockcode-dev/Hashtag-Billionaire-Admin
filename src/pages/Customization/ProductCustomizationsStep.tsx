@@ -6,17 +6,20 @@ import axios from "axios";
 import {
   AlertTriangle,
   CheckCircle2,
+  Plus,
   RotateCcw,
   Search,
   SlidersHorizontal,
   X,
 } from "lucide-react";
 import { Link } from "react-router";
+import { Switch } from "@/components/ui/switch";
 
 import {
   GetCustomizationOptionsAPI,
   GetProductCustomizationsAPI,
   AssignProductCustomizationsAPI,
+  CreateCustomizationOptionAPI,
 } from "@/services/Api/CustomizationApi";
 
 import {
@@ -59,6 +62,25 @@ interface ProductCustomizationsStepProps {
 
 const AUTOSAVE_DELAY = 600;
 const SEARCH_THRESHOLD = 6;
+
+// "Add a text or upload field": a customization with no values, made and ticked from here.
+interface QuickField {
+  open: boolean;
+  name: string;
+  text: boolean;
+  upload: boolean;
+  saving: boolean;
+  error: string;
+}
+
+const NEW_QUICK_FIELD: QuickField = {
+  open: false,
+  name: "",
+  text: true,
+  upload: true,
+  saving: false,
+  error: "",
+};
 
 const getErrorMessage = (err: unknown, fallback: string): string =>
   (axios.isAxiosError(err) && err.response?.data?.message) || fallback;
@@ -275,6 +297,65 @@ const ProductCustomizationsStep = ({ productId }: ProductCustomizationsStepProps
   );
 
   // ------------------------------------------------------------
+  // ADD A TEXT OR UPLOAD FIELD
+  // ------------------------------------------------------------
+  // Makes a customization with no values (the customer types text and/or uploads a file,
+  // e.g. "Business card information") and ticks it for this product, without leaving the
+  // product. It's also in the Customizations library afterwards, for other products. A name
+  // that already exists is ticked instead of made twice.
+
+  const [quick, setQuick] = useState<QuickField>(NEW_QUICK_FIELD);
+
+  const addQuickField = useCallback(async () => {
+    const name = quick.name.trim().replace(/\s+/g, " ");
+
+    if (!name) {
+      setQuick((prev) => ({ ...prev, error: "Give the field a name, e.g. Business card information." }));
+      return;
+    }
+
+    if (!quick.text && !quick.upload) {
+      setQuick((prev) => ({ ...prev, error: "Turn on text, file upload, or both." }));
+      return;
+    }
+
+    const existing = options.find((o) => o.name.trim().toLowerCase() === name.toLowerCase());
+
+    if (existing) {
+      setSelection((prev) =>
+        prev[existing.id] !== undefined ? prev : toggleOptionInSelection(prev, existing)
+      );
+      setQuick(NEW_QUICK_FIELD);
+      toast.success(`"${existing.name}" already exists, so it's now ticked for this product.`);
+      return;
+    }
+
+    setQuick((prev) => ({ ...prev, saving: true, error: "" }));
+
+    try {
+      const res = await CreateCustomizationOptionAPI({
+        name,
+        allow_text_input: quick.text,
+        allow_image_upload: quick.upload,
+      });
+
+      const [created] = normalizeCustomizationOptions([res.data?.data]);
+      if (!created?.id) throw new Error("The new field came back without an id.");
+
+      setOptions((prev) => [created, ...prev]);
+      setSelection((prev) => ({ ...prev, [created.id]: [] }));
+      setQuick(NEW_QUICK_FIELD);
+      toast.success(`Added "${created.name}" to this product.`);
+    } catch (err) {
+      setQuick((prev) => ({
+        ...prev,
+        saving: false,
+        error: getErrorMessage(err, "Couldn't add the field. Please try again."),
+      }));
+    }
+  }, [quick, options]);
+
+  // ------------------------------------------------------------
   // RENDER
   // ------------------------------------------------------------
 
@@ -333,12 +414,102 @@ const ProductCustomizationsStep = ({ productId }: ProductCustomizationsStepProps
           <p className="customization__section-intro">
             Tick a customization to offer it on this product, then pick which of its
             values customers can choose. Prices come from the{" "}
-            <Link to="/customizations">Customizations page</Link>.
+            <Link to="/customizations">Customizations page</Link>. Need a box for the
+            customer's own text or file? Add it right here.
           </p>
         </div>
 
         <StatusPill status={status} onRetry={retry} />
       </div>
+
+      {quick.open ? (
+        <div className="customization__pc-quick">
+          <div className="customization__field">
+            <label htmlFor="pc-quick-name">Field name</label>
+            <input
+              id="pc-quick-name"
+              type="text"
+              value={quick.name}
+              maxLength={100}
+              autoFocus
+              placeholder="e.g. Business card information"
+              className={quick.error ? "customization__input--error" : ""}
+              aria-invalid={!!quick.error}
+              onChange={(e) => setQuick((prev) => ({ ...prev, name: e.target.value, error: "" }))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (!quick.saving) addQuickField();
+                }
+              }}
+            />
+            <span className="customization__hint">
+              Customers see this on the product and fill it in. It has no values to pick and no
+              extra charge.
+            </span>
+          </div>
+
+          <div className="customization__switch-group">
+            <div className="customization__switch-row">
+              <div>
+                <strong>Customer types text</strong>
+                <span>A text box, e.g. name, title, phone and email for a business card.</span>
+              </div>
+              <Switch
+                checked={quick.text}
+                onCheckedChange={(checked) => setQuick((prev) => ({ ...prev, text: checked, error: "" }))}
+                aria-label="Customer types text"
+              />
+            </div>
+
+            <div className="customization__switch-row">
+              <div>
+                <strong>Customer uploads a file</strong>
+                <span>An upload button, for a logo or artwork.</span>
+              </div>
+              <Switch
+                checked={quick.upload}
+                onCheckedChange={(checked) => setQuick((prev) => ({ ...prev, upload: checked, error: "" }))}
+                aria-label="Customer uploads a file"
+              />
+            </div>
+          </div>
+
+          {quick.error && (
+            <span className="customization__error" role="alert">
+              {quick.error}
+            </span>
+          )}
+
+          <div className="customization__pc-quick-actions">
+            <button
+              type="button"
+              className="customization__btn-outline"
+              onClick={() => setQuick(NEW_QUICK_FIELD)}
+              disabled={quick.saving}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="customization__btn-primary"
+              onClick={addQuickField}
+              disabled={quick.saving}
+            >
+              {quick.saving ? "Adding…" : "Add to this product"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="customization__btn-outline customization__pc-quick-open"
+          onClick={() => setQuick({ ...NEW_QUICK_FIELD, open: true })}
+        >
+          <Plus size={15} />
+          Add a text or upload field
+        </button>
+      )}
 
       {options.length === 0 ? (
         <div className="customization__empty-values">

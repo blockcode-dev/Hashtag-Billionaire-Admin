@@ -1813,6 +1813,32 @@ $focus: var(--focus-ring);
     margin-bottom: 0;
   }
 
+  // "Add a text or upload field" on a product's Customizations step.
+  &__pc-quick-open {
+    margin-bottom: 16px;
+  }
+
+  &__pc-quick {
+    margin-bottom: 16px;
+    padding: 16px;
+    border: 1px dashed $border;
+    border-radius: $radius-md;
+    background: $surface;
+
+    .customization__switch-group {
+      margin-top: 0;
+      margin-bottom: 12px;
+    }
+  }
+
+  &__pc-quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
   &__pc-top {
     display: flex;
     align-items: flex-start;
