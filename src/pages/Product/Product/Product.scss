@@ -396,6 +396,21 @@
     border-color: var(--success-border);
   }
 
+  // A product with nothing in stock: the panel lists it, the website doesn't.
+  .badge.hidden-on-website {
+    display: flex;
+    width: fit-content;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: var(--radius-2xl);
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    background: var(--warning-soft);
+    color: var(--warning-soft-foreground);
+    border: 1px solid var(--warning-border);
+  }
+
   .product-cell {
     display: flex;
     align-items: center;

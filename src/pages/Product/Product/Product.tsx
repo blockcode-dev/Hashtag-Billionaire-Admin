@@ -208,6 +208,9 @@ const ProductsPage = () => {
   const [page, setPage] = useState(saved.page);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  // How many of totalItems the website lists: it hides products with nothing in stock (Q49).
+  // null when the backend doesn't send it.
+  const [websiteTotal, setWebsiteTotal] = useState<number | null>(null);
   const [stats, setStats] = useState<any>(null);
   const [activeTab, setActiveTab] = useState(saved.activeTab);
 
@@ -509,6 +512,7 @@ const ProductsPage = () => {
       setProducts(payload.data || []);
       setTotalPages(payload.totalPages || 1);
       setTotalItems(payload.total ?? payload.data?.length ?? 0);
+      setWebsiteTotal(typeof payload.website_total === "number" ? payload.website_total : null);
     } catch (err) {
       if (thisRequestId !== requestIdRef.current) return;
       console.error("Failed to load products", err);
@@ -1273,6 +1277,17 @@ const ProductsPage = () => {
           <span>
             <strong>{totalItems.toLocaleString()}</strong>{" "}
             {totalItems === 1 ? "product" : "products"} found
+            {websiteTotal !== null && (
+              <span
+                className="website-total"
+                title="The website lists only products with at least one colour or size in stock."
+              >
+                {" · "}
+                <strong>{websiteTotal.toLocaleString()}</strong> shown on the website
+                {totalItems > websiteTotal &&
+                  ` (${(totalItems - websiteTotal).toLocaleString()} with nothing in stock)`}
+              </span>
+            )}
           </span>
         )}
       </div>
@@ -1313,6 +1328,14 @@ const ProductsPage = () => {
                         <span className="sku">
                           {p.external_style_id || "-"}
                         </span>
+                        {p.shown_on_website === false && (
+                          <span
+                            className="badge hidden-on-website"
+                            title="No colour or size in stock, so the website doesn't list it. It comes back when the supplier has stock again."
+                          >
+                            Not on website: out of stock
+                          </span>
+                        )}
                       </div>
                     </div>
                   </td>
