@@ -520,7 +520,7 @@ const SetupGuide = memo(({ open, onToggle }: { open: boolean; onToggle: () => vo
 SetupGuide.displayName = "SetupGuide";
 
 // ============================================================
-// MONEY INPUT
+// MONEY INPUT (also the price box of a product's "Add a text or upload field")
 // ============================================================
 
 interface MoneyInputProps {
@@ -531,7 +531,7 @@ interface MoneyInputProps {
   onChange: (value: string) => void;
 }
 
-const MoneyInput = memo(({ id, value, label, invalid, onChange }: MoneyInputProps) => (
+export const MoneyInput = memo(({ id, value, label, invalid, onChange }: MoneyInputProps) => (
   <div
     className={`customization__money-input ${
       invalid ? "customization__money-input--error" : ""

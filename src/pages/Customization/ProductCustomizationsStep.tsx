@@ -20,13 +20,16 @@ import {
   GetProductCustomizationsAPI,
   AssignProductCustomizationsAPI,
   CreateCustomizationOptionAPI,
+  CreateCustomizationOptionValueAPI,
 } from "@/services/Api/CustomizationApi";
 
 import {
   CustomizationOption,
   CustomizationOptionCard,
+  CustomizationOptionValue,
   CustomizationSelection,
   findEmptyOptions,
+  getValuePriceInfo,
   normalizeCustomizationOptions,
   selectionToPayload,
   serializeSelection,
@@ -34,6 +37,7 @@ import {
   toggleOptionInSelection,
   toggleValueInSelection,
 } from "./CustomizationPicker";
+import { MoneyInput } from "./CustomizationForm";
 
 import "./Customization.scss";
 
@@ -63,12 +67,18 @@ interface ProductCustomizationsStepProps {
 const AUTOSAVE_DELAY = 600;
 const SEARCH_THRESHOLD = 6;
 
-// "Add a text or upload field": a customization with no values, made and ticked from here.
+// "Add a text or upload field": a customization the customer fills in, made and ticked from
+// here. Free, it has no values; with a price (27 Nov) it gets one value, PRICED_CHOICE.
+type QuickCharge = "FIXED" | "FIXED_QUANTITY";
+
 interface QuickField {
   open: boolean;
   name: string;
   text: boolean;
   upload: boolean;
+  /** Empty: free. */
+  price: string;
+  charge: QuickCharge;
   saving: boolean;
   error: string;
 }
@@ -78,9 +88,24 @@ const NEW_QUICK_FIELD: QuickField = {
   name: "",
   text: true,
   upload: true,
+  price: "",
+  charge: "FIXED",
   saving: false,
   error: "",
 };
+
+// The value a priced field gets: on the website customers pick it to add the field and pay,
+// then type or upload. It can be renamed on the Customizations page.
+const PRICED_CHOICE = "Yes";
+
+const QUICK_CHARGES: { type: QuickCharge; title: string; text: string }[] = [
+  { type: "FIXED", title: "Per piece", text: "Charged on every piece (One price)" },
+  {
+    type: "FIXED_QUANTITY",
+    title: "One total",
+    text: "Charged once, whatever the quantity (Fixed quantity)",
+  },
+];
 
 const getErrorMessage = (err: unknown, fallback: string): string =>
   (axios.isAxiosError(err) && err.response?.data?.message) || fallback;
@@ -299,15 +324,19 @@ const ProductCustomizationsStep = ({ productId }: ProductCustomizationsStepProps
   // ------------------------------------------------------------
   // ADD A TEXT OR UPLOAD FIELD
   // ------------------------------------------------------------
-  // Makes a customization with no values (the customer types text and/or uploads a file,
-  // e.g. "Business card information") and ticks it for this product, without leaving the
-  // product. It's also in the Customizations library afterwards, for other products. A name
-  // that already exists is ticked instead of made twice.
+  // Makes a customization the customer fills in (types text and/or uploads a file, e.g.
+  // "Business card information") and ticks it for this product, without leaving the
+  // product. It's also in the Customizations library afterwards, for other products.
+  // Without a price it has no values and is free. With one, it gets one value, "Yes", at
+  // that price: customers pick it to add the field. A name that already exists is ticked
+  // instead of made twice.
 
   const [quick, setQuick] = useState<QuickField>(NEW_QUICK_FIELD);
 
   const addQuickField = useCallback(async () => {
     const name = quick.name.trim().replace(/\s+/g, " ");
+    const priceText = quick.price.trim();
+    const price = priceText === "" ? null : Number(priceText);
 
     if (!name) {
       setQuick((prev) => ({ ...prev, error: "Give the field a name, e.g. Business card information." }));
@@ -319,7 +348,22 @@ const ProductCustomizationsStep = ({ productId }: ProductCustomizationsStepProps
       return;
     }
 
+    if (price !== null && (!Number.isFinite(price) || price < 0)) {
+      setQuick((prev) => ({ ...prev, error: "Enter the price as a number, e.g. 2.50, or leave it empty." }));
+      return;
+    }
+
     const existing = options.find((o) => o.name.trim().toLowerCase() === name.toLowerCase());
+
+    // Its prices are shared with every product that uses it, so they're changed on the
+    // Customizations page, not from one product.
+    if (existing && price !== null) {
+      setQuick((prev) => ({
+        ...prev,
+        error: `"${existing.name}" already exists with its own prices. Tick it in the list below, or use another name.`,
+      }));
+      return;
+    }
 
     if (existing) {
       setSelection((prev) =>
@@ -332,6 +376,8 @@ const ProductCustomizationsStep = ({ productId }: ProductCustomizationsStepProps
 
     setQuick((prev) => ({ ...prev, saving: true, error: "" }));
 
+    let created: CustomizationOption;
+
     try {
       const res = await CreateCustomizationOptionAPI({
         name,
@@ -339,18 +385,50 @@ const ProductCustomizationsStep = ({ productId }: ProductCustomizationsStepProps
         allow_image_upload: quick.upload,
       });
 
-      const [created] = normalizeCustomizationOptions([res.data?.data]);
-      if (!created?.id) throw new Error("The new field came back without an id.");
-
-      setOptions((prev) => [created, ...prev]);
-      setSelection((prev) => ({ ...prev, [created.id]: [] }));
-      setQuick(NEW_QUICK_FIELD);
-      toast.success(`Added "${created.name}" to this product.`);
+      const [made] = normalizeCustomizationOptions([res.data?.data]);
+      if (!made?.id) throw new Error("The new field came back without an id.");
+      created = made;
     } catch (err) {
       setQuick((prev) => ({
         ...prev,
         saving: false,
         error: getErrorMessage(err, "Couldn't add the field. Please try again."),
+      }));
+      return;
+    }
+
+    if (price === null) {
+      setOptions((prev) => [created, ...prev]);
+      setSelection((prev) => ({ ...prev, [created.id]: [] }));
+      setQuick(NEW_QUICK_FIELD);
+      toast.success(`Added "${created.name}" to this product.`);
+      return;
+    }
+
+    try {
+      const res = await CreateCustomizationOptionValueAPI(created.id, {
+        name: PRICED_CHOICE,
+        pricing_type: quick.charge,
+        fixed_price: Number(price.toFixed(2)),
+      });
+
+      const value = res.data?.data as CustomizationOptionValue | undefined;
+      if (!value?.id) throw new Error("The price came back without an id.");
+
+      setOptions((prev) => [{ ...created, values: [value] }, ...prev]);
+      setSelection((prev) => ({ ...prev, [created.id]: [value.id] }));
+      setQuick(NEW_QUICK_FIELD);
+      toast.success(`Added "${created.name}" to this product at ${getValuePriceInfo(value).label}.`);
+    } catch (err) {
+      // The field exists now, without its price: list it unticked and say where to finish.
+      setOptions((prev) => [created, ...prev]);
+      setQuick((prev) => ({
+        ...prev,
+        saving: false,
+        error: `"${created.name}" was added, but its price wasn't saved (${getErrorMessage(
+          err,
+          "no reason given"
+        )}). Add the price on the Customizations page, then tick it here.`,
       }));
     }
   }, [quick, options]);
@@ -444,8 +522,7 @@ const ProductCustomizationsStep = ({ productId }: ProductCustomizationsStepProps
               }}
             />
             <span className="customization__hint">
-              Customers see this on the product and fill it in. It has no values to pick and no
-              extra charge.
+              Customers see this on the product and fill it in.
             </span>
           </div>
 
@@ -473,6 +550,56 @@ const ProductCustomizationsStep = ({ productId }: ProductCustomizationsStepProps
                 aria-label="Customer uploads a file"
               />
             </div>
+          </div>
+
+          <div className="customization__pc-quick-price">
+            <div className="customization__field">
+              <label htmlFor="pc-quick-price">
+                Price <span className="customization__optional">(optional)</span>
+              </label>
+              <MoneyInput
+                id="pc-quick-price"
+                value={quick.price}
+                label="Price"
+                onChange={(price) => setQuick((prev) => ({ ...prev, price, error: "" }))}
+              />
+            </div>
+
+            {quick.price.trim() !== "" && (
+              <div
+                className="customization__pc-quick-charges"
+                role="radiogroup"
+                aria-label="How the price is charged"
+              >
+                {QUICK_CHARGES.map((charge) => {
+                  const on = quick.charge === charge.type;
+
+                  return (
+                    <button
+                      key={charge.type}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      className={`customization__pc-quick-charge ${
+                        on ? "customization__pc-quick-charge--on" : ""
+                      }`}
+                      onClick={() =>
+                        setQuick((prev) => ({ ...prev, charge: charge.type, error: "" }))
+                      }
+                    >
+                      <strong>{charge.title}</strong>
+                      <span>{charge.text}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <span className="customization__hint">
+              {quick.price.trim() === ""
+                ? "Leave it empty and the field is free."
+                : `Customers pick "${PRICED_CHOICE}" to add it and pay, then fill it in. Every product with this field charges the same; change the price on the Customizations page.`}
+            </span>
           </div>
 
           {quick.error && (

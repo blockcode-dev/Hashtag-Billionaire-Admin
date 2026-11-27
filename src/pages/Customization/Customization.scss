@@ -1839,6 +1839,65 @@ $focus: var(--focus-ring);
     margin-top: 12px;
   }
 
+  // Its optional price: the amount, then per piece or one total.
+  &__pc-quick-price {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+
+    .customization__field {
+      max-width: 220px;
+      margin-bottom: 0;
+    }
+  }
+
+  &__pc-quick-charges {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+  }
+
+  &__pc-quick-charge {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 10px 12px;
+    border: 1px solid $border;
+    border-radius: $radius-sm;
+    background: $surface;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+
+    strong {
+      font-size: 13px;
+      color: $text;
+    }
+
+    span {
+      font-size: 12px;
+      line-height: 1.4;
+      color: $muted;
+    }
+
+    &:hover {
+      border-color: $blue-border;
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: $focus;
+    }
+
+    &--on {
+      border-color: $blue;
+      background: $blue-soft;
+    }
+  }
+
   &__pc-top {
     display: flex;
     align-items: flex-start;
