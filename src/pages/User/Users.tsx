@@ -10,6 +10,8 @@ import {
   ChevronLeft,
   ChevronRight,
   KeyRound,
+  Eye,
+  FileUp,
 } from "lucide-react";
 
 import { useNavigate } from "react-router";
@@ -18,6 +20,7 @@ import {
   GetAllUsersAPI,
   DeleteUserAPI,
   SetUserPasswordAPI,
+  SendLoginDetailsAPI,
 } from "@/services/Api/UserApi";
 import { SetPasswordDialog } from "@/components/common/SetPasswordDialog";
 import { toastApiError } from "@/lib/api-errors";
@@ -161,6 +164,16 @@ const UsersPage = () => {
           </div>
 
           <button
+            className="add-btn secondary"
+            onClick={() =>
+              navigate("/users/import")
+            }
+          >
+            <FileUp size={18} />
+            Import CSV
+          </button>
+
+          <button
             className="add-btn"
             onClick={() =>
               navigate("/users/add")
@@ -234,6 +247,15 @@ const UsersPage = () => {
 
                 <td>
                   <div className="action-buttons">
+                    <button
+                      className="view-btn"
+                      aria-label={`View ${u.user_profile?.name || u.email} and their orders`}
+                      title="View client and orders"
+                      onClick={() => navigate(`/users/${u.id}`)}
+                    >
+                      <Eye size={16} />
+                    </button>
+
                     <button
                       className="password-btn"
                       aria-label={`Set a password for ${u.user_profile?.name || u.email}`}
@@ -343,6 +365,9 @@ const UsersPage = () => {
             password,
             confirm_password: password,
           })
+        }
+        onEmail={(password) =>
+          SendLoginDetailsAPI(passwordUser.id, password)
         }
       />
     </div>

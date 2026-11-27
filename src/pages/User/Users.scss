@@ -77,6 +77,17 @@ $danger: var(--destructive);
         &:hover {
           opacity: 0.9;
         }
+
+        &.secondary {
+          background: $white;
+          color: $text;
+          border: 1px solid $border;
+
+          &:hover {
+            opacity: 1;
+            background: var(--muted);
+          }
+        }
       }
     }
 
@@ -155,6 +166,11 @@ $danger: var(--destructive);
           display: flex;
           align-items: center;
           justify-content: center;
+        }
+
+        .view-btn {
+          background: var(--muted);
+          color: var(--foreground);
         }
 
         .password-btn {

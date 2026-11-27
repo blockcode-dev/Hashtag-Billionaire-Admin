@@ -17,13 +17,15 @@ export interface OrderApprovalSummary {
   sent: boolean;
 }
 
-// payment_status: SUCCESS (the backend's default), PENDING, REJECTED or ALL.
+// payment_status: SUCCESS (the backend's default), PENDING, REJECTED or ALL. user_id: one
+// client's orders (the client page).
 export const GetAdminOrdersAPI = async (params: {
   page?: number;
   limit?: number;
   search?: string;
   status?: string;
   payment_status?: string;
+  user_id?: number;
 }) => {
   return axios.get(
     `${API_BASE_URL}order/admin`,

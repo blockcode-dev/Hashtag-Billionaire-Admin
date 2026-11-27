@@ -22,6 +22,8 @@ import ProductsPage from "./pages/Product/Product/Product";
 import ProductDetails from "./pages/Product/ProductDetails/ProductDetails";
 import PricingMarkupPage from "./pages/PricingMarkup/PricingMarkupPage";
 import AddUserPage from "./pages/User/AddUser/AddUserPage";
+import ImportClientsPage from "./pages/User/ImportClientsPage";
+import ClientPage from "./pages/User/ClientPage";
 import PaymentsPage from "./pages/Payment/PaymentsPage";
 import OrdersPage from "./pages/Order/OrdersPage";
 import OrderApprovalPage from "./pages/OrderApproval/OrderApprovalPage";
@@ -108,6 +110,24 @@ const App = () => (
             element={
               <AdminLayout>
                 <AddUserPage />
+              </AdminLayout>
+            }
+          />
+
+          <Route
+            path="/users/import"
+            element={
+              <AdminLayout>
+                <ImportClientsPage />
+              </AdminLayout>
+            }
+          />
+
+          <Route
+            path="/users/:id"
+            element={
+              <AdminLayout>
+                <ClientPage />
               </AdminLayout>
             }
           />

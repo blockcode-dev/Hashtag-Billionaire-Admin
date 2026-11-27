@@ -1889,7 +1889,30 @@ const TabShipping = ({ order: o, busyAction, locked, onBuyLabel }: OrderActionPr
 // ─────────────────────────────────────────────
 // Main Orders Page
 // ─────────────────────────────────────────────
-const OrdersPage = () => {
+// The list's first column, left out on a client's page.
+const CUSTOMER_COLUMN: DataTableColumn<Order> = {
+  title: "Customer",
+  render: (_v, row) => (
+    <div className="cell-customer">
+      <div className="cell-avatar">{initials(row.user?.name)}</div>
+      <div className="min-w-0">
+        <div className="cell-name">{row.user?.name || "--"}</div>
+        <div className="cell-email" title={row.user?.email}>
+          {row.user?.email || "--"}
+        </div>
+      </div>
+    </div>
+  ),
+};
+
+interface OrdersPageProps {
+  // One client's orders, on their page (Users › View): no Customer column, and every payment
+  // status until another is picked.
+  userId?: number;
+}
+
+const OrdersPage = ({ userId }: OrdersPageProps) => {
+  const defaultPayment = userId ? "ALL" : "SUCCESS";
   // Links from the Dashboard set the filters: ?status=, ?payment_status=, ?search=, and ?open=
   // (an order number to open once the list has loaded).
   const [searchParams] = useSearchParams();
@@ -1899,10 +1922,10 @@ const OrdersPage = () => {
     return {
       search: (searchParams.get("search") ?? "").trim(),
       status: ORDER_STATUS_FILTERS.includes(status) ? status : "",
-      payment: PAYMENT_FILTERS.some((f) => f.value === payment) ? payment : "SUCCESS",
+      payment: PAYMENT_FILTERS.some((f) => f.value === payment) ? payment : defaultPayment,
       open: searchParams.get("open") ?? "",
     };
-  }, [searchParams]);
+  }, [searchParams, defaultPayment]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchInput, setSearchInput] = useState(linked.search);
@@ -1946,6 +1969,7 @@ const OrdersPage = () => {
           search,
           status: statusFilter || undefined,
           payment_status: paymentFilter,
+          user_id: userId,
         });
         if (!active) return;
         const payload = res?.data?.data as OrdersPayload | undefined;
@@ -1971,7 +1995,7 @@ const OrdersPage = () => {
     return () => {
       active = false;
     };
-  }, [page, limit, search, statusFilter, paymentFilter, reloadKey]);
+  }, [page, limit, search, statusFilter, paymentFilter, reloadKey, userId]);
 
   const openOrder = useCallback((row: Order) => {
     setSelectedOrder(row);
@@ -2103,20 +2127,8 @@ const OrdersPage = () => {
 
   const columns: DataTableColumn<Order>[] = useMemo(
     () => [
-      {
-        title: "Customer",
-        render: (_v, row) => (
-          <div className="cell-customer">
-            <div className="cell-avatar">{initials(row.user?.name)}</div>
-            <div className="min-w-0">
-              <div className="cell-name">{row.user?.name || "--"}</div>
-              <div className="cell-email" title={row.user?.email}>
-                {row.user?.email || "--"}
-              </div>
-            </div>
-          </div>
-        ),
-      },
+      // On a client's page every order is theirs.
+      ...(userId ? [] : [CUSTOMER_COLUMN]),
       {
         title: "Order",
         render: (_v, row) => {
@@ -2208,15 +2220,26 @@ const OrdersPage = () => {
         ),
       },
     ],
-    [openOrder],
+    [openOrder, userId],
   );
+
+  // A client's page with nothing filtered: an empty list means they've never ordered.
+  const unfiltered = !search && !statusFilter && paymentFilter === "ALL";
 
   return (
     <div className="orders-page">
       <div className="orders-header">
         <div>
-          <h1 className="page-title">Orders</h1>
-          <p className="page-subtitle">Manage and monitor all customer orders</p>
+          {userId ? (
+            <h2 className="text-lg font-semibold text-foreground">Orders</h2>
+          ) : (
+            <h1 className="page-title">Orders</h1>
+          )}
+          <p className="page-subtitle">
+            {userId
+              ? "Every order this client has placed, paid or not. Click one to see it in full."
+              : "Manage and monitor all customer orders"}
+          </p>
         </div>
         <div className="header-stat">
           <span className="stat-num">{total.toLocaleString()}</span>
@@ -2230,7 +2253,7 @@ const OrdersPage = () => {
         <SearchInput
           allowClear
           size="large"
-          placeholder="Search by order number, customer, tracking…"
+          placeholder={userId ? "Search by order number, product, tracking…" : "Search by order number, customer, tracking…"}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           wrapperClassName="search-input"
@@ -2243,7 +2266,7 @@ const OrdersPage = () => {
           style={{ width: 190 }}
           value={paymentFilter}
           onChange={(v?: string) => {
-            setPaymentFilter(v || "SUCCESS");
+            setPaymentFilter(v || defaultPayment);
             setPage(1);
           }}
           options={PAYMENT_FILTERS.map(({ value, label }) => ({ value, label }))}
@@ -2285,7 +2308,11 @@ const OrdersPage = () => {
               setLimit(pageSize);
             },
           }}
-          emptyText={<EmptyState description="No orders match these filters." />}
+          emptyText={
+            <EmptyState
+              description={userId && unfiltered ? "No orders placed yet." : "No orders match these filters."}
+            />
+          }
         />
       </div>
 
