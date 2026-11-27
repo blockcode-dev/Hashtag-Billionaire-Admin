@@ -1973,9 +1973,11 @@ const OrdersPage = ({ userId }: OrdersPageProps) => {
         });
         if (!active) return;
         const payload = res?.data?.data as OrdersPayload | undefined;
-        const rows = payload?.data ?? [];
+        const all = payload?.data ?? [];
+        // A backend from before 27 Nov ignores user_id and lists everyone's: keep this client's.
+        const rows = userId ? all.filter((row) => Number(row.user?.id) === userId) : all;
         setOrders(rows);
-        setTotal(payload?.pagination?.total ?? 0);
+        setTotal(rows.length < all.length ? rows.length : (payload?.pagination?.total ?? 0));
         // The open order follows a reload, unless it's no longer on this page.
         setSelectedOrder((current) => (current && rows.find((row) => row.id === current.id)) ?? current);
         if (toOpen.current) {

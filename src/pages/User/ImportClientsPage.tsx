@@ -147,7 +147,13 @@ const ImportClientsPage = () => {
   const fetchFormat = () =>
     GetClientImportFormatAPI()
       .then((res) => setFormat(res.data.data))
-      .catch((err) => setFormatError(apiErrorMessage(err, "Try again in a moment.")));
+      .catch((err) =>
+        setFormatError(
+          axios.isAxiosError(err) && err.response?.status === 404
+            ? "The server doesn't have the client import yet. It comes with the backend update of 27 Nov."
+            : apiErrorMessage(err, "Try again in a moment."),
+        ),
+      );
 
   useEffect(() => {
     leftRef.current = false;

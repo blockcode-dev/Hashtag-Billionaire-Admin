@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner";
 
 import { AddUserAPI, type NewClient } from "@/services/Api/UserApi";
-import { LoginDetailsPanel } from "../ClientLogin";
+import { LoginDetailsPanel } from "../LoginDetailsPanel";
 
 import "./AddUser.scss";
 
@@ -87,7 +87,21 @@ const AddUserPage = () => {
           mobile: mobile.trim() || undefined,
         });
 
-      const data = res.data.data;
+      const data = res.data?.data;
+
+      // A backend from before 27 Nov (hashtag-backend 56d96e1) sends no password back: it emails
+      // the client a link to set their own instead.
+      if (!data?.client || !data?.password) {
+        toast.success(
+          res?.data?.message ||
+            "User created",
+          {
+            description: `${email.trim()} was emailed a link to set their own password.`,
+          },
+        );
+        navigate("/users");
+        return;
+      }
 
       setAdded({
         client: data.client,
