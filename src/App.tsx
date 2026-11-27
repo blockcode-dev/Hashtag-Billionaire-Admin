@@ -24,6 +24,7 @@ import PricingMarkupPage from "./pages/PricingMarkup/PricingMarkupPage";
 import AddUserPage from "./pages/User/AddUser/AddUserPage";
 import ImportClientsPage from "./pages/User/ImportClientsPage";
 import ClientPage from "./pages/User/ClientPage";
+import ImportOrdersPage from "./pages/User/ImportOrdersPage";
 import PaymentsPage from "./pages/Payment/PaymentsPage";
 import OrdersPage from "./pages/Order/OrdersPage";
 import OrderApprovalPage from "./pages/OrderApproval/OrderApprovalPage";
@@ -128,6 +129,15 @@ const App = () => (
             element={
               <AdminLayout>
                 <ClientPage />
+              </AdminLayout>
+            }
+          />
+
+          <Route
+            path="/users/:id/import-orders"
+            element={
+              <AdminLayout>
+                <ImportOrdersPage />
               </AdminLayout>
             }
           />

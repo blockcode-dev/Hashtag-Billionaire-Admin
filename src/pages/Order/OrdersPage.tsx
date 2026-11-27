@@ -203,6 +203,9 @@ interface Order {
   attention_note?: string | null;
   cancelled_at?: string | null;
   cancel_reason?: string | null;
+  /** A client's previous order imported from a CSV file (the client's page), and the import. */
+  imported_at?: string | null;
+  import_batch_id?: string | null;
   actions?: OrderActions;
   /** Its artwork approval: null when it has none, missing from a server without artwork approval. */
   approval?: OrderApprovalSummary | null;
@@ -862,6 +865,23 @@ const StatusBadge = ({ value, map }: { value: string; map: Record<string, BadgeC
 };
 
 /** The list's marker for an order with an attention_note; the note shows on hover and in the order. */
+// A client's previous order, imported from a CSV file: a record, with no label, cancel or approval.
+const ImportedBadge = ({ order }: { order: Order }) =>
+  order.imported_at ? (
+    <StatusBadge
+      value="IMPORTED"
+      map={{
+        IMPORTED: {
+          label: "Imported",
+          color: "var(--info-soft-foreground)",
+          bg: "var(--info-soft)",
+          dot: "var(--info)",
+          desc: `A previous order imported from a CSV file on ${fmtShortDate(order.imported_at)}.`,
+        },
+      }}
+    />
+  ) : null;
+
 const AttentionPill = ({ note }: { note: string }) => (
   <span className="attention-pill" title={note}>
     <TriangleAlert size={12} aria-hidden />
@@ -904,6 +924,8 @@ const artworkNotStarted = (o: Order) =>
  */
 const ApprovalBadge = ({ order, stacked = false }: { order: Order; stacked?: boolean }) => {
   const approval = order.approval;
+  // An imported previous order has no artwork approval.
+  if (order.imported_at && !approval) return null;
   const tag = approval ? approvalTagOf(approval) : artworkNotStarted(order) ? NOT_STARTED_TAG : null;
   if (!tag) return null;
   const unseen = approval && approval.unseen > 0 ? approval.unseen : 0;
@@ -945,7 +967,11 @@ const ApprovalBadge = ({ order, stacked = false }: { order: Order; stacked?: boo
  * The list's Artwork approval button, beside View: an icon like it, so the row keeps its width. It
  * opens for every order; the page itself says when an unpaid or cancelled order can't start one.
  */
-const ApprovalRowButton = ({ order }: { order: Order }) => (
+const ApprovalRowButton = ({ order }: { order: Order }) =>
+  // An imported previous order has no artwork approval: an empty space keeps the row's width.
+  order.imported_at && !order.approval ? (
+    <span className="view-btn invisible" aria-hidden />
+  ) : (
   <Tip content="Artwork approval">
     <Link
       to={approvalPath(order)}
@@ -957,7 +983,7 @@ const ApprovalRowButton = ({ order }: { order: Order }) => (
       <Stamp size={15} aria-hidden />
     </Link>
   </Tip>
-);
+  );
 
 const KindBadge = ({ kind }: { kind: ItemKind }) => (
   <span className={`kind-badge ${KIND_META[kind].className}`}>{KIND_META[kind].label}</span>
@@ -1127,14 +1153,18 @@ const OrderActionBar = ({
       <p className="om-actions-note" title={label === "retry" ? o.shipment_error ?? undefined : undefined}>
         {label === "buy" && (heldLabelNote(o) ?? "Paid. No shipping label yet.")}
         {label === "retry" && `The label wasn't bought: ${o.shipment_error || "ShipStation didn't give a reason."}`}
+        {o.imported_at &&
+          `A previous order, imported from a CSV file on ${fmtShortDate(o.imported_at)}. It's a record: no label, cancelling or artwork approval.`}
       </p>
       <div className="om-actions-buttons">
-        <Button asChild size="sm" variant="outline">
-          <Link to={approvalPath(o)}>
-            <Stamp aria-hidden />
-            Artwork approval
-          </Link>
-        </Button>
+        {!(o.imported_at && !o.approval) && (
+          <Button asChild size="sm" variant="outline">
+            <Link to={approvalPath(o)}>
+              <Stamp aria-hidden />
+              Artwork approval
+            </Link>
+          </Button>
+        )}
         <LabelButton order={o} busyAction={busyAction} locked={locked} onBuyLabel={onBuyLabel} />
         {canCancel && (
           <Button type="button" size="sm" variant="outline" disabled={locked} onClick={() => onCancel(o)}>
@@ -1318,6 +1348,7 @@ const OrderDetailModal = ({
               <StatusBadge value={order.status} map={ORDER_STATUS} />
               <StatusBadge value={order.payment_status} map={PAYMENT_STATUS} />
               {order.shipment_status === "FAILED" && <StatusBadge value="FAILED" map={SHIPMENT_STATUS} />}
+              <ImportedBadge order={order} />
               <ApprovalBadge order={order} />
               <CheckPill warnings={calc.warningCount} />
             </div>
@@ -1909,9 +1940,11 @@ interface OrdersPageProps {
   // One client's orders, on their page (Users › View): no Customer column, and every payment
   // status until another is picked.
   userId?: number;
+  // Buttons beside the count, e.g. "Import previous orders" on the client's page.
+  headerActions?: ReactNode;
 }
 
-const OrdersPage = ({ userId }: OrdersPageProps) => {
+const OrdersPage = ({ userId, headerActions }: OrdersPageProps) => {
   const defaultPayment = userId ? "ALL" : "SUCCESS";
   // Links from the Dashboard set the filters: ?status=, ?payment_status=, ?search=, and ?open=
   // (an order number to open once the list has loaded).
@@ -2190,6 +2223,7 @@ const OrdersPage = ({ userId }: OrdersPageProps) => {
         render: (_v, row) => (
           <div className="cell-statuses">
             <StatusBadge value={row.status} map={ORDER_STATUS} />
+            <ImportedBadge order={row} />
             {row.shipment_status === "FAILED" && <StatusBadge value="FAILED" map={SHIPMENT_STATUS} />}
             {row.attention_note && <AttentionPill note={row.attention_note} />}
             <ApprovalBadge order={row} stacked />
@@ -2243,6 +2277,7 @@ const OrdersPage = ({ userId }: OrdersPageProps) => {
               : "Manage and monitor all customer orders"}
           </p>
         </div>
+        {headerActions && <div className="ml-auto flex flex-wrap items-center gap-2">{headerActions}</div>}
         <div className="header-stat">
           <span className="stat-num">{total.toLocaleString()}</span>
           <span className="stat-label">

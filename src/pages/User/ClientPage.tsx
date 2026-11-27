@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router";
-import { ArrowLeft, Copy, KeyRound, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Copy, FileUp, KeyRound, TriangleAlert } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,8 @@ import OrdersPage from "../Order/OrdersPage";
 import { copyText, formatPhone } from "./loginDetails";
 
 // One client (Users › View): their details, and every order they've placed, with the Orders page's
-// list and order window. Old orders from a CSV file will be uploaded from here too.
+// list and order window. "Import previous orders" adds their orders from before the website, from
+// a CSV file (ImportOrdersPage).
 
 interface Client {
   id: number;
@@ -163,7 +164,15 @@ const ClientPage = () => {
         </CardContent>
       </Card>
 
-      <OrdersPage userId={client.id} />
+      <OrdersPage
+        userId={client.id}
+        headerActions={
+          <Button variant="outline" onClick={() => navigate(`/users/${client.id}/import-orders`)}>
+            <FileUp aria-hidden />
+            Import previous orders
+          </Button>
+        }
+      />
 
       <SetPasswordDialog
         account={settingPassword ? { name, email: client.email } : null}
